@@ -46,8 +46,6 @@
             top: 0;
             width: 100%;
             padding: 1.5rem 5%;
-            background: rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(20px);
             z-index: 1000;
             transition: all 0.3s ease;
         }
