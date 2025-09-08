@@ -12,47 +12,65 @@
         }
 
         :root {
-            --primary-color: #6366f1;
-            --secondary-color: #a855f7;
-            --accent-color: #ec4899;
-            --dark: #0f0f23;
-            --light: #ffffff;
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --accent: #ec4899;
+            --text-light: rgba(255, 255, 255, 0.9);
+            --text-muted: rgba(255, 255, 255, 0.6);
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            overflow-x: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
             background: #000;
-            color: #fff;
+            color: white;
+            overflow-x: hidden;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
+        /* BACKGROUND GALAXIE - TOUJOURS VISIBLE */
+        .galaxy-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://static.vecteezy.com/system/resources/previews/026/977/316/non_2x/nebula-galaxy-background-with-purple-blue-outer-space-cosmos-clouds-and-beautiful-universe-night-stars-ai-generative-free-photo.jpg') center/cover no-repeat;
+            z-index: -2;
         }
 
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
+        /* OVERLAY TRANSPARENT POUR LA LISIBILITÉ */
+        .content-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: -1;
         }
 
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
-            border-radius: 10px;
-        }
-
-        /* Navigation */
-        nav {
+        /* NAVIGATION */
+        .navbar {
             position: fixed;
             top: 0;
             width: 100%;
-            padding: 1.5rem 5%;
+            padding: 2rem 5%;
             z-index: 1000;
-            transition: all 0.3s ease;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        nav.scrolled {
-            background: rgba(0, 0, 0, 0.8);
+        .navbar.scrolled {
             padding: 1rem 5%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
         }
 
         .nav-container {
@@ -64,32 +82,26 @@
         }
 
         .logo {
-            font-size: 1.8rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, var(--primary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: 2px;
-            text-transform: uppercase;
         }
 
         .nav-links {
             display: flex;
-            gap: 2.5rem;
+            gap: 3rem;
             list-style: none;
         }
 
         .nav-links a {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--text-light);
             text-decoration: none;
-            font-size: 0.95rem;
-            letter-spacing: 1px;
+            font-weight: 500;
             transition: all 0.3s ease;
             position: relative;
-        }
-
-        .nav-links a:hover {
-            color: #fff;
         }
 
         .nav-links a::after {
@@ -99,7 +111,7 @@
             left: 0;
             width: 0;
             height: 2px;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            background: var(--primary);
             transition: width 0.3s ease;
         }
 
@@ -107,284 +119,379 @@
             width: 100%;
         }
 
-        /* Hero Section */
+        .login-btn {
+            padding: 0.8rem 2rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-btn:hover {
+            background: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        /* HERO SECTION */
         .hero {
             height: 100vh;
-            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: url('https://static.vecteezy.com/system/resources/previews/026/977/316/non_2x/nebula-galaxy-background-with-purple-blue-outer-space-cosmos-clouds-and-beautiful-universe-night-stars-ai-generative-free-photo.jpg') center/cover;
-            background-attachment: fixed;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%);
+            position: relative;
+            text-align: center;
         }
 
         .hero-content {
-            text-align: center;
-            position: relative;
-            z-index: 10;
             max-width: 1000px;
             padding: 0 2rem;
+            transform: translateY(100px);
             opacity: 0;
-            animation: fadeInUp 1.5s ease forwards;
+            animation: heroReveal 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+        }
+
+        @keyframes heroReveal {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            animation: badgeFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes badgeFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
 
         .hero-title {
-            font-size: clamp(4rem, 12vw, 10rem);
+            font-size: clamp(4rem, 15vw, 12rem);
             font-weight: 900;
-            letter-spacing: -0.02em;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #60a5fa 100%);
+            letter-spacing: -0.05em;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, #fff 0%, var(--primary) 30%, var(--secondary) 70%, #fff 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 30px rgba(139, 92, 246, 0.5));
-            animation: glow 3s ease-in-out infinite alternate;
+            background-size: 300% 300%;
+            animation: gradientMove 8s ease-in-out infinite;
         }
 
-        @keyframes glow {
-            from { filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.5)); }
-            to { filter: drop-shadow(0 0 40px rgba(139, 92, 246, 0.8)); }
+        @keyframes gradientMove {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
 
         .hero-subtitle {
             font-size: 1.5rem;
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 2rem;
-            letter-spacing: 3px;
-            text-transform: uppercase;
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
             font-weight: 300;
+            letter-spacing: 1px;
         }
 
         .hero-description {
-            font-size: 1.1rem;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 3rem;
-            line-height: 1.8;
+            font-size: 1.2rem;
+            color: var(--text-muted);
             max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
+            margin: 0 auto 3rem;
+            line-height: 1.8;
         }
 
-        .cta-button {
-            display: inline-block;
+        .cta-buttons {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
             padding: 1.2rem 3rem;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
             text-decoration: none;
-            border-radius: 50px;
+            border-radius: 60px;
             font-weight: 600;
-            letter-spacing: 1px;
+            font-size: 1.1rem;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 30px 60px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary {
+            padding: 1.2rem 3rem;
+            background: var(--glass);
+            color: white;
+            text-decoration: none;
+            border-radius: 60px;
+            font-weight: 600;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
             transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
-            position: relative;
-            overflow: hidden;
         }
 
-        .cta-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .cta-button:hover::before {
-            left: 100%;
-        }
-
-        .cta-button:hover {
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
             transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(139, 92, 246, 0.4);
         }
 
-        /* Floating Elements */
-        .floating-stars {
+        /* SCROLL INDICATOR */
+        .scroll-indicator {
             position: absolute;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            pointer-events: none;
+            bottom: 3rem;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounceScroll 2s infinite;
         }
 
-        .star {
-            position: absolute;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle 3s infinite;
+        @keyframes bounceScroll {
+            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+            40% { transform: translateX(-50%) translateY(-10px); }
+            60% { transform: translateX(-50%) translateY(-5px); }
         }
 
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-
-        /* Sections */
+        /* SECTIONS AVEC ANIMATIONS AWARD-WINNING */
         .section {
-            padding: 100px 5%;
+            padding: 120px 5%;
+            position: relative;
             max-width: 1400px;
             margin: 0 auto;
-            position: relative;
+        }
+
+        .section-reveal {
+            opacity: 0;
+            transform: translateY(80px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .section-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 5rem;
+        }
+
+        .section-badge {
+            display: inline-block;
+            padding: 0.6rem 1.5rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(10px);
         }
 
         .section-title {
-            font-size: 3rem;
+            font-size: clamp(3rem, 8vw, 5rem);
             font-weight: 800;
-            margin-bottom: 2rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff, var(--primary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            opacity: 0;
-            transform: translateY(50px);
         }
 
-        .section-title.visible {
-            animation: fadeInUp 1s ease forwards;
+        .section-description {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.7;
         }
 
-        /* Features Grid */
+        /* FEATURES GRID */
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 2rem;
-            margin-top: 4rem;
+            gap: 3rem;
+            margin-top: 5rem;
         }
 
         .feature-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 2.5rem;
-            transition: all 0.3s ease;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            padding: 3rem 2.5rem;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
             opacity: 0;
-            transform: translateY(50px);
+            transform: translateY(50px) scale(0.9);
         }
 
         .feature-card.visible {
-            animation: fadeInUp 0.8s ease forwards;
-            animation-delay: calc(var(--index) * 0.1s);
+            opacity: 1;
+            transform: translateY(0) scale(1);
         }
 
         .feature-card:hover {
-            transform: translateY(-10px);
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(139, 92, 246, 0.5);
-            box-shadow: 0 20px 40px rgba(139, 92, 246, 0.2);
+            transform: translateY(-15px) scale(1.03);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 30px 60px rgba(99, 102, 241, 0.2);
         }
 
         .feature-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border-radius: 15px;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 25px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .feature-icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
         }
 
         .feature-title {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
+            font-weight: 700;
             margin-bottom: 1rem;
-            color: #fff;
+            color: white;
         }
 
         .feature-description {
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.6;
+            color: var(--text-muted);
+            line-height: 1.7;
+            font-size: 1.1rem;
         }
 
-        /* Equipment Section */
-        .equipment-showcase {
+        /* EQUIPMENT SHOWCASE */
+        .equipment-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 4rem;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 3rem;
+            margin-top: 5rem;
         }
 
         .equipment-card {
-            position: relative;
-            height: 400px;
-            border-radius: 20px;
+            height: 500px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
             overflow: hidden;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
+            position: relative;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(20px);
             opacity: 0;
-            transform: scale(0.9);
+            transform: rotateY(20deg) translateZ(-50px);
         }
 
         .equipment-card.visible {
-            animation: scaleIn 0.8s ease forwards;
-            animation-delay: calc(var(--index) * 0.15s);
-        }
-
-        @keyframes scaleIn {
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
+            opacity: 1;
+            transform: rotateY(0deg) translateZ(0px);
         }
 
         .equipment-card:hover {
-            transform: translateY(-10px) scale(1.02);
-            box-shadow: 0 30px 60px rgba(139, 92, 246, 0.3);
+            transform: translateY(-20px) rotateY(-5deg);
+            box-shadow: 0 40px 80px rgba(99, 102, 241, 0.3);
+        }
+
+        .equipment-visual {
+            height: 70%;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.1));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .equipment-visual::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, transparent 40%, rgba(0, 0, 0, 0.3));
+        }
+
+        .equipment-icon {
+            width: 100px;
+            height: 100px;
+            color: white;
+            opacity: 0.8;
+            z-index: 1;
+            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
         }
 
         .equipment-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 2rem;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            padding: 2.5rem;
+            height: 30%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .equipment-name {
             font-size: 1.5rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
+            color: white;
         }
 
         .equipment-specs {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
         }
 
-        /* Animations */
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Parallax Elements */
-        .parallax-element {
+        /* FLOATING ELEMENTS */
+        .floating-element {
             position: absolute;
             pointer-events: none;
-            opacity: 0.5;
+            animation: float 6s ease-in-out infinite;
         }
 
-        .planet {
-            width: 100px;
-            height: 100px;
-            background: radial-gradient(circle, #8b5cf6, #3b0764);
-            border-radius: 50%;
-            position: absolute;
-            right: 10%;
+        .floating-element:nth-child(1) {
             top: 20%;
-            animation: float 6s ease-in-out infinite;
+            right: 10%;
+            animation-delay: 0s;
+        }
+
+        .floating-element:nth-child(2) {
+            top: 60%;
+            left: 5%;
+            animation-delay: 2s;
+        }
+
+        .floating-element:nth-child(3) {
+            top: 80%;
+            right: 20%;
+            animation-delay: 4s;
         }
 
         @keyframes float {
@@ -392,42 +499,39 @@
             50% { transform: translateY(-20px) rotate(180deg); }
         }
 
-        /* Responsive */
+        /* RESPONSIVE */
         @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-
-            .hero-title {
-                font-size: 3rem;
-            }
-
-            .hero-subtitle {
-                font-size: 1rem;
-            }
-
-            .section {
-                padding: 60px 5%;
-            }
-
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
+            .nav-links { display: none; }
+            .cta-buttons { flex-direction: column; align-items: center; }
+            .features-grid { grid-template-columns: 1fr; gap: 2rem; }
+            .equipment-grid { grid-template-columns: 1fr; }
+            .hero-title { font-size: 4rem; }
         }
 
-        /* Loading Animation */
+        /* CUSTOM SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(var(--primary), var(--secondary));
+            border-radius: 10px;
+        }
+
+        /* LOADER */
         .loader {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             background: #000;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 9999;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.8s ease;
         }
 
         .loader.hidden {
@@ -436,156 +540,250 @@
         }
 
         .loader-text {
-            font-size: 2rem;
+            font-size: 3rem;
             font-weight: 900;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            animation: pulse 1.5s ease infinite;
+            animation: pulse 1.5s ease-in-out infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* Side text */
-        .side-text {
-            position: fixed;
-            left: 2rem;
-            top: 50%;
-            transform: translateY(-50%) rotate(-90deg);
-            transform-origin: left center;
-            font-size: 0.8rem;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.3);
-            z-index: 100;
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
         }
     </style>
 </head>
 <body>
-    <!-- Loader -->
+    <!-- LOADER -->
     <div class="loader" id="loader">
         <div class="loader-text">STELLAR</div>
     </div>
 
-    <!-- Side Text -->
-    <div class="side-text">BEYOND THE STARS</div>
+    <!-- BACKGROUND GALAXIE FIXE -->
+    <div class="galaxy-background"></div>
+    <div class="content-overlay"></div>
 
-    <!-- Navigation -->
-    <nav id="navbar">
+    <!-- NAVIGATION -->
+    <nav class="navbar" id="navbar">
         <div class="nav-container">
             <div class="logo">STELLAR</div>
             <ul class="nav-links">
                 <li><a href="#home">Accueil</a></li>
                 <li><a href="#features">Fonctionnalités</a></li>
                 <li><a href="#equipment">Équipement</a></li>
-                <li><a href="#experience">Expérience</a></li>
                 <li><a href="#about">À propos</a></li>
             </ul>
+            <a href="/fr/login" class="login-btn">Se connecter</a>
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- HERO SECTION -->
     <section class="hero" id="home">
-        <div class="floating-stars" id="stars"></div>
-        <div class="planet parallax-element"></div>
         <div class="hero-content">
             <h1 class="hero-title">STELLAR</h1>
             <p class="hero-subtitle">Explorez l'Univers Comme Jamais Auparavant</p>
             <p class="hero-description">
                 Accédez aux meilleurs télescopes professionnels du monde depuis chez vous.
-                Découvrez les merveilles du cosmos avec notre plateforme de location
-                de matériel d'astronomie à distance.
+                Découvrez les merveilles du cosmos avec notre plateforme révolutionnaire.
             </p>
-            <a href="#" class="cta-button">Réserver Votre Observation</a>
+            <div class="cta-buttons">
+                <a href="/fr/register" class="btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Commencer l'Exploration
+                </a>
+                <a href="#features" class="btn-secondary">Découvrir Plus</a>
+            </div>
+        </div>
+        <div class="scroll-indicator">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M7 13L12 18L17 13" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                <path d="M7 6L12 11L17 6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        </div>
+
+        <!-- FLOATING ELEMENTS -->
+        <div class="floating-element">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="rgba(99, 102, 241, 0.3)" stroke-width="1"/>
+                <circle cx="12" cy="12" r="3" fill="rgba(99, 102, 241, 0.5)"/>
+            </svg>
+        </div>
+        <div class="floating-element">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5" stroke="rgba(168, 85, 247, 0.4)" stroke-width="1" fill="rgba(168, 85, 247, 0.1)"/>
+            </svg>
+        </div>
+        <div class="floating-element">
+            <svg width="50" height="50" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z" fill="rgba(236, 72, 153, 0.3)"/>
+            </svg>
         </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="section" id="features">
-        <h2 class="section-title">Une Nouvelle Façon d'Observer les Étoiles</h2>
+    <!-- FEATURES SECTION -->
+    <section class="section section-reveal" id="features">
+        <div class="section-header">
+            <div class="section-badge">Technologies Avancées</div>
+            <h2 class="section-title">Une Révolution Astronomique</h2>
+            <p class="section-description">
+                Découvrez une nouvelle façon d'explorer l'univers grâce à nos technologies de pointe
+                et notre plateforme intuitive.
+            </p>
+        </div>
+
         <div class="features-grid">
-            <div class="feature-card" style="--index: 0">
-                <div class="feature-icon">🔭</div>
+            <div class="feature-card" style="transition-delay: 0.1s;">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
                 <h3 class="feature-title">Télescopes Professionnels</h3>
                 <p class="feature-description">
-                    Accédez à des télescopes de pointe situés dans les meilleurs sites
-                    d'observation du monde, sans quitter votre domicile.
+                    Accédez à des télescopes de classe mondiale situés dans les meilleurs
+                    observatoires de la planète.
                 </p>
             </div>
-            <div class="feature-card" style="--index: 1">
-                <div class="feature-icon">🌍</div>
+
+            <div class="feature-card" style="transition-delay: 0.2s;">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                        <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M9 9h.01M15 9h.01" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
                 <h3 class="feature-title">Contrôle à Distance</h3>
                 <p class="feature-description">
-                    Pilotez les télescopes en temps réel depuis votre ordinateur.
-                    Pointez, zoomez et capturez les merveilles de l'univers.
+                    Pilotez les télescopes en temps réel depuis chez vous avec notre
+                    interface de contrôle intuitive.
                 </p>
             </div>
-            <div class="feature-card" style="--index: 2">
-                <div class="feature-icon">📸</div>
-                <h3 class="feature-title">Images Haute Résolution</h3>
+
+            <div class="feature-card" style="transition-delay: 0.3s;">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="2"/>
+                        <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
+                <h3 class="feature-title">Images Ultra HD</h3>
                 <p class="feature-description">
-                    Capturez des images époustouflantes en haute résolution
-                    et téléchargez vos observations pour les conserver.
+                    Capturez des images époustouflantes en ultra haute résolution
+                    des merveilles de l'univers.
                 </p>
             </div>
-            <div class="feature-card" style="--index: 3">
-                <div class="feature-icon">🌌</div>
-                <h3 class="feature-title">Ciel Sans Pollution</h3>
+
+            <div class="feature-card" style="transition-delay: 0.4s;">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="2"/>
+                        <polyline points="3.27,6.96 12,12.01 20.73,6.96" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
+                <h3 class="feature-title">Ciel Pur</h3>
                 <p class="feature-description">
                     Nos observatoires sont situés dans des zones sans pollution lumineuse
-                    pour une observation optimale du ciel profond.
+                    pour une qualité d'observation optimale.
                 </p>
             </div>
-            <div class="feature-card" style="--index: 4">
-                <div class="feature-icon">📚</div>
+
+            <div class="feature-card" style="transition-delay: 0.5s;">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
                 <h3 class="feature-title">Assistance Expert</h3>
                 <p class="feature-description">
-                    Bénéficiez de l'aide de nos astronomes professionnels
-                    pour vos sessions d'observation.
+                    Bénéficiez de l'accompagnement de nos astronomes professionnels
+                    pour optimiser vos observations.
                 </p>
             </div>
-            <div class="feature-card" style="--index: 5">
-                <div class="feature-icon">🎯</div>
+
+            <div class="feature-card" style="transition-delay: 0.6s;">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                        <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
                 <h3 class="feature-title">Planification Intelligente</h3>
                 <p class="feature-description">
-                    Notre système vous aide à planifier vos observations
-                    en fonction des conditions météo et astronomiques.
+                    Notre IA vous aide à planifier vos sessions d'observation selon
+                    les conditions météorologiques et astronomiques.
                 </p>
             </div>
         </div>
     </section>
 
-    <!-- Equipment Section -->
-    <section class="section" id="equipment">
-        <h2 class="section-title">Notre Flotte d'Équipements</h2>
-        <div class="equipment-showcase">
-            <div class="equipment-card" style="--index: 0">
+    <!-- EQUIPMENT SECTION -->
+    <section class="section section-reveal" id="equipment">
+        <div class="section-header">
+            <div class="section-badge">Équipement Premium</div>
+            <h2 class="section-title">Notre Flotte Stellaire</h2>
+            <p class="section-description">
+                Découvrez notre collection d'instruments d'observation de classe mondiale,
+                situés dans les meilleurs observatoires de la planète.
+            </p>
+        </div>
+
+        <div class="equipment-grid">
+            <div class="equipment-card" style="transition-delay: 0.1s;">
+                <div class="equipment-visual">
+                    <svg class="equipment-icon" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+                    </svg>
+                </div>
                 <div class="equipment-info">
                     <h3 class="equipment-name">Celestron CGX-L 1400</h3>
                     <p class="equipment-specs">
                         Schmidt-Cassegrain 14" • f/11 • 3910mm<br>
-                        Idéal pour l'observation planétaire
+                        Excellence en observation planétaire et ciel profond
                     </p>
                 </div>
             </div>
-            <div class="equipment-card" style="--index: 1">
+
+            <div class="equipment-card" style="transition-delay: 0.2s;">
+                <div class="equipment-visual">
+                    <svg class="equipment-icon" viewBox="0 0 24 24" fill="none">
+                        <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5" stroke="currentColor" stroke-width="2"/>
+                        <line x1="12" y1="22" x2="12" y2="12" stroke="currentColor" stroke-width="2"/>
+                        <line x1="2" y1="8.5" x2="12" y2="12" stroke="currentColor" stroke-width="2"/>
+                        <line x1="22" y1="8.5" x2="12" y2="12" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
                 <div class="equipment-info">
                     <h3 class="equipment-name">PlaneWave CDK24</h3>
                     <p class="equipment-specs">
                         Corrected Dall-Kirkham 24" • f/6.5<br>
-                        Parfait pour le ciel profond
+                        Perfection absolue pour l'astrophotographie
                     </p>
                 </div>
             </div>
-            <div class="equipment-card" style="--index: 2">
+
+            <div class="equipment-card" style="transition-delay: 0.3s;">
+                <div class="equipment-visual">
+                    <svg class="equipment-icon" viewBox="0 0 24 24" fill="none">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="2"/>
+                        <polyline points="7.5,9.5 12,12 16.5,9.5" stroke="currentColor" stroke-width="2"/>
+                        <line x1="12" y1="12" x2="12" y2="16.5" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
                 <div class="equipment-info">
                     <h3 class="equipment-name">Takahashi FSQ-106</h3>
                     <p class="equipment-specs">
                         Réfracteur apochromatique • f/5<br>
-                        Excellence en astrophotographie grand champ
+                        Légende en astrophotographie grand champ
                     </p>
                 </div>
             </div>
@@ -593,89 +791,221 @@
     </section>
 
     <script>
-        // Loader
+        // LOADER
         window.addEventListener('load', () => {
             setTimeout(() => {
                 document.getElementById('loader').classList.add('hidden');
             }, 1500);
         });
 
-        // Navbar scroll effect
+        // NAVBAR SCROLL EFFECT
+        let lastScrollY = window.scrollY;
         window.addEventListener('scroll', () => {
             const navbar = document.getElementById('navbar');
-            if (window.scrollY > 50) {
+            const scrollY = window.scrollY;
+
+            if (scrollY > 100) {
                 navbar.classList.add('scrolled');
             } else {
                 navbar.classList.remove('scrolled');
             }
+
+            // Hide/show navbar on scroll direction
+            if (scrollY > lastScrollY && scrollY > 200) {
+                navbar.style.transform = 'translateY(-100%)';
+            } else {
+                navbar.style.transform = 'translateY(0)';
+            }
+            lastScrollY = scrollY;
         });
 
-        // Generate stars
-        const starsContainer = document.getElementById('stars');
-        for (let i = 0; i < 100; i++) {
-            const star = document.createElement('div');
-            star.className = 'star';
-            star.style.width = Math.random() * 3 + 'px';
-            star.style.height = star.style.width;
-            star.style.left = Math.random() * 100 + '%';
-            star.style.top = Math.random() * 100 + '%';
-            star.style.animationDelay = Math.random() * 3 + 's';
-            starsContainer.appendChild(star);
-        }
-
-        // Intersection Observer for animations
+        // AWARD-WINNING SCROLL ANIMATIONS
         const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -100px 0px'
+            threshold: 0.2,
+            rootMargin: '-50px 0px -50px 0px'
         };
 
-        const observer = new IntersectionObserver((entries) => {
+        const scrollObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('visible');
+
+                    // Animate feature cards with stagger
+                    if (entry.target.classList.contains('features-grid')) {
+                        const cards = entry.target.querySelectorAll('.feature-card');
+                        cards.forEach((card, index) => {
+                            setTimeout(() => {
+                                card.classList.add('visible');
+                            }, index * 100);
+                        });
+                    }
+
+                    // Animate equipment cards with stagger
+                    if (entry.target.classList.contains('equipment-grid')) {
+                        const cards = entry.target.querySelectorAll('.equipment-card');
+                        cards.forEach((card, index) => {
+                            setTimeout(() => {
+                                card.classList.add('visible');
+                            }, index * 150);
+                        });
+                    }
                 }
             });
         }, observerOptions);
 
         // Observe elements
-        document.querySelectorAll('.section-title, .feature-card, .equipment-card').forEach(el => {
-            observer.observe(el);
+        document.querySelectorAll('.section-reveal, .features-grid, .equipment-grid').forEach(el => {
+            scrollObserver.observe(el);
         });
 
-        // Parallax effect
+        // PARALLAX EFFECT FOR GALAXY BACKGROUND
         window.addEventListener('scroll', () => {
             const scrolled = window.pageYOffset;
-            const parallaxElements = document.querySelectorAll('.parallax-element');
+            const rate = scrolled * -0.3;
 
-            parallaxElements.forEach(element => {
-                const speed = element.dataset.speed || 0.5;
-                element.style.transform = `translateY(${scrolled * speed}px)`;
+            // Galaxy background parallax
+            const galaxyBg = document.querySelector('.galaxy-background');
+            galaxyBg.style.transform = `translateY(${rate}px) scale(1.1)`;
+
+            // Floating elements parallax
+            const floatingElements = document.querySelectorAll('.floating-element');
+            floatingElements.forEach((element, index) => {
+                const speed = 0.1 + (index * 0.05);
+                element.style.transform += ` translateY(${scrolled * speed}px)`;
             });
         });
 
-        // Smooth scroll for navigation links
+        // MAGNETIC CURSOR EFFECT FOR BUTTONS
+        const buttons = document.querySelectorAll('.btn-primary, .btn-secondary, .login-btn');
+
+        buttons.forEach(button => {
+            button.addEventListener('mousemove', (e) => {
+                const rect = button.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+
+                button.style.transform = `translate(${x * 0.1}px, ${y * 0.1}px)`;
+            });
+
+            button.addEventListener('mouseleave', () => {
+                button.style.transform = '';
+            });
+        });
+
+        // SMOOTH SCROLL FOR NAVIGATION
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
                 const target = document.querySelector(this.getAttribute('href'));
                 if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
+                    const targetPosition = target.offsetTop - 100;
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
                     });
                 }
             });
         });
 
-        // Mouse move effect for hero
-        document.addEventListener('mousemove', (e) => {
-            const mouseX = e.clientX / window.innerWidth - 0.5;
-            const mouseY = e.clientY / window.innerHeight - 0.5;
+        // HERO TITLE MOUSE TRACKING
+        const heroTitle = document.querySelector('.hero-title');
+        let mouseX = 0, mouseY = 0;
+        let titleX = 0, titleY = 0;
 
-            const heroTitle = document.querySelector('.hero-title');
-            if (heroTitle) {
-                heroTitle.style.transform = `translate(${mouseX * 20}px, ${mouseY * 20}px)`;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+            mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+        });
+
+        function animateTitle() {
+            titleX += (mouseX - titleX) * 0.1;
+            titleY += (mouseY - titleY) * 0.1;
+
+            if (window.scrollY < window.innerHeight) {
+                heroTitle.style.transform = `translate(${titleX * 10}px, ${titleY * 10}px)`;
             }
+
+            requestAnimationFrame(animateTitle);
+        }
+        animateTitle();
+
+        // AWARD-WINNING CARD HOVER EFFECTS
+        document.querySelectorAll('.feature-card, .equipment-card').forEach(card => {
+            card.addEventListener('mouseenter', function(e) {
+                // Create ripple effect
+                const ripple = document.createElement('div');
+                ripple.style.position = 'absolute';
+                ripple.style.borderRadius = '50%';
+                ripple.style.background = 'rgba(99, 102, 241, 0.3)';
+                ripple.style.transform = 'scale(0)';
+                ripple.style.animation = 'ripple 0.6s linear';
+                ripple.style.left = '50%';
+                ripple.style.top = '50%';
+                ripple.style.width = '20px';
+                ripple.style.height = '20px';
+                ripple.style.marginLeft = '-10px';
+                ripple.style.marginTop = '-10px';
+                ripple.style.pointerEvents = 'none';
+
+                this.appendChild(ripple);
+
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+
+        // Add ripple animation to CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // PERFORMANCE OPTIMIZATION
+        let ticking = false;
+
+        function updateScrollEffects() {
+            // All scroll-based animations here
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(updateScrollEffects);
+                ticking = true;
+            }
+        });
+
+        // ACCESSIBILITY ENHANCEMENTS
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                document.body.style.setProperty('--focus-visible', '2px solid #6366f1');
+            }
+        });
+
+        document.addEventListener('mousedown', () => {
+            document.body.style.setProperty('--focus-visible', 'none');
+        });
+
+        // PRELOAD CRITICAL RESOURCES
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.willChange = 'transform, opacity';
+                } else {
+                    entry.target.style.willChange = 'auto';
+                }
+            });
+        });
+
+        document.querySelectorAll('.feature-card, .equipment-card').forEach(el => {
+            observer.observe(el);
         });
     </script>
 </body>
