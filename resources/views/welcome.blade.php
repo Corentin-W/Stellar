@@ -496,30 +496,9 @@
             line-height: 1.5;
         }
 
-        /* FLOATING ELEMENTS */
-        .floating-element {
-            position: absolute;
-            pointer-events: none;
-            animation: float 6s ease-in-out infinite;
-        }
 
-        .floating-element:nth-child(1) {
-            top: 20%;
-            right: 10%;
-            animation-delay: 0s;
-        }
 
-        .floating-element:nth-child(2) {
-            top: 60%;
-            left: 5%;
-            animation-delay: 2s;
-        }
 
-        .floating-element:nth-child(3) {
-            top: 80%;
-            right: 20%;
-            animation-delay: 4s;
-        }
 
         @keyframes float {
             0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -591,7 +570,7 @@
         }
         @media (prefers-reduced-motion: reduce) {
             * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
-            .hero-title, .floating-element { animation: none !important; }
+            .hero-title{ animation: none !important; }
         }
     </style>
 </head>
@@ -646,23 +625,7 @@
             </svg>
         </div>
 
-        <!-- FLOATING ELEMENTS -->
-        <div class="floating-element">
-            <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="rgba(99, 102, 241, 0.3)" stroke-width="1"/>
-                <circle cx="12" cy="12" r="3" fill="rgba(99, 102, 241, 0.5)"/>
-            </svg>
-        </div>
-        <div class="floating-element">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-                <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5" stroke="rgba(168, 85, 247, 0.4)" stroke-width="1" fill="rgba(168, 85, 247, 0.1)"/>
-            </svg>
-        </div>
-        <div class="floating-element">
-            <svg width="50" height="50" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z" fill="rgba(236, 72, 153, 0.3)"/>
-            </svg>
-        </div>
+
     </section>
 
     <!-- FEATURES SECTION -->
@@ -909,12 +872,7 @@
             const galaxyBg = document.querySelector('.galaxy-background');
             galaxyBg.style.transform = `translateY(${rate}px) scale(1.1)`;
 
-            // Floating elements parallax
-            const floatingElements = document.querySelectorAll('.floating-element');
-            floatingElements.forEach((element, index) => {
-                const speed = 0.1 + (index * 0.05);
-                element.style.transform = `translateY(${scrolled * speed}px)`;
-            });
+
         }, { passive: true });
 
         // 3D STARFIELD PARALLAX (CANVAS)
