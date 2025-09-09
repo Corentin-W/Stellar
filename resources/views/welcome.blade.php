@@ -514,6 +514,16 @@
             .features-grid { grid-template-columns: 1fr; gap: 2rem; }
             .equipment-grid { grid-template-columns: 1fr; }
             .hero-title { font-size: 4rem; }
+            .navbar { padding: 1rem 5%; }
+            .hero-subtitle { font-size: 1.1rem; }
+            .hero-description { font-size: 1rem; margin-bottom: 2rem; padding: 0 0.5rem; }
+            .cta-buttons a { width: 100%; text-align: center; }
+            .section { padding: 70px 6%; }
+            .features-grid { grid-template-columns: 1fr; gap: 1.25rem; }
+            .equipment-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+            .equipment-card { height: auto; }
+            .equipment-visual { height: 220px; }
+            .nav-links { display: none; }
         }
 
         /* CUSTOM SCROLLBAR */
@@ -559,6 +569,10 @@
         @keyframes pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.7; transform: scale(1.05); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+            .hero-title, .floating-element { animation: none !important; }
         }
     </style>
 </head>
@@ -880,7 +894,7 @@
             const floatingElements = document.querySelectorAll('.floating-element');
             floatingElements.forEach((element, index) => {
                 const speed = 0.1 + (index * 0.05);
-                element.style.transform += ` translateY(${scrolled * speed}px)`;
+                element.style.transform = `translateY(${scrolled * speed}px)`;
             });
         });
 
@@ -893,14 +907,18 @@
             let width = canvas.width = window.innerWidth;
             let height = canvas.height = window.innerHeight;
 
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
             // Number of stars scales with viewport size (lighter on mobile)
-            const baseDensity = 0.00014; // adjust between ~0.00010 and 0.00018 to taste
+            const baseDensity = reducedMotion ? 0.00006 : (isMobile ? 0.00008 : 0.00014);
             let STAR_COUNT = Math.round(width * height * baseDensity);
             STAR_COUNT = Math.max(180, Math.min(STAR_COUNT, 900));
 
             let stars = [];
             let mouseX = 0, mouseY = 0;
             let parallaxX = 0, parallaxY = 0;
+            const PARALLAX_FACTOR = isMobile ? 12 : 25;
 
             function rand(min, max) { return Math.random() * (max - min) + min; }
 
@@ -963,15 +981,15 @@
 
                     // Depth-based parallax: nearer stars move more
                     const depth = 1 - s.z;
-                    const px = s.x * width + parallaxX * depth * 25;
-                    const py = s.y * height + parallaxY * depth * 25 + scrollY * depth * 0.06;
+                    const px = s.x * width + parallaxX * depth * PARALLAX_FACTOR;
+                    const py = s.y * height + parallaxY * depth * PARALLAX_FACTOR + scrollY * depth * 0.06;
 
                     // Wrap stars when they go out of bounds for continuous field
                     let x = px % width; if (x < 0) x += width;
                     let y = py % height; if (y < 0) y += height;
 
                     // Twinkle effect
-                    const twinkle = 0.6 + 0.4 * Math.sin(t * 0.001 * s.tw + s.ph);
+                    const twinkle = reducedMotion ? 1 : (0.6 + 0.4 * Math.sin(t * 0.001 * s.tw + s.ph));
 
                     // Tiny drift to prevent static feel
                     s.x = (s.x + s.drift * 0.0002) % 1;
@@ -982,7 +1000,7 @@
                     ctx.beginPath();
                     ctx.arc(x, y, r, 0, Math.PI * 2);
                     ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * twinkle})`;
-                    ctx.shadowBlur = 6 * depth;
+                    ctx.shadowBlur = (isMobile ? 3 : 6) * depth;
                     ctx.shadowColor = 'rgba(255,255,255,0.8)';
                     ctx.fill();
                     ctx.shadowBlur = 0;
@@ -995,21 +1013,21 @@
         })();
 
         // MAGNETIC CURSOR EFFECT FOR BUTTONS
+        const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
         const buttons = document.querySelectorAll('.btn-primary, .btn-secondary, .login-btn');
-
-        buttons.forEach(button => {
-            button.addEventListener('mousemove', (e) => {
-                const rect = button.getBoundingClientRect();
-                const x = e.clientX - rect.left - rect.width / 2;
-                const y = e.clientY - rect.top - rect.height / 2;
-
-                button.style.transform = `translate(${x * 0.1}px, ${y * 0.1}px)`;
+        if (!isTouch) {
+            buttons.forEach(button => {
+                button.addEventListener('mousemove', (e) => {
+                    const rect = button.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    button.style.transform = `translate(${x * 0.1}px, ${y * 0.1}px)`;
+                });
+                button.addEventListener('mouseleave', () => {
+                    button.style.transform = '';
+                });
             });
-
-            button.addEventListener('mouseleave', () => {
-                button.style.transform = '';
-            });
-        });
+        }
 
         // SMOOTH SCROLL FOR NAVIGATION
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -1030,13 +1048,17 @@
         const heroTitle = document.querySelector('.hero-title');
         let mouseX = 0, mouseY = 0;
         let titleX = 0, titleY = 0;
+        const disableHeroMouse = isTouch || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        document.addEventListener('mousemove', (e) => {
-            mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-            mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-        });
+        if (!disableHeroMouse) {
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+                mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+            });
+        }
 
         function animateTitle() {
+            if (disableHeroMouse) { requestAnimationFrame(animateTitle); return; }
             titleX += (mouseX - titleX) * 0.1;
             titleY += (mouseY - titleY) * 0.1;
 
