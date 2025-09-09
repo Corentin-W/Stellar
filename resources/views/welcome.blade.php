@@ -42,7 +42,7 @@
             width: 100%;
             height: 100%;
             background: url('https://static.vecteezy.com/system/resources/previews/026/977/316/non_2x/nebula-galaxy-background-with-purple-blue-outer-space-cosmos-clouds-and-beautiful-universe-night-stars-ai-generative-free-photo.jpg') center/cover no-repeat;
-            z-index: -2;
+            z-index: -3;
         }
 
         /* OVERLAY TRANSPARENT POUR LA LISIBILITÉ */
@@ -53,7 +53,15 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.3);
+            z-index: -2;
+        }
+
+        /* STARFIELD CANVAS ABOVE OVERLAY, BELOW CONTENT */
+        #stars-canvas {
+            position: fixed;
+            inset: 0;
             z-index: -1;
+            pointer-events: none;
         }
 
         /* NAVIGATION */
@@ -563,6 +571,7 @@
     <!-- BACKGROUND GALAXIE FIXE -->
     <div class="galaxy-background"></div>
     <div class="content-overlay"></div>
+    <canvas id="stars-canvas"></canvas>
 
     <!-- NAVIGATION -->
     <nav class="navbar" id="navbar">
@@ -874,6 +883,116 @@
                 element.style.transform += ` translateY(${scrolled * speed}px)`;
             });
         });
+
+        // 3D STARFIELD PARALLAX (CANVAS)
+        (function() {
+            const canvas = document.getElementById('stars-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d', { alpha: true });
+
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+
+            // Number of stars scales with viewport size (lighter on mobile)
+            const baseDensity = 0.00014; // adjust between ~0.00010 and 0.00018 to taste
+            let STAR_COUNT = Math.round(width * height * baseDensity);
+            STAR_COUNT = Math.max(180, Math.min(STAR_COUNT, 900));
+
+            let stars = [];
+            let mouseX = 0, mouseY = 0;
+            let parallaxX = 0, parallaxY = 0;
+
+            function rand(min, max) { return Math.random() * (max - min) + min; }
+
+            function createStars() {
+                stars = [];
+                for (let i = 0; i < STAR_COUNT; i++) {
+                    // z is depth: 0 (near) .. 1 (far)
+                    const z = Math.pow(Math.random(), 2); // bias towards far for subtlety
+                    stars.push({
+                        // normalized positions [0..1]
+                        x: Math.random(),
+                        y: Math.random(),
+                        z,
+                        // base radius & brightness depend on depth
+                        r: rand(0.2, 1.2) * (1 - z) * 1.4,
+                        tw: rand(0.5, 2.0), // twinkle speed
+                        ph: rand(0, Math.PI * 2), // twinkle phase
+                        drift: rand(0.02, 0.12) * (1 - z) // slow drift speed
+                    });
+                }
+            }
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+                // Recompute star count based on new size
+                let newCount = Math.round(width * height * baseDensity);
+                newCount = Math.max(180, Math.min(newCount, 900));
+                if (newCount !== STAR_COUNT) {
+                    STAR_COUNT = newCount;
+                    createStars();
+                }
+            }
+
+            window.addEventListener('resize', resize);
+
+            // Mouse parallax
+            document.addEventListener('mousemove', (e) => {
+                const mx = (e.clientX / width - 0.5) * 2;
+                const my = (e.clientY / height - 0.5) * 2;
+                mouseX = mx;
+                mouseY = my;
+            });
+
+            // Smooth follow for parallax to feel inertial
+            function updateParallax() {
+                parallaxX += (mouseX - parallaxX) * 0.06;
+                parallaxY += (mouseY - parallaxY) * 0.06;
+            }
+
+            // Render loop
+            function draw(t) {
+                updateParallax();
+                ctx.clearRect(0, 0, width, height);
+
+                const scrollY = window.pageYOffset || 0;
+
+                for (let i = 0; i < STAR_COUNT; i++) {
+                    const s = stars[i];
+
+                    // Depth-based parallax: nearer stars move more
+                    const depth = 1 - s.z;
+                    const px = s.x * width + parallaxX * depth * 25;
+                    const py = s.y * height + parallaxY * depth * 25 + scrollY * depth * 0.06;
+
+                    // Wrap stars when they go out of bounds for continuous field
+                    let x = px % width; if (x < 0) x += width;
+                    let y = py % height; if (y < 0) y += height;
+
+                    // Twinkle effect
+                    const twinkle = 0.6 + 0.4 * Math.sin(t * 0.001 * s.tw + s.ph);
+
+                    // Tiny drift to prevent static feel
+                    s.x = (s.x + s.drift * 0.0002) % 1;
+
+                    const r = Math.max(0.2, s.r * (0.7 + 0.3 * depth)) * (0.8 + 0.2 * twinkle);
+
+                    // Draw star (use shadow for slight glow)
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * twinkle})`;
+                    ctx.shadowBlur = 6 * depth;
+                    ctx.shadowColor = 'rgba(255,255,255,0.8)';
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+                requestAnimationFrame(draw);
+            }
+
+            createStars();
+            requestAnimationFrame(draw);
+        })();
 
         // MAGNETIC CURSOR EFFECT FOR BUTTONS
         const buttons = document.querySelectorAll('.btn-primary, .btn-secondary, .login-btn');
