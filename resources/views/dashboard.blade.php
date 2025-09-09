@@ -1,521 +1,514 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Stellar</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<!-- resources/views/dashboard.blade.php -->
+@extends('layouts.app')
 
-        :root {
-            --primary: #6366f1;
-            --secondary: #a855f7;
-            --accent: #ec4899;
-            --text-light: rgba(255, 255, 255, 0.9);
-            --text-muted: rgba(255, 255, 255, 0.6);
-            --glass: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-        }
+@section('title', 'Dashboard - TelescopeApp')
+@section('page-title', 'Dashboard')
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
-            background: #000;
-            color: white;
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-        }
+@push('styles')
+<style>
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-2xl);
+}
 
-        /* BACKGROUND GALAXIE */
-        .galaxy-background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('https://static.vecteezy.com/system/resources/previews/026/977/316/non_2x/nebula-galaxy-background-with-purple-blue-outer-space-cosmos-clouds-and-beautiful-universe-night-stars-ai-generative-free-photo.jpg') center/cover no-repeat;
-            background-size: 120% 120%;
-            z-index: -2;
-        }
+.dashboard-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-md);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    transition: var(--transition-base);
+}
 
-        .content-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            z-index: -1;
-        }
+.dashboard-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--glass-border-hover);
+}
 
-        /* NAVIGATION */
-        .navbar {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            padding: 1.5rem 5%;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--glass-border);
-        }
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-lg);
+}
 
-        .nav-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+.card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
 
-        .logo {
-            font-size: 1.8rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #fff, var(--primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: 2px;
-        }
+.card-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--color-primary);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-inverse);
+}
 
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-        }
+.metric-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--space-sm);
+    line-height: 1;
+}
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+.metric-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-lg);
+}
 
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-        }
+.metric-change {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 12px;
+    font-weight: 500;
+}
 
-        .logout-btn {
-            padding: 0.6rem 1.2rem;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            color: white;
-            text-decoration: none;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
+.metric-change.positive {
+    color: var(--color-success);
+}
 
-        .logout-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-1px);
-        }
+.metric-change.negative {
+    color: var(--color-error);
+}
 
-        /* MAIN CONTENT */
-        .main-content {
-            padding-top: 100px;
-            min-height: 100vh;
-            padding-left: 5%;
-            padding-right: 5%;
-        }
+.section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-lg);
+}
 
-        .dashboard-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem 0;
-        }
+.telescope-status-card {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    color: var(--text-inverse);
+    border: none;
+}
 
-        .welcome-section {
-            text-align: center;
-            margin-bottom: 4rem;
-            transform: translateY(30px);
-            opacity: 0;
-            animation: slideIn 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
-        }
+.telescope-status-card .card-title,
+.telescope-status-card .metric-value,
+.telescope-status-card .metric-label {
+    color: var(--text-inverse);
+}
 
-        @keyframes slideIn {
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
+.status-indicator-large {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+    background: var(--color-success);
+    animation: pulse 2s infinite;
+    margin-right: var(--space-sm);
+}
 
-        .welcome-title {
-            font-size: clamp(2.5rem, 6vw, 4rem);
-            font-weight: 800;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #fff, var(--primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+.activity-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-2xl);
+}
 
-        .welcome-subtitle {
-            font-size: 1.2rem;
-            color: var(--text-muted);
-            max-width: 600px;
-            margin: 0 auto;
-        }
+.session-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
 
-        /* DASHBOARD GRID */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-        }
+.session-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    transition: var(--transition-base);
+}
 
-        .dashboard-card {
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 2.5rem;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            transform: translateY(50px);
-            opacity: 0;
-            animation: cardReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+.session-item:hover {
+    background: var(--glass-bg-hover);
+    transform: translateX(4px);
+}
 
-        .dashboard-card:nth-child(1) { animation-delay: 0.1s; }
-        .dashboard-card:nth-child(2) { animation-delay: 0.2s; }
-        .dashboard-card:nth-child(3) { animation-delay: 0.3s; }
-        .dashboard-card:nth-child(4) { animation-delay: 0.4s; }
+.session-time {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    min-width: 60px;
+}
 
-        @keyframes cardReveal {
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
+.session-target {
+    flex: 1;
+    font-weight: 500;
+    color: var(--text-primary);
+}
 
-        .dashboard-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
-            border-color: rgba(99, 102, 241, 0.3);
-        }
+.session-duration {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
 
-        .card-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
-        }
+.session-status {
+    padding: 4px 8px;
+    border-radius: var(--radius-md);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
 
-        .card-icon svg {
-            width: 28px;
-            height: 28px;
-            color: white;
-        }
+.session-status.active {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--color-success);
+}
 
-        .card-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: white;
-        }
+.session-status.scheduled {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--color-warning);
+}
 
-        .card-description {
-            color: var(--text-muted);
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-        }
+.session-status.completed {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--text-tertiary);
+}
 
-        .card-action {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.8rem 1.5rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            text-decoration: none;
-            border-radius: 12px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
+.weather-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: var(--text-inverse);
+    border: none;
+}
 
-        .card-action:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
-        }
+.weather-card .card-title,
+.weather-card .metric-value,
+.weather-card .metric-label {
+    color: var(--text-inverse);
+}
 
-        /* SUCCESS ANIMATION */
-        .success-animation {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 2rem;
-            text-align: center;
-            z-index: 9999;
-            opacity: 0;
-            scale: 0.8;
-            animation: successPop 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+.weather-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    margin-top: var(--space-lg);
+}
 
-        @keyframes successPop {
-            0% {
-                opacity: 0;
-                scale: 0.8;
-            }
-            50% {
-                opacity: 1;
-                scale: 1.05;
-            }
-            100% {
-                opacity: 0;
-                scale: 1;
-                pointer-events: none;
-            }
-        }
+.weather-metric {
+    text-align: center;
+}
 
-        .success-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            animation: checkmark 0.6s ease-in-out 0.3s both;
-        }
+.weather-metric-value {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
 
-        @keyframes checkmark {
-            0% { scale: 0; }
-            50% { scale: 1.2; }
-            100% { scale: 1; }
-        }
+.weather-metric-label {
+    font-size: 12px;
+    opacity: 0.8;
+}
 
-        .success-text {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: white;
-        }
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-lg);
+}
 
-        /* RESPONSIVE */
-        @media (max-width: 768px) {
-            .navbar {
-                padding: 1rem 5%;
-            }
+.action-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-xl);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: var(--transition-base);
+    cursor: pointer;
+}
 
-            .nav-right {
-                gap: 1rem;
-            }
+.action-button:hover {
+    background: var(--glass-bg-hover);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
 
-            .user-info span {
-                display: none;
-            }
+.action-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--color-primary);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-inverse);
+}
 
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
+.action-title {
+    font-weight: 600;
+    text-align: center;
+}
 
-            .main-content {
-                padding-top: 80px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- BACKGROUND GALAXIE -->
-    <div class="galaxy-background"></div>
-    <div class="content-overlay"></div>
+.action-description {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+}
 
-    <!-- SUCCESS ANIMATION -->
-    <div class="success-animation" id="successAnimation">
-        <div class="success-icon">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-                <path stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M20 6L9 17l-5-5"/>
-            </svg>
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .activity-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-actions {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+</style>
+@endpush
+
+@section('content')
+<div x-data="dashboardData()">
+    <!-- Metrics Overview -->
+    <div class="dashboard-grid">
+        <!-- Telescope Status -->
+        <div class="dashboard-card telescope-status-card">
+            <div class="card-header">
+                <h3 class="card-title">Telescope Status</h3>
+                <div class="card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="metric-value" x-text="telescopeStatus.toUpperCase()"></div>
+            <div class="metric-label">
+                <div class="status-indicator-large"></div>
+                Connected and tracking
+            </div>
+            <div class="metric-change positive">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 14l5-5 5 5z"/>
+                </svg>
+                99.2% uptime this month
+            </div>
         </div>
-        <div class="success-text">Connexion réussie !</div>
+
+        <!-- Total Sessions -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3 class="card-title">Sessions</h3>
+                <div class="card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="metric-value" x-text="totalSessions"></div>
+            <div class="metric-label">This month</div>
+            <div class="metric-change positive">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 14l5-5 5 5z"/>
+                </svg>
+                +12% from last month
+            </div>
+        </div>
+
+        <!-- Images Captured -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3 class="card-title">Images</h3>
+                <div class="card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="metric-value" x-text="imagesCaptured"></div>
+            <div class="metric-label">Captured this month</div>
+            <div class="metric-change positive">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 14l5-5 5 5z"/>
+                </svg>
+                +24% from last month
+            </div>
+        </div>
     </div>
 
-    <!-- NAVIGATION -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">STELLAR</div>
-            <div class="nav-right">
-                <div class="user-info">
-                    <div class="user-avatar">{{ auth()->user()->name[0] ?? 'U' }}</div>
-                    <span>{{ auth()->user()->name ?? 'Utilisateur' }}</span>
-                </div>
-                <form method="POST" action="{{ route('logout', app()->getLocale()) }}" style="display: inline;">
-                    @csrf
-                    <button type="submit" class="logout-btn" style="background: var(--glass); border: 1px solid var(--glass-border); cursor: pointer;">
-                        Déconnexion
-                    </button>
-                </form>
+    <!-- Activity Overview -->
+    <div class="activity-grid">
+        <!-- Recent Sessions -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3 class="card-title">Recent Sessions</h3>
+                <a href="" class="btn-secondary">View All</a>
+            </div>
+            <div class="session-list">
+                <template x-for="session in recentSessions" :key="session.id">
+                    <div class="session-item">
+                        <div class="session-time" x-text="session.time"></div>
+                        <div class="session-target" x-text="session.target"></div>
+                        <div class="session-duration" x-text="session.duration"></div>
+                        <div class="session-status" :class="session.status" x-text="session.status"></div>
+                    </div>
+                </template>
             </div>
         </div>
-    </nav>
 
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
-        <div class="dashboard-container">
-            <!-- WELCOME SECTION -->
-            <div class="welcome-section">
-                <h1 class="welcome-title">Bienvenue dans l'Univers Stellar</h1>
-                <p class="welcome-subtitle">
-                    Votre voyage à travers les étoiles commence maintenant.
-                    Explorez les merveilles du cosmos avec nos télescopes de pointe.
-                </p>
+        <!-- Weather Card -->
+        <div class="dashboard-card weather-card">
+            <div class="card-header">
+                <h3 class="card-title">Weather Conditions</h3>
+                <div class="card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                </div>
             </div>
+            <div class="metric-value" x-text="weather.temperature + '°C'"></div>
+            <div class="metric-label" x-text="weather.condition"></div>
 
-            <!-- DASHBOARD GRID -->
-            <div class="dashboard-grid">
-                <div class="dashboard-card">
-                    <div class="card-icon">
-                        <svg viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-                            <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1" stroke="currentColor" stroke-width="2"/>
-                        </svg>
-                    </div>
-                    <h3 class="card-title">Réserver une Session</h3>
-                    <p class="card-description">
-                        Réservez du temps sur nos télescopes professionnels situés dans les meilleurs observatoires du monde.
-                    </p>
-                    <a href="#" class="card-action">
-                        Réserver maintenant
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
-                        </svg>
-                    </a>
+            <div class="weather-details">
+                <div class="weather-metric">
+                    <div class="weather-metric-value" x-text="weather.humidity + '%'"></div>
+                    <div class="weather-metric-label">Humidity</div>
                 </div>
-
-                <div class="dashboard-card">
-                    <div class="card-icon">
-                        <svg viewBox="0 0 24 24" fill="none">
-                            <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
-                            <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="2"/>
-                            <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="2"/>
-                        </svg>
-                    </div>
-                    <h3 class="card-title">Mes Observations</h3>
-                    <p class="card-description">
-                        Consultez et téléchargez toutes vos images capturées lors de vos sessions d'observation.
-                    </p>
-                    <a href="#" class="card-action">
-                        Voir la galerie
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
-                        </svg>
-                    </a>
+                <div class="weather-metric">
+                    <div class="weather-metric-value" x-text="weather.windSpeed + ' km/h'"></div>
+                    <div class="weather-metric-label">Wind Speed</div>
                 </div>
-
-                <div class="dashboard-card">
-                    <div class="card-icon">
-                        <svg viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                            <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2"/>
-                        </svg>
-                    </div>
-                    <h3 class="card-title">Planning Astronomique</h3>
-                    <p class="card-description">
-                        Consultez les meilleures fenêtres d'observation selon les conditions météo et astronomiques.
-                    </p>
-                    <a href="#" class="card-action">
-                        Voir le planning
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
-                        </svg>
-                    </a>
+                <div class="weather-metric">
+                    <div class="weather-metric-value" x-text="weather.visibility + ' km'"></div>
+                    <div class="weather-metric-label">Visibility</div>
                 </div>
-
-                <div class="dashboard-card">
-                    <div class="card-icon">
-                        <svg viewBox="0 0 24 24" fill="none">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
-                            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
-                        </svg>
-                    </div>
-                    <h3 class="card-title">Assistance Expert</h3>
-                    <p class="card-description">
-                        Contactez nos astronomes professionnels pour obtenir de l'aide dans vos observations.
-                    </p>
-                    <a href="#" class="card-action">
-                        Contacter un expert
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
-                        </svg>
-                    </a>
+                <div class="weather-metric">
+                    <div class="weather-metric-value" x-text="weather.cloudCover + '%'"></div>
+                    <div class="weather-metric-label">Cloud Cover</div>
                 </div>
             </div>
         </div>
-    </main>
+    </div>
 
-    <script>
-        // PARALLAX BACKGROUND
-        window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
-            const galaxyBg = document.querySelector('.galaxy-background');
-            galaxyBg.style.transform = `translateY(${scrolled * -0.3}px) scale(1.1)`;
-        });
+    <!-- Quick Actions -->
+    <h2 class="section-title">Quick Actions</h2>
+    <div class="quick-actions">
+        <a href="" class="action-button">
+            <div class="action-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+            </div>
+            <div class="action-title">Control Telescope</div>
+            <div class="action-description">Take remote control of the telescope</div>
+        </a>
 
-        // AFFICHER L'ANIMATION DE SUCCÈS AU CHARGEMENT
-        window.addEventListener('load', () => {
-            // Vérifier si on vient d'une connexion/inscription réussie
-            const urlParams = new URLSearchParams(window.location.search);
-            const fromAuth = sessionStorage.getItem('justLoggedIn');
+        <a href="" class="action-button">
+            <div class="action-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+            </div>
+            <div class="action-title">Book Session</div>
+            <div class="action-description">Schedule a new imaging session</div>
+        </a>
 
-            if (fromAuth || document.referrer.includes('/login') || document.referrer.includes('/register')) {
-                const successAnimation = document.getElementById('successAnimation');
-                successAnimation.style.display = 'block';
+        <a href="" class="action-button">
+            <div class="action-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                </svg>
+            </div>
+            <div class="action-title">View Gallery</div>
+            <div class="action-description">Browse your captured images</div>
+        </a>
 
-                // Nettoyer le flag
-                sessionStorage.removeItem('justLoggedIn');
+        <a href="" class="action-button">
+            <div class="action-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9.16-.21.43-.1.43.17v.73c0 4.97 4.03 9 9 9h.73c.27 0 .38.27.17.43-1.35 1.06-3.05 1.69-4.9 1.69z"/>
+                </svg>
+            </div>
+            <div class="action-title">Lunar Calendar</div>
+            <div class="action-description">Check moon phases and optimal times</div>
+        </a>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+function dashboardData() {
+    return {
+        telescopeStatus: 'online',
+        totalSessions: 24,
+        imagesCaptured: 156,
+        recentSessions: [
+            {
+                id: 1,
+                time: '19:30',
+                target: 'Andromeda Galaxy (M31)',
+                duration: '2h 30m',
+                status: 'completed'
+            },
+            {
+                id: 2,
+                time: '21:00',
+                target: 'Orion Nebula (M42)',
+                duration: '1h 45m',
+                status: 'active'
+            },
+            {
+                id: 3,
+                time: '22:45',
+                target: 'Ring Nebula (M57)',
+                duration: '3h 00m',
+                status: 'scheduled'
             }
-        });
+        ],
+        weather: {
+            temperature: -2,
+            condition: 'Clear skies',
+            humidity: 45,
+            windSpeed: 8,
+            visibility: 25,
+            cloudCover: 5
+        },
 
-        // HOVER EFFECTS MAGNÉTIQUES
-        const cards = document.querySelectorAll('.dashboard-card');
-        cards.forEach(card => {
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left - rect.width / 2;
-                const y = e.clientY - rect.top - rect.height / 2;
+        init() {
+            // Update data periodically
+            setInterval(() => {
+                this.updateWeatherData();
+            }, 300000); // Every 5 minutes
+        },
 
-                card.style.transform = `translate(${x * 0.05}px, ${y * 0.05}px) translateY(-10px)`;
-            });
-
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = '';
-            });
-        });
-
-        // SMOOTH SCROLL POUR LES LIENS
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
-    </script>
-</body>
-</html>
+        updateWeatherData() {
+            // Simulate weather updates
+            this.weather.temperature = Math.floor(Math.random() * 20) - 10;
+            this.weather.humidity = Math.floor(Math.random() * 50) + 30;
+            this.weather.windSpeed = Math.floor(Math.random() * 15) + 1;
+            this.weather.cloudCover = Math.floor(Math.random() * 30);
+        }
+    }
+}
+</script>
+@endpush

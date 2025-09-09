@@ -1,188 +1,248 @@
+<!-- resources/views/layouts/app.blade.php -->
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1e293b" media="(prefers-color-scheme: dark)">
 
-    <title>{{ config('app.name', 'Laravel') }} - @yield('title', __('app.welcome'))</title>
+    <title>@yield('title', 'TelescopeApp - Remote Telescope Control')</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:100,200,300,400,500,600,700,800,900" rel="stylesheet" />
-    <link href="https://fonts.bunny.net/css?family=space-mono:400,700" rel="stylesheet" />
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="alternate icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-    <!-- Scripts et CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vite CSS -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    @stack('head')
+</head>
+<body class="h-full antialiased"
+      x-data="{ sidebarOpen: false }"
+      :class="{ 'overflow-hidden lg:overflow-auto': $store.sidebar.isOpen }"
+      x-init="$store.darkMode.init()">
+
+    <div class="dashboard-layout neo-ui">
+        <!-- Sidebar -->
+        @include('layouts.partials.sidebar')
+
+        <!-- Main Content Area -->
+        <div class="main-wrapper">
+            <!-- Top Navigation -->
+            @include('layouts.partials.navbar')
+
+            <!-- Page Content -->
+            <main class="page-content">
+                <!-- Flash Messages -->
+                @if(session('success'))
+                    <div x-data="{ show: true }"
+                         x-show="show"
+                         x-transition
+                         x-init="setTimeout(() => show = false, 5000)"
+                         class="notification-success mb-6 animate-slide-down">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-shrink-0">
+                                <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                                    {{ session('success') }}
+                                </p>
+                            </div>
+                            <button @click="show = false" class="flex-shrink-0 p-1 text-emerald-600 hover:text-emerald-800 dark:hover:text-emerald-400">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                @endif
+
+                @if(session('error'))
+                    <div x-data="{ show: true }"
+                         x-show="show"
+                         x-transition
+                         x-init="setTimeout(() => show = false, 5000)"
+                         class="notification-error mb-6 animate-slide-down">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-shrink-0">
+                                <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-red-800 dark:text-red-200">
+                                    {{ session('error') }}
+                                </p>
+                            </div>
+                            <button @click="show = false" class="flex-shrink-0 p-1 text-red-600 hover:text-red-800 dark:hover:text-red-400">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Main Content -->
+                @yield('content')
+            </main>
+        </div>
+    </div>
+
+    <!-- Mobile Overlay -->
+    <div x-show="$store.sidebar.isOpen"
+         x-transition:enter="transition-opacity ease-linear duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-300"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="mobile-overlay"
+         @click="$store.sidebar.close()"></div>
+
+    <!-- Toast Notifications -->
+    @include('layouts.partials.notifications')
+
+    <!-- Loading Overlay -->
+    <div x-data="{ loading: false }"
+         x-show="loading"
+         x-transition
+         class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]"
+         x-on:loading.window="loading = $event.detail.loading">
+        <div class="glass rounded-2xl p-8 flex items-center gap-4 animate-fade-in">
+            <div class="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent"></div>
+            <span class="text-slate-900 dark:text-white font-medium">Loading...</span>
+        </div>
+    </div>
+
+    <!-- PWA Install Prompt -->
+    <div x-data="pwaInstall()"
+         x-show="showInstallPrompt"
+         x-transition
+         class="fixed bottom-6 left-6 right-6 lg:left-auto lg:right-6 lg:w-96 card animate-slide-up z-50">
+        <div class="flex items-center gap-4">
+            <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center glow-primary">
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-slate-900 dark:text-white">Install TelescopeApp</h3>
+                <p class="text-sm text-slate-600 dark:text-slate-400">Add to your home screen for quick access</p>
+            </div>
+            <div class="flex gap-2">
+                <button @click="dismissInstallPrompt()"
+                        class="btn-ghost px-3 py-1.5 text-xs">
+                    Later
+                </button>
+                <button @click="installApp()"
+                        class="btn-primary px-4 py-1.5 text-xs">
+                    Install
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @stack('scripts')
+
+    <!-- PWA & Loading Scripts -->
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['Space Mono', 'monospace'],
+        // PWA Install component
+        function pwaInstall() {
+            return {
+                deferredPrompt: null,
+                showInstallPrompt: false,
+
+                init() {
+                    window.addEventListener('beforeinstallprompt', (e) => {
+                        e.preventDefault();
+                        this.deferredPrompt = e;
+                        this.showInstallPrompt = true;
+                    });
+
+                    window.addEventListener('appinstalled', () => {
+                        this.showInstallPrompt = false;
+                        this.deferredPrompt = null;
+                        window.showNotification('App Installed', 'TelescopeApp has been added to your home screen!', 'success');
+                    });
+                },
+
+                async installApp() {
+                    if (this.deferredPrompt) {
+                        this.deferredPrompt.prompt();
+                        const { outcome } = await this.deferredPrompt.userChoice;
+                        this.deferredPrompt = null;
+                        this.showInstallPrompt = false;
                     }
+                },
+
+                dismissInstallPrompt() {
+                    this.showInstallPrompt = false;
+                    localStorage.setItem('pwa-install-dismissed', Date.now());
                 }
             }
         }
-    </script>
-    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    <style>
-        .star-field {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background: linear-gradient(135deg, #0c0a1e 0%, #1a1443 25%, #2d1b69 50%, #0c0a1e 100%);
-            overflow: hidden;
+        // Global loading state
+        window.showLoading = function(show = true) {
+            window.dispatchEvent(new CustomEvent('loading', {
+                detail: { loading: show }
+            }));
+        };
+
+        // Enhanced error handling with beautiful notifications
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+            window.showNotification('System Error', 'An unexpected error occurred', 'error');
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            window.showNotification('Network Error', 'A connection error occurred', 'error');
+        });
+
+        // Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
         }
 
-        .star {
-            position: absolute;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle 2s infinite alternate;
-        }
-
-        @keyframes twinkle {
-            0% { opacity: 0.3; }
-            100% { opacity: 1; }
-        }
-
-        .cosmic-glow {
-            background: linear-gradient(135deg, rgba(147, 51, 234, 0.1) 0%, rgba(79, 70, 229, 0.1) 50%, rgba(236, 72, 153, 0.1) 100%);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .nebula-gradient {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .planet-glow {
-            box-shadow: 0 0 30px rgba(147, 51, 234, 0.3), 0 0 60px rgba(79, 70, 229, 0.2);
-        }
-    </style>
-</head>
-
-<body class="font-sans antialiased text-white min-h-screen relative">
-    <!-- Star field background -->
-    <div class="star-field" id="starField"></div>
-
-    <!-- Navigation -->
-    <nav class="cosmic-glow fixed top-0 w-full z-50 px-6 py-4">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-full nebula-gradient planet-glow"></div>
-                <span class="text-xl font-bold font-mono">{{ __('app.app_name') }}</span>
-            </div>
-
-            <div class="hidden md:flex items-center space-x-6">
-                <a href="{{ url(app()->getLocale()) }}" class="hover:text-purple-300 transition-colors">
-                    {{ __('app.home') }}
-                </a>
-                <a href="#" class="hover:text-purple-300 transition-colors">
-                    {{ __('app.about') }}
-                </a>
-                <a href="#" class="hover:text-purple-300 transition-colors">
-                    {{ __('app.contact') }}
-                </a>
-            </div>
-
-            <div class="flex items-center space-x-4">
-                <!-- Language switcher -->
-                <div class="relative" x-data="{ open: false }">
-                    <button @click="open = !open" class="flex items-center space-x-2 px-3 py-2 rounded-lg cosmic-glow hover:bg-white/5 transition-colors">
-                        <span class="text-sm">{{ strtoupper(app()->getLocale()) }}</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
-
-                    <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-2 w-32 cosmic-glow rounded-lg shadow-lg">
-                        <a href="{{ route('locale', 'fr') }}" class="block px-4 py-2 text-sm hover:bg-white/5 rounded-t-lg transition-colors">
-                            🇫🇷 Français
-                        </a>
-                        <a href="{{ route('locale', 'en') }}" class="block px-4 py-2 text-sm hover:bg-white/5 rounded-b-lg transition-colors">
-                            🇬🇧 English
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Auth buttons -->
-                @guest
-                    <a href="{{ route('login', app()->getLocale()) }}" class="px-4 py-2 rounded-lg border border-purple-400 hover:bg-purple-400/20 transition-colors">
-                        {{ __('auth.login') }}
-                    </a>
-                    <a href="{{ route('register', app()->getLocale()) }}" class="px-4 py-2 rounded-lg nebula-gradient hover:shadow-lg transition-shadow">
-                        {{ __('auth.register') }}
-                    </a>
-                @else
-                    <div class="relative" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center space-x-2 px-3 py-2 rounded-lg cosmic-glow hover:bg-white/5 transition-colors">
-                            @if(auth()->user()->avatar)
-                                <img src="{{ auth()->user()->avatar }}" alt="{{ auth()->user()->name }}" class="w-6 h-6 rounded-full">
-                            @endif
-                            <span>{{ auth()->user()->name }}</span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-
-                        <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-2 w-48 cosmic-glow rounded-lg shadow-lg">
-                            <a href="{{ route('dashboard', app()->getLocale()) }}" class="block px-4 py-2 text-sm hover:bg-white/5 rounded-t-lg transition-colors">
-                                {{ __('auth.dashboard') }}
-                            </a>
-                            <form method="POST" action="{{ route('logout', app()->getLocale()) }}">
-                                @csrf
-                                <button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-white/5 rounded-b-lg transition-colors">
-                                    {{ __('auth.logout') }}
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                @endguest
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main content -->
-    <main class="pt-20">
-        @yield('content')
-    </main>
-
-    <!-- Footer -->
-    <footer class="cosmic-glow mt-20 py-8">
-        <div class="max-w-7xl mx-auto px-6 text-center">
-            <p class="text-sm text-gray-300">
-                {{ __('app.made_with_love') }}
-            </p>
-        </div>
-    </footer>
-
-    <script>
-        // Generate stars
-        function createStars() {
-            const starField = document.getElementById('starField');
-            const numStars = 100;
-
-            for (let i = 0; i < numStars; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
-                star.style.left = Math.random() * 100 + '%';
-                star.style.top = Math.random() * 100 + '%';
-                star.style.width = Math.random() * 3 + 1 + 'px';
-                star.style.height = star.style.width;
-                star.style.animationDelay = Math.random() * 2 + 's';
-                starField.appendChild(star);
+        // Performance monitoring
+        window.addEventListener('load', function() {
+            const perfData = performance.getEntriesByType('navigation')[0];
+            if (perfData.loadEventEnd > 3000) {
+                console.warn('Page load time exceeded 3 seconds:', perfData.loadEventEnd);
             }
-        }
+        });
 
-        createStars();
+        // Preload critical images
+        const criticalImages = [
+            '/images/logo.svg',
+            '/images/hero-bg.jpg'
+        ];
+
+        criticalImages.forEach(src => {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = 'image';
+            link.href = src;
+            document.head.appendChild(link);
+        });
     </script>
 </body>
 </html>
