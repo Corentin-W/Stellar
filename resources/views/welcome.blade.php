@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://static.vecteezy.com" crossorigin>
     <title>Stellar - Location de Matériel d'Astronomie</title>
     <style>
         * {
@@ -77,7 +78,7 @@
         .navbar.scrolled {
             padding: 1rem 5%;
             background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--glass-border);
         }
 
@@ -348,7 +349,7 @@
 
         .feature-card {
             background: var(--glass);
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border);
             border-radius: 30px;
             padding: 3rem 2.5rem;
@@ -365,7 +366,7 @@
         .feature-card:hover {
             transform: translateY(-15px) scale(1.03);
             background: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 30px 60px rgba(99, 102, 241, 0.2);
+            box-shadow: 0 18px 36px rgba(99, 102, 241, 0.18);
         }
 
         .feature-icon {
@@ -415,7 +416,7 @@
             overflow: hidden;
             position: relative;
             transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(10px);
             opacity: 0;
             transform: rotateY(20deg) translateZ(-50px);
         }
@@ -427,7 +428,25 @@
 
         .equipment-card:hover {
             transform: translateY(-20px) rotateY(-5deg);
-            box-shadow: 0 40px 80px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 24px 48px rgba(99, 102, 241, 0.24);
+        }
+        /* Lightweight hover feedback (CSS-only) to replace JS ripple */
+        .feature-card::after, .equipment-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(120px 120px at var(--mx,50%) var(--my,50%), rgba(99,102,241,0.15), transparent 60%);
+            opacity: 0;
+            transition: opacity 200ms ease;
+            pointer-events: none;
+        }
+        .feature-card:hover::after, .equipment-card:hover::after { opacity: 1; }
+
+        @media (max-width: 768px) {
+            .navbar.scrolled { backdrop-filter: none; background: rgba(0,0,0,0.9); }
+            .feature-card, .equipment-card, .login-btn { backdrop-filter: none !important; }
+            .feature-card, .equipment-card { background: rgba(255,255,255,0.06); }
+            .feature-icon { box-shadow: none; }
         }
 
         .equipment-visual {
@@ -840,7 +859,7 @@
                 navbar.style.transform = 'translateY(0)';
             }
             lastScrollY = scrollY;
-        });
+        }, { passive: true });
 
         // AWARD-WINNING SCROLL ANIMATIONS
         const observerOptions = {
@@ -896,7 +915,7 @@
                 const speed = 0.1 + (index * 0.05);
                 element.style.transform = `translateY(${scrolled * speed}px)`;
             });
-        });
+        }, { passive: true });
 
         // 3D STARFIELD PARALLAX (CANVAS)
         (function() {
@@ -904,111 +923,158 @@
             if (!canvas) return;
             const ctx = canvas.getContext('2d', { alpha: true });
 
-            let width = canvas.width = window.innerWidth;
-            let height = canvas.height = window.innerHeight;
-
             const isMobile = window.matchMedia('(max-width: 768px)').matches;
             const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-            // Number of stars scales with viewport size (lighter on mobile)
-            const baseDensity = reducedMotion ? 0.00006 : (isMobile ? 0.00008 : 0.00014);
-            let STAR_COUNT = Math.round(width * height * baseDensity);
-            STAR_COUNT = Math.max(180, Math.min(STAR_COUNT, 900));
+            // DPR cap for perf
+            const dpr = Math.min(window.devicePixelRatio || 1, (isMobile ? 1 : 1.5));
 
-            let stars = [];
-            let mouseX = 0, mouseY = 0;
-            let parallaxX = 0, parallaxY = 0;
-            const PARALLAX_FACTOR = isMobile ? 12 : 25;
+            // Canvas sizing (CSS vs device pixels)
+            let cssW = window.innerWidth, cssH = window.innerHeight;
+            let width = canvas.width = Math.floor(cssW * dpr);
+            let height = canvas.height = Math.floor(cssH * dpr);
+            canvas.style.width = cssW + 'px';
+            canvas.style.height = cssH + 'px';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-            function rand(min, max) { return Math.random() * (max - min) + min; }
+            // Base density tuned down for smoothness
+            const baseDensity = reducedMotion ? 0.00005 : (isMobile ? 0.00007 : 0.00011);
 
-            function createStars() {
-                stars = [];
-                for (let i = 0; i < STAR_COUNT; i++) {
-                    // z is depth: 0 (near) .. 1 (far)
-                    const z = Math.pow(Math.random(), 2); // bias towards far for subtlety
-                    stars.push({
-                        // normalized positions [0..1]
-                        x: Math.random(),
-                        y: Math.random(),
-                        z,
-                        // base radius & brightness depend on depth
-                        r: rand(0.2, 1.2) * (1 - z) * 1.4,
-                        tw: rand(0.5, 2.0), // twinkle speed
-                        ph: rand(0, Math.PI * 2), // twinkle phase
-                        drift: rand(0.02, 0.12) * (1 - z) // slow drift speed
+            // Parallax factor per layer (near moves more)
+            const PARALLAX_BASE = isMobile ? 7 : 16; // overall softness
+
+            // Layer definitions (far, mid, near)
+            const layers = [
+                { key: 'far',  mult: 0.45, parallax: 0.35, size: 0.70, glow: (isMobile ? 1.2 : 1.6) },
+                { key: 'mid',  mult: 0.35, parallax: 0.75, size: 1.00, glow: (isMobile ? 1.6 : 2.2) },
+                { key: 'near', mult: 0.20, parallax: 1.25, size: 1.35, glow: (isMobile ? 2.0 : 2.8) }
+            ];
+
+            // State
+            const field = new Map(); // key -> array of stars
+            let totalCount = clamp(Math.round(cssW * cssH * baseDensity), 150, 650);
+
+            let mouseX = 0, mouseY = 0;   // [-1..1]
+            let parallaxX = 0, parallaxY = 0; // smoothed
+            let lastT = 0, fpsAvg = 60, running = true;
+
+            function clamp(v, a, b){ return Math.max(a, Math.min(v, b)); }
+            function rand(min, max){ return Math.random() * (max - min) + min; }
+
+            function createLayerStars() {
+                field.clear();
+                layers.forEach(layer => {
+                    const count = Math.round(totalCount * layer.mult);
+                    const arr = [];
+                    for (let i = 0; i < count; i++) {
+                        // depth z biased to far for subtlety inside each layer
+                        const z = Math.pow(Math.random(), 2);
+                        arr.push({
+                            x: Math.random() * cssW, // fixed pixel positions
+                            y: Math.random() * cssH,
+                            z,
+                            r: rand(0.2, 1.2) * (1 - z) * layer.size,
+                            tw: rand(0.5, 1.5),
+                            ph: rand(0, Math.PI * 2)
+                        });
+                    }
+                    field.set(layer.key, arr);
+                });
+            }
+
+            function resize(){
+                const prevW = cssW, prevH = cssH;
+                cssW = window.innerWidth; cssH = window.innerHeight;
+                width = canvas.width = Math.floor(cssW * dpr);
+                height = canvas.height = Math.floor(cssH * dpr);
+                canvas.style.width = cssW + 'px';
+                canvas.style.height = cssH + 'px';
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+                // Reproject existing stars proportionally
+                field.forEach(arr => {
+                    arr.forEach(s => {
+                        s.x = Math.min(s.x, prevW) * (cssW / prevW);
+                        s.y = Math.min(s.y, prevH) * (cssH / prevH);
                     });
+                });
+
+                // Recompute total count and rebuild if changed
+                const newTotal = clamp(Math.round(cssW * cssH * baseDensity), 150, 650);
+                if (newTotal !== totalCount) {
+                    totalCount = newTotal;
+                    createLayerStars();
                 }
             }
 
-            function resize() {
-                width = canvas.width = window.innerWidth;
-                height = canvas.height = window.innerHeight;
-                // Recompute star count based on new size
-                let newCount = Math.round(width * height * baseDensity);
-                newCount = Math.max(180, Math.min(newCount, 900));
-                if (newCount !== STAR_COUNT) {
-                    STAR_COUNT = newCount;
-                    createStars();
-                }
-            }
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(resize, 150);
+            }, { passive: true });
 
-            window.addEventListener('resize', resize);
-
-            // Mouse parallax
+            // Mouse target for parallax (desktop only effectively)
             document.addEventListener('mousemove', (e) => {
-                const mx = (e.clientX / width - 0.5) * 2;
-                const my = (e.clientY / height - 0.5) * 2;
-                mouseX = mx;
-                mouseY = my;
+                mouseX = (e.clientX / cssW - 0.5) * 2;
+                mouseY = (e.clientY / cssH - 0.5) * 2;
             });
 
-            // Smooth follow for parallax to feel inertial
-            function updateParallax() {
-                parallaxX += (mouseX - parallaxX) * 0.06;
-                parallaxY += (mouseY - parallaxY) * 0.06;
+            function updateParallax(){
+                parallaxX += (mouseX - parallaxX) * 0.04; // slow, cinematic
+                parallaxY += (mouseY - parallaxY) * 0.04;
             }
 
-            // Render loop
-            function draw(t) {
+            document.addEventListener('visibilitychange', () => {
+                running = !document.hidden;
+                if (running) requestAnimationFrame(draw);
+            });
+
+            function draw(t){
+                if (!running) return;
                 updateParallax();
                 ctx.clearRect(0, 0, width, height);
 
-                const scrollY = window.pageYOffset || 0;
-
-                for (let i = 0; i < STAR_COUNT; i++) {
-                    const s = stars[i];
-
-                    // Depth-based parallax: nearer stars move more
-                    const depth = 1 - s.z;
-                    const px = s.x * width + parallaxX * depth * PARALLAX_FACTOR;
-                    const py = s.y * height + parallaxY * depth * PARALLAX_FACTOR + scrollY * depth * 0.06;
-
-                    // Wrap stars when they go out of bounds for continuous field
-                    let x = px % width; if (x < 0) x += width;
-                    let y = py % height; if (y < 0) y += height;
-
-                    // Twinkle effect
-                    const twinkle = reducedMotion ? 1 : (0.6 + 0.4 * Math.sin(t * 0.001 * s.tw + s.ph));
-
-                    // Tiny drift to prevent static feel
-                    s.x = (s.x + s.drift * 0.0002) % 1;
-
-                    const r = Math.max(0.2, s.r * (0.7 + 0.3 * depth)) * (0.8 + 0.2 * twinkle);
-
-                    // Draw star (use shadow for slight glow)
-                    ctx.beginPath();
-                    ctx.arc(x, y, r, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * twinkle})`;
-                    ctx.shadowBlur = (isMobile ? 3 : 6) * depth;
-                    ctx.shadowColor = 'rgba(255,255,255,0.8)';
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
+                // FPS adaptation
+                const dt = (t - lastT) || 16; lastT = t;
+                const fps = 1000 / dt; fpsAvg = fpsAvg * 0.9 + fps * 0.1;
+                if (fpsAvg < 45 && totalCount > 220) {
+                    totalCount = Math.floor(totalCount * 0.9);
+                    createLayerStars();
                 }
+
+                // Gentle autonomous drift shared by all layers (no scroll influence)
+                const autoX = Math.sin(t * 0.00010) * 2;
+                const autoY = Math.cos(t * 0.00012) * 2;
+
+                // Render back-to-front: far -> mid -> near
+                layers.forEach(layer => {
+                    const arr = field.get(layer.key) || [];
+                    const p = PARALLAX_BASE * layer.parallax; // depth weight
+                    const glow = layer.glow;
+                    for (let i = 0; i < arr.length; i++) {
+                        const s = arr[i];
+                        const depth = 1 - s.z;
+
+                        const px = s.x + (parallaxX * depth * p) + (autoX * depth * layer.parallax);
+                        const py = s.y + (parallaxY * depth * p) + (autoY * depth * layer.parallax);
+
+                        const twinkle = reducedMotion ? 1 : (0.88 + 0.12 * Math.sin(t * 0.001 * s.tw + s.ph));
+                        const r = Math.max(0.18, s.r * (0.7 + 0.3 * depth)) * (0.92 + 0.08 * twinkle);
+
+                        ctx.beginPath();
+                        ctx.arc(px, py, r, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255,255,255,${0.45 + 0.45 * twinkle})`;
+                        ctx.shadowBlur = glow * depth;
+                        ctx.shadowColor = 'rgba(255,255,255,0.8)';
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+                });
+
                 requestAnimationFrame(draw);
             }
 
-            createStars();
+            createLayerStars();
             requestAnimationFrame(draw);
         })();
 
@@ -1070,43 +1136,16 @@
         }
         animateTitle();
 
-        // AWARD-WINNING CARD HOVER EFFECTS
+        // Lightweight hover feedback: update CSS vars for radial highlight (no DOM churn)
         document.querySelectorAll('.feature-card, .equipment-card').forEach(card => {
-            card.addEventListener('mouseenter', function(e) {
-                // Create ripple effect
-                const ripple = document.createElement('div');
-                ripple.style.position = 'absolute';
-                ripple.style.borderRadius = '50%';
-                ripple.style.background = 'rgba(99, 102, 241, 0.3)';
-                ripple.style.transform = 'scale(0)';
-                ripple.style.animation = 'ripple 0.6s linear';
-                ripple.style.left = '50%';
-                ripple.style.top = '50%';
-                ripple.style.width = '20px';
-                ripple.style.height = '20px';
-                ripple.style.marginLeft = '-10px';
-                ripple.style.marginTop = '-10px';
-                ripple.style.pointerEvents = 'none';
-
-                this.appendChild(ripple);
-
-                setTimeout(() => {
-                    ripple.remove();
-                }, 600);
-            });
+            card.addEventListener('pointermove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = ((e.clientX || 0) - rect.left) + 'px';
+                const y = ((e.clientY || 0) - rect.top) + 'px';
+                card.style.setProperty('--mx', x);
+                card.style.setProperty('--my', y);
+            }, { passive: true });
         });
-
-        // Add ripple animation to CSS
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes ripple {
-                to {
-                    transform: scale(4);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
 
         // PERFORMANCE OPTIMIZATION
         let ticking = false;
@@ -1121,7 +1160,7 @@
                 requestAnimationFrame(updateScrollEffects);
                 ticking = true;
             }
-        });
+        }, { passive: true });
 
         // ACCESSIBILITY ENHANCEMENTS
         document.addEventListener('keydown', (e) => {
