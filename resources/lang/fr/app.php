@@ -26,4 +26,108 @@ return [
 
     // Footer
     'made_with_love' => 'Fait avec ❤️ pour les passionnés d\'astronomie',
+    'dashboard' => 'Tableau de bord',
+    'telescope_control' => 'Contrôle télescope',
+    'sessions' => 'Sessions',
+    'gallery' => 'Galerie',
+    'weather' => 'Météo',
+    'lunar_calendar' => 'Calendrier lunaire',
+    'target_planner' => 'Planificateur de cibles',
+    'catalog' => 'Catalogue',
+    'new_session' => 'Nouvelle session',
+    'auto_guide' => 'Guidage auto',
+    'capture_image' => 'Capturer image',
+    'system_health' => 'État système',
+    'notifications' => 'Notifications',
+    'settings' => 'Paramètres',
+    'help_support' => 'Aide & Support',
+    'dark_mode' => 'Mode sombre',
+    'light_mode' => 'Mode clair',
+
+    // Sections
+    'astro_tools' => 'Outils Astro',
+    'quick_actions' => 'Actions rapides',
+    'system' => 'Système',
+
+    // Dashboard
+    'cosmic_dashboard' => 'Tableau de bord cosmique',
+    'welcome_message' => 'Bienvenue, Astronome. L\'univers attend votre exploration.',
+    'local_sidereal_time' => 'Temps sidéral local',
+    'new_observation' => 'Nouvelle observation',
+    'telescope_status' => 'État télescope',
+    'connected_tracking' => 'Connecté et suivi',
+    'uptime_month' => 'disponibilité ce mois',
+    'lunar_cycle' => 'Ce cycle lunaire',
+    'from_last_cycle' => 'du dernier cycle',
+    'cosmic_images' => 'Images cosmiques',
+    'deep_sky_captures' => 'Captures ciel profond',
+    'quality_improvement' => 'amélioration qualité',
+    'exposure_time' => 'Temps d\'exposition',
+    'total_month' => 'Total ce mois',
+    'efficiency_gain' => 'gain d\'efficacité',
+
+    // Recent Sessions
+    'recent_cosmic_sessions' => 'Sessions cosmiques récentes',
+    'view_all' => 'Voir tout',
+    'completed' => 'TERMINÉE',
+    'active' => 'ACTIVE',
+    'scheduled' => 'PROGRAMMÉE',
+
+    // Weather
+    'atmospheric_conditions' => 'Conditions atmosphériques',
+    'humidity' => 'Humidité',
+    'wind' => 'Vent',
+    'visibility' => 'Visibilité',
+    'seeing' => 'Seeing',
+    'excellent_conditions' => 'CONDITIONS EXCELLENTES',
+    'good_conditions' => 'BONNES CONDITIONS',
+    'poor_conditions' => 'CONDITIONS MÉDIOCRES',
+
+    // Celestial Highlights
+    'tonight_highlights' => 'Points forts célestes de ce soir',
+    'twilight_ends' => 'Fin du crépuscule astronomique dans',
+
+    // Quick Actions
+    'quick_cosmic_actions' => 'Actions cosmiques rapides',
+    'auto_alignment' => 'Alignement automatique',
+    'precise_goto' => 'Calibrage GoTo précis',
+    'astrophotography' => 'Astrophotographie',
+    'start_imaging' => 'Démarrer séquence d\'imagerie',
+    'sky_planetarium' => 'Planétarium du ciel',
+    'interactive_map' => 'Carte stellaire interactive',
+    'lunar_planning' => 'Planification lunaire',
+    'moon_phases' => 'Phases de lune & timing',
+
+    // Search
+    'search_cosmos' => 'Rechercher dans le cosmos...',
+
+    // Status
+    'online' => 'EN LIGNE',
+    'offline' => 'HORS LIGNE',
+    'ok' => 'OK',
+
+    // Messages
+    'telescope_connected' => 'Télescope connecté',
+    'connection_established' => 'Connexion établie avec succès',
+    'telescope_disconnected' => 'Télescope déconnecté',
+    'connection_lost' => 'Connexion perdue',
+    'error' => 'Erreur',
+    'telescope_not_connected' => 'Télescope non connecté',
+    'theme_changed' => 'Thème changé',
+    'switched_to_mode' => 'Basculé en mode',
+    'cosmic_dashboard_active' => 'Tableau de bord cosmique actif',
+    'systems_operational' => 'Tous les systèmes opérationnels. Prêt pour les observations stellaires.',
+    'weather_updated' => 'Météo mise à jour',
+    'conditions_refreshed' => 'Conditions atmosphériques actualisées',
+
+    // Units
+    'hours' => 'h',
+    'minutes' => 'm',
+    'seconds' => 's',
+    'degrees' => '°',
+    'celsius' => '°C',
+    'percent' => '%',
+    'kmh' => 'km/h',
+    'km' => 'km',
+    'arcsec' => '"',
 ];

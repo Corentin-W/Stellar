@@ -17,7 +17,7 @@ Route::get('/', function () {
 });
 
 // Routes avec préfixe de locale
-Route::prefix('{locale}')->where(['locale' => 'fr|en'])->group(function () {
+Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
 
     // ======================
     // ROUTES PUBLIQUES
