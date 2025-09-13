@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\WaitingListController;
 
 /*
 |--------------------------------------------------------------------------
@@ -136,5 +137,28 @@ Route::prefix('api')->middleware('api')->group(function () {
         Route::get('/user', function () {
             return response()->json(auth()->user());
         });
+    });
+});
+
+// Routes publiques waiting list
+Route::group(['prefix' => 'waiting-list'], function () {
+    // Afficher le formulaire
+    Route::get('/', [WaitingListController::class, 'create'])->name('waiting-list.create');
+
+    // Traiter l'inscription (API endpoint)
+    Route::post('/', [WaitingListController::class, 'store'])->name('waiting-list.store');
+
+    // Confirmer l'email
+    Route::get('/confirm/{token}', [WaitingListController::class, 'confirm'])->name('waiting-list.confirm');
+});
+
+// Routes admin (avec middleware auth + admin)
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function () {
+    Route::group(['prefix' => 'waiting-list'], function () {
+        // Dashboard admin
+        Route::get('/', [WaitingListController::class, 'admin'])->name('admin.waiting-list.dashboard');
+
+        // Export CSV
+        Route::get('/export', [WaitingListController::class, 'export'])->name('admin.waiting-list.export');
     });
 });
