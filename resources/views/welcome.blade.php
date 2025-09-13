@@ -759,7 +759,7 @@
             </div>
         </div>
 
-    
+
     </section>
 
     <!-- FEATURES SECTION -->
@@ -821,6 +821,14 @@
 
 
         </div>
+                    <br>
+        <br>
+          <div class="hero-actions">
+                <a href="#" class="btn-primary" onclick="openWaitingList()">
+                    <span>⭐ Rejoindre la Waiting List</span>
+                </a>
+            </div>
+        </div>
     </section>
 
     <!-- WAITING LIST MODAL -->
@@ -877,14 +885,7 @@
                     ℹ️ Vous êtes déjà inscrit sur notre waiting list !
                 </div>
             </form>
-            <br>
-        <br>
-          <div class="hero-actions">
-                <a href="#" class="btn-primary" onclick="openWaitingList()">
-                    <span>⭐ Rejoindre la Waiting List</span>
-                </a>
-            </div>
-        </div>
+
 
     </div>
 
