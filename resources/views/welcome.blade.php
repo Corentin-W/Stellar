@@ -296,23 +296,6 @@
             box-shadow: 0 20px 40px rgba(255, 255, 255, 0.1);
         }
 
-        /* SCROLL INDICATOR */
-        .scroll-indicator {
-            position: absolute;
-            bottom: 3rem;
-            left: 50%;
-            transform: translateX(-50%);
-            animation: bounceFloat 2s infinite;
-            cursor: pointer;
-            opacity: 0.8;
-            transition: opacity 0.3s ease;
-            font-size: 1.5rem;
-        }
-
-        .scroll-indicator:hover {
-            opacity: 1;
-        }
-
         @keyframes bounceFloat {
             0%, 20%, 50%, 80%, 100% {
                 transform: translateX(-50%) translateY(0);
@@ -776,9 +759,7 @@
             </div>
         </div>
 
-        <div class="scroll-indicator" onclick="scrollToFeatures()">
-            ⬇️
-        </div>
+    
     </section>
 
     <!-- FEATURES SECTION -->
