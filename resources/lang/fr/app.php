@@ -130,10 +130,13 @@ return [
     'kmh' => 'km/h',
     'km' => 'km',
     'arcsec' => '"',
+    'language' => 'Langue',
         'sidebar' => [
+        'dashboard' => 'Tableau de bord',
         'notifications' => 'Notifications',
         'settings' => 'Paramètres',
         'help_support' => 'Aide & Support',
+        'logout' => 'Se déconnecter',
         'search_placeholder' => 'Rechercher dans le cosmos...',
         'explorer' => 'Explorateur',
         'online' => 'En ligne',

@@ -10,17 +10,21 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        // CORRECTION : Utiliser LocaleMiddleware au lieu de SetLocale
-        $middleware->web(append: [
-            \App\Http\Middleware\LocaleMiddleware::class,
-        ]);
-
-        // L'alias peut rester si besoin
+    ->withMiddleware(function (Middleware $middleware) {
+        // Enregistrement des middlewares
         $middleware->alias([
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'locale' => \App\Http\Middleware\LocaleMiddleware::class,
         ]);
+
+        // Appliquer le middleware de locale à toutes les routes web
+        $middleware->appendToGroup('web', [
+            \App\Http\Middleware\LocaleMiddleware::class,
+        ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withEvents(discover: [
+        __DIR__.'/../app/Listeners',
+    ])
+    ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();

@@ -35,48 +35,35 @@
         </div>
     </div>
 
-    <!-- Language Switcher -->
+<!-- Quick Dashboard Button -->
+<div class="px-4 mb-3" x-show="!$store.sidebar.collapsed && currentPath !== '/dashboard' && currentPath !== '/'">
+    <a href="{{ route('dashboard') }}"
+       class="w-full inline-flex items-center justify-center p-2 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 transition-colors">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        <span class="text-sm font-medium">{{ __('app.sidebar.dashboard') }}</span>
+    </a>
+</div>
+
+<!-- Language Switcher (Compact) -->
 <div class="px-4 mb-4" x-show="!$store.sidebar.collapsed">
-    <div class="relative" x-data="{ open: false }">
-        <button @click="open = !open"
-                class="w-full flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-colors">
-            <div class="flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M8 12h8M12 8v8"></path>
-                </svg>
-                <span class="text-sm">{{ strtoupper(app()->getLocale()) }}</span>
-            </div>
-            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+    <div class="flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2 text-white/60">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
             </svg>
-        </button>
-
-        <div x-show="open"
-             x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100"
-             x-transition:leave="transition ease-in duration-75"
-             x-transition:leave-start="opacity-100 scale-100"
-             x-transition:leave-end="opacity-0 scale-95"
-             @click.away="open = false"
-             class="absolute z-50 mt-1 w-full bg-gray-800 border border-white/10 rounded-lg shadow-lg">
-
-            {{-- VERSION SIMPLIFIÉE : Un seul paramètre --}}
+            <span>{{ __('app.language') }}</span>
+        </div>
+        <div class="flex items-center gap-1">
             <form method="POST" action="{{ route('locale.change', 'fr') }}">
                 @csrf
-                <button type="submit"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/10 text-white text-sm {{ app()->getLocale() === 'fr' ? 'bg-white/5' : '' }}">
-                    🇫🇷 Français
-                </button>
+                <button type="submit" class="px-2 py-1 rounded-md {{ app()->getLocale() === 'fr' ? 'bg-white/10 text-white' : 'text-white/70 hover:text-white hover:bg-white/5' }}">FR</button>
             </form>
-
             <form method="POST" action="{{ route('locale.change', 'en') }}">
                 @csrf
-                <button type="submit"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/10 text-white text-sm {{ app()->getLocale() === 'en' ? 'bg-white/5' : '' }}">
-                    🇬🇧 English
-                </button>
+                <button type="submit" class="px-2 py-1 rounded-md {{ app()->getLocale() === 'en' ? 'bg-white/10 text-white' : 'text-white/70 hover:text-white hover:bg-white/5' }}">EN</button>
             </form>
         </div>
     </div>
@@ -95,6 +82,18 @@
             <span class="ml-3 font-medium" x-show="!$store.sidebar.collapsed">{{ __('app.sidebar.notifications') }}</span>
             <span class="badge ml-auto" x-show="!$store.sidebar.collapsed && $store.notifications.unreadCount > 0" x-text="$store.notifications.unreadCount"></span>
         </a>
+
+        @if(auth()->user()->admin == 1)
+        <!-- Admin Panel -->
+        <a href="{{ route('admin.panel') }}"
+           class="sidebar-item"
+           :class="{ 'active': isActive('/admin') }">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/>
+            </svg>
+            <span class="ml-3 font-medium" x-show="!$store.sidebar.collapsed">Panel Admin</span>
+        </a>
+        @endif
 
         <!-- Settings -->
         <a href="#"
@@ -117,6 +116,17 @@
             <span class="ml-3 font-medium" x-show="!$store.sidebar.collapsed">{{ __('app.sidebar.help_support') }}</span>
         </a>
 
+        <!-- Logout -->
+        <form method="POST" action="{{ route('logout', ['locale' => app()->getLocale()]) }}">
+            @csrf
+            <button type="submit" class="sidebar-item w-full text-left">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"/>
+                </svg>
+                <span class="ml-3 font-medium" x-show="!$store.sidebar.collapsed">{{ __('app.sidebar.logout') }}</span>
+            </button>
+        </form>
+
     </nav>
 
     <!-- User Profile Section -->
@@ -126,7 +136,12 @@
                 {{ substr(auth()->user()->name ?? 'A', 0, 1) }}
             </div>
             <div class="flex-1 min-w-0">
-                <p class="text-white font-medium text-sm truncate">{{ auth()->user()->name ?? 'Astronomer' }}</p>
+                <p class="text-white font-medium text-sm truncate">
+                    {{ auth()->user()->name ?? 'Astronomer' }}
+                    @if(auth()->user()->admin == 1)
+                        <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Admin</span>
+                    @endif
+                </p>
                 <p class="text-white/60 text-xs">{{ ucfirst(auth()->user()->subscription_type ?? __('app.sidebar.explorer')) }} • {{ __('app.sidebar.online') }}</p>
             </div>
         </div>
@@ -147,12 +162,16 @@
 </aside>
 
 <script>
+
 function sidebarNavigation() {
     return {
         searchQuery: '',
         activeSessions: 3,
         systemHealth: 98,
         currentPath: window.location.pathname,
+
+        // ✅ AJOUTEZ ces propriétés pour le language switcher
+        languageDropdownOpen: false,
 
         isActive(path) {
             if (path === '/dashboard') {
@@ -163,9 +182,17 @@ function sidebarNavigation() {
 
         search() {
             if (this.searchQuery.length < 2) return;
-
             console.log('Searching for:', this.searchQuery);
             window.showNotification('Search', `Searching for "${this.searchQuery}"...`, 'info', 2000);
+        },
+
+        // ✅ AJOUTEZ ces méthodes pour le language switcher
+        toggleLanguageDropdown() {
+            this.languageDropdownOpen = !this.languageDropdownOpen;
+        },
+
+        closeLanguageDropdown() {
+            this.languageDropdownOpen = false;
         },
 
         handleAction(action) {

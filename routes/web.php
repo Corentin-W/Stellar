@@ -100,6 +100,12 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
     Route::post('/contact', [HomeController::class, 'sendContact'])->name('contact.send');
     Route::get('/privacy', [HomeController::class, 'privacy'])->name('privacy');
     Route::get('/terms', [HomeController::class, 'terms'])->name('terms');
+
+    // Redirection des URLs admin localisées vers l'URL canonique non localisée
+    Route::get('/admin/{path?}', function ($locale, $path = null) {
+        $suffix = $path ? '/' . ltrim($path, '/') : '';
+        return redirect('/admin' . $suffix, 302);
+    })->where('path', '.*');
 });
 
 // ======================
@@ -170,4 +176,13 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
         // Export CSV
         Route::get('/export', [WaitingListController::class, 'export'])->name('admin.waiting-list.export');
     });
+});
+
+
+// Routes admin
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/panel', [App\Http\Controllers\AdminController::class, 'panel'])->name('panel');
+    Route::post('/login-as/{user}', [App\Http\Controllers\AdminController::class, 'loginAsUser'])->name('login-as');
+    Route::post('/toggle-admin/{user}', [App\Http\Controllers\AdminController::class, 'toggleAdmin'])->name('toggle-admin');
+    Route::post('/switch-back', [App\Http\Controllers\AdminController::class, 'switchBack'])->name('switch-back');
 });

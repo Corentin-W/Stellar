@@ -21,6 +21,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'admin',           // Ajout pour les droits admin
+        'last_login_at',   // Ajout pour tracker les connexions
     ];
 
     /**
@@ -43,6 +45,15 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_login_at' => 'datetime',  // Ajout pour tracker les connexions
         ];
+    }
+
+    /**
+     * Vérifie si l'utilisateur est admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->admin == 1;
     }
 }

@@ -168,72 +168,6 @@ Alpine.store('settings', {
     }
 });
 
-// Store pour les données météo
-Alpine.store('weather', {
-    data: {
-        temperature: -3,
-        humidity: 42,
-        windSpeed: 6,
-        windDirection: 'NW',
-        pressure: 1023,
-        visibility: 28,
-        cloudCover: 5,
-        seeing: 1.2,
-        transparency: 8.5,
-        condition: 'Clear',
-        seeingQuality: 'excellent'
-    },
-    lastUpdate: new Date(),
-    isLoading: false,
-
-    async update() {
-        this.isLoading = true;
-
-        try {
-            // Simulation d'une API météo - à remplacer par vraie API
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Simulation de nouvelles données
-            this.data = {
-                ...this.data,
-                temperature: this.data.temperature + (Math.random() * 2 - 1),
-                humidity: Math.max(20, Math.min(90, this.data.humidity + (Math.random() * 10 - 5))),
-                windSpeed: Math.max(0, Math.min(20, this.data.windSpeed + (Math.random() * 4 - 2))),
-                seeing: Math.max(0.8, Math.min(4.0, this.data.seeing + (Math.random() * 0.6 - 0.3)))
-            };
-
-            this.updateQuality();
-            this.lastUpdate = new Date();
-
-            window.showNotification('Weather Updated', 'Atmospheric conditions refreshed', 'info', 2000);
-        } catch (error) {
-            console.error('Weather update failed:', error);
-            window.showNotification('Error', 'Failed to update weather data', 'error');
-        } finally {
-            this.isLoading = false;
-        }
-    },
-
-    updateQuality() {
-        if (this.data.seeing <= 1.5 && this.data.cloudCover <= 10) {
-            this.data.seeingQuality = 'excellent';
-        } else if (this.data.seeing <= 2.5 && this.data.cloudCover <= 30) {
-            this.data.seeingQuality = 'good';
-        } else if (this.data.seeing <= 3.5 && this.data.cloudCover <= 50) {
-            this.data.seeingQuality = 'fair';
-        } else {
-            this.data.seeingQuality = 'poor';
-        }
-    },
-
-    get status() {
-        return this.data.seeingQuality;
-    },
-
-    get isGoodForObserving() {
-        return this.data.seeingQuality === 'excellent' || this.data.seeingQuality === 'good';
-    }
-});
 
 // ============================================
 // FONCTIONS UTILITAIRES GLOBALES
@@ -365,10 +299,17 @@ document.addEventListener('DOMContentLoaded', () => {
         Notification.requestPermission();
     }
 
-    // Mise à jour météo périodique
+    // Mise à jour météo périodique (protégée si store absent)
     setInterval(() => {
-        if (document.visibilityState === 'visible') {
-            Alpine.store('weather').update();
+        try {
+            if (document.visibilityState === 'visible') {
+                const weather = Alpine.store('weather');
+                if (weather && typeof weather.update === 'function') {
+                    weather.update();
+                }
+            }
+        } catch (e) {
+            // ignore si store non défini
         }
     }, 300000); // 5 minutes
 
@@ -426,8 +367,13 @@ document.addEventListener('keydown', (e) => {
 // Gestion de la visibilité de la page
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-        // Rafraîchir les données critiques
-        Alpine.store('weather').update();
+        // Rafraîchir les données critiques (si store météo présent)
+        try {
+            const weather = Alpine.store('weather');
+            if (weather && typeof weather.update === 'function') {
+                weather.update();
+            }
+        } catch (e) {}
     }
 });
 
