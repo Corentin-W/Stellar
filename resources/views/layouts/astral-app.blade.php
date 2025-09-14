@@ -39,7 +39,7 @@
                     <h1 class="font-astral font-bold text-white text-lg">
                         @yield('page-title', 'TelescopeApp')
                     </h1>
-                    <button @click="$store.sidebar.toggle()"
+                    <button type="button" @click="$store.sidebar.toggle()"
                             class="text-white hover:text-blue-400 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
@@ -56,7 +56,7 @@
     </div>
 
     <!-- Mobile Overlay -->
-    <div x-show="$store.sidebar.mobileOpen"
+    <div x-show="$store.sidebar.mobileOpen" x-cloak
          @click="$store.sidebar.close()"
          class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
          x-transition:enter="transition-opacity ease-linear duration-300"

@@ -418,6 +418,15 @@
 
             .register-card {
                 padding: 2rem;
+                -webkit-backdrop-filter: none !important;
+                backdrop-filter: none !important;
+                background: rgba(255, 255, 255, 0.04);
+            }
+
+            .form-input,
+            .divider span {
+                -webkit-backdrop-filter: none !important;
+                backdrop-filter: none !important;
             }
 
             .title {

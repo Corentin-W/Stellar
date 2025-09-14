@@ -698,6 +698,14 @@
             .modal {
                 padding: 3rem 2rem;
                 margin: 1rem;
+                -webkit-backdrop-filter: none !important;
+                backdrop-filter: none !important;
+                background: rgba(255, 255, 255, 0.04);
+            }
+            .modal-overlay,
+            .toast {
+                -webkit-backdrop-filter: none !important;
+                backdrop-filter: none !important;
             }
             .hero-title {
                 font-size: 3.5rem;

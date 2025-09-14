@@ -325,7 +325,7 @@ body::before {
     }
 
     .sidebar.mobile-open {
-        transform: translateX(0);
+        transform: translateX(0) !important;
     }
 
     .content-area {
@@ -353,4 +353,19 @@ body::before {
 .glass-effect:hover {
     background: var(--glass-bg-hover);
     border-color: var(--glass-border-hover);
+}
+
+/* Mobile clarity: reduce blur to keep text crisp */
+@media (max-width: 768px) {
+    /* Disable backdrop blur on small screens to avoid global ‘soft’ look */
+    .sidebar,
+    .notification,
+    .dashboard-card,
+    .glass-effect,
+    .content-area > header {
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+        /* Slight solid background so UI still readable without blur */
+        background-color: rgba(255, 255, 255, 0.04);
+    }
 }
