@@ -130,4 +130,12 @@ return [
     'kmh' => 'km/h',
     'km' => 'km',
     'arcsec' => '"',
+        'sidebar' => [
+        'notifications' => 'Notifications',
+        'settings' => 'Paramètres',
+        'help_support' => 'Aide & Support',
+        'search_placeholder' => 'Rechercher dans le cosmos...',
+        'explorer' => 'Explorateur',
+        'online' => 'En ligne',
+    ],
 ];

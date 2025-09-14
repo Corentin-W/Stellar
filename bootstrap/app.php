@@ -11,7 +11,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-         $middleware->alias([
+        // CORRECTION : Utiliser LocaleMiddleware au lieu de SetLocale
+        $middleware->web(append: [
+            \App\Http\Middleware\LocaleMiddleware::class,
+        ]);
+
+        // L'alias peut rester si besoin
+        $middleware->alias([
             'locale' => \App\Http\Middleware\LocaleMiddleware::class,
         ]);
     })

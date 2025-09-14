@@ -1,10 +1,13 @@
 // resources/js/app.js
-
 import './bootstrap.js';
 import Alpine from 'alpinejs';
 
 // Configuration Alpine.js
 window.Alpine = Alpine;
+
+// ============================================
+// STORES GLOBAUX ALPINE.JS
+// ============================================
 
 // Store global pour la sidebar
 Alpine.store('sidebar', {
@@ -124,7 +127,7 @@ Alpine.store('notifications', {
 // Store pour les paramètres utilisateur
 Alpine.store('settings', {
     theme: localStorage.getItem('theme') || 'dark',
-    language: localStorage.getItem('language') || 'en',
+    language: localStorage.getItem('language') || 'fr',
     notifications: {
         desktop: localStorage.getItem('desktop-notifications') === 'true',
         sound: localStorage.getItem('sound-notifications') === 'true',
@@ -186,24 +189,29 @@ Alpine.store('weather', {
     async update() {
         this.isLoading = true;
 
-        // Simulation d'une API météo
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+            // Simulation d'une API météo - à remplacer par vraie API
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Simulation de nouvelles données
-        this.data = {
-            ...this.data,
-            temperature: this.data.temperature + (Math.random() * 2 - 1),
-            humidity: Math.max(20, Math.min(90, this.data.humidity + (Math.random() * 10 - 5))),
-            windSpeed: Math.max(0, Math.min(20, this.data.windSpeed + (Math.random() * 4 - 2))),
-            seeing: Math.max(0.8, Math.min(4.0, this.data.seeing + (Math.random() * 0.6 - 0.3)))
-        };
+            // Simulation de nouvelles données
+            this.data = {
+                ...this.data,
+                temperature: this.data.temperature + (Math.random() * 2 - 1),
+                humidity: Math.max(20, Math.min(90, this.data.humidity + (Math.random() * 10 - 5))),
+                windSpeed: Math.max(0, Math.min(20, this.data.windSpeed + (Math.random() * 4 - 2))),
+                seeing: Math.max(0.8, Math.min(4.0, this.data.seeing + (Math.random() * 0.6 - 0.3)))
+            };
 
-        // Mise à jour de la qualité
-        this.updateQuality();
-        this.lastUpdate = new Date();
-        this.isLoading = false;
+            this.updateQuality();
+            this.lastUpdate = new Date();
 
-        window.showNotification('Weather Updated', 'Atmospheric conditions refreshed', 'info', 2000);
+            window.showNotification('Weather Updated', 'Atmospheric conditions refreshed', 'info', 2000);
+        } catch (error) {
+            console.error('Weather update failed:', error);
+            window.showNotification('Error', 'Failed to update weather data', 'error');
+        } finally {
+            this.isLoading = false;
+        }
     },
 
     updateQuality() {
@@ -227,7 +235,10 @@ Alpine.store('weather', {
     }
 });
 
-// Fonctions utilitaires globales
+// ============================================
+// FONCTIONS UTILITAIRES GLOBALES
+// ============================================
+
 window.TelescopeApp = {
     // Formatage du temps
     formatTime(date) {
@@ -265,11 +276,10 @@ window.TelescopeApp = {
         return `${sign}${degrees.toString().padStart(2, '0')}° ${minutes.toString().padStart(2, '0')}' ${seconds.toString().padStart(2, '0')}"`;
     },
 
-    // Validation des entrées
+    // Validation des coordonnées
     validateCoordinates(ra, dec) {
         const raPattern = /^([0-1]?[0-9]|2[0-3])h\s([0-5]?[0-9])m\s([0-5]?[0-9])s$/;
         const decPattern = /^[+-]?([0-8]?[0-9]|90)°\s([0-5]?[0-9])'\s([0-5]?[0-9])"$/;
-
         return raPattern.test(ra) && decPattern.test(dec);
     },
 
@@ -315,7 +325,10 @@ window.TelescopeApp = {
     }
 };
 
-// Fonction globale pour les notifications
+// ============================================
+// FONCTION GLOBALE POUR LES NOTIFICATIONS
+// ============================================
+
 window.showNotification = function(title, message, type = 'info', duration = 5000) {
     Alpine.store('notifications').add({ title, message, type, duration });
 
@@ -338,7 +351,10 @@ window.showNotification = function(title, message, type = 'info', duration = 500
     }
 };
 
-// Gestionnaires d'événements globaux
+// ============================================
+// GESTIONNAIRES D'ÉVÉNEMENTS GLOBAUX
+// ============================================
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initialisation du thème
     const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -358,13 +374,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Sauvegarde automatique des paramètres
     window.addEventListener('beforeunload', () => {
-        // Sauvegarder l'état actuel
         localStorage.setItem('last-session', JSON.stringify({
             timestamp: new Date().toISOString(),
             sidebar: Alpine.store('sidebar'),
             telescope: Alpine.store('telescope').status
         }));
     });
+
+    console.log('🌌 TelescopeApp initialized successfully');
 });
 
 // Raccourcis clavier globaux
@@ -425,5 +442,3 @@ window.addEventListener('unhandledrejection', (e) => {
 
 // Démarrage d'Alpine.js
 Alpine.start();
-
-console.log('🌌 TelescopeApp - Modern Astral Interface loaded successfully');

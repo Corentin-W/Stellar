@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\WaitingListController;
 
@@ -17,8 +18,13 @@ Route::get('/', function () {
     return redirect('/' . config('app.locale', 'fr'));
 });
 
+Route::post('/locale/{newLocale}', [LocaleController::class, 'change'])
+    ->where('newLocale', 'fr|en')
+    ->name('locale.change');
+
 // Routes avec préfixe de locale
 Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
+
 
     // ======================
     // ROUTES PUBLIQUES
@@ -97,12 +103,15 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
 });
 
 // ======================
-// CHANGEMENT DE LANGUE
+// CHANGEMENT DE LANGUE (ANCIENNE VERSION - SUPPRIMER)
 // ======================
 
 Route::get('/lang/{locale}', [LanguageController::class, 'switchLang'])
     ->where('locale', 'fr|en')
     ->name('lang.switch');
+
+// SUPPRIMER CETTE LIGNE - ELLE EST MAINTENANT DANS LE GROUPE
+// Route::post('/locale/{locale}', [LocaleController::class, 'change'])->name('locale.change');
 
 // ======================
 // ROUTES DE FALLBACK

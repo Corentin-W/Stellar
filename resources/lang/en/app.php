@@ -131,4 +131,12 @@ return [
     'kmh' => 'km/h',
     'km' => 'km',
     'arcsec' => '"',
+    'sidebar' => [
+        'notifications' => 'Notifications',
+        'settings' => 'Settings',
+        'help_support' => 'Help & Support',
+        'search_placeholder' => 'Search cosmos...',
+        'explorer' => 'Explorer',
+        'online' => 'Online',
+    ],
 ];

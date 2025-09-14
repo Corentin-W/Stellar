@@ -1,24 +1,43 @@
 const mix = require('laravel-mix');
 
+// Configuration de base
 mix.js('resources/js/app.js', 'public/js')
-   .js('resources/js/telescope.js', 'public/js')
    .postCss('resources/css/app.css', 'public/css', [
-       require('tailwindcss'),  // Pas de @tailwindcss/postcss
-       require('autoprefixer'),
-   ])
-   .postCss('resources/css/telescope.css', 'public/css', [
-       require('tailwindcss'),
-       require('autoprefixer'),
-   ])
-   .postCss('resources/css/mobile-responsive.css', 'public/css', [
-       require('tailwindcss'),
-       require('autoprefixer'),
+        require('tailwindcss'),
+        require('autoprefixer'),
    ])
    .options({
-       processCssUrls: false
-   })
-   .sourceMaps();
+        postCss: [
+            require('tailwindcss'),
+            require('autoprefixer'),
+        ]
+   });
 
+// Configuration pour la production
 if (mix.inProduction()) {
-    mix.version();
+    mix.version()
+       .options({
+           terser: {
+               terserOptions: {
+                   compress: {
+                       drop_console: true,
+                   },
+               },
+           },
+       });
+} else {
+    mix.sourceMaps();
 }
+
+// Hot reload pour le développement
+mix.browserSync({
+    proxy: 'localhost:8000',
+    files: [
+        'resources/views/**/*.php',
+        'resources/js/**/*.js',
+        'resources/css/**/*.css'
+    ]
+});
+
+// Copies d'assets supplémentaires
+mix.copyDirectory('resources/images', 'public/images');
