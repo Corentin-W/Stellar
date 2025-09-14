@@ -3,9 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\CreditController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\WaitingListController;
+use App\Http\Controllers\Admin\CreditAdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -186,3 +188,94 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/toggle-admin/{user}', [App\Http\Controllers\AdminController::class, 'toggleAdmin'])->name('toggle-admin');
     Route::post('/switch-back', [App\Http\Controllers\AdminController::class, 'switchBack'])->name('switch-back');
 });
+
+
+
+Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
+
+    // Routes existantes...
+
+    // Routes de crédits (authentifiées)
+    Route::middleware('auth')->group(function () {
+
+        // Boutique de crédits
+        Route::get('/credits/shop', [CreditController::class, 'shop'])->name('credits.shop');
+        Route::get('/credits/package/{package}', [CreditController::class, 'packageDetails'])->name('credits.package.details');
+        Route::post('/credits/validate-promotion', [CreditController::class, 'validatePromotion'])->name('credits.validate-promotion');
+        Route::post('/credits/purchase', [CreditController::class, 'purchase'])->name('credits.purchase');
+
+        // Historique et gestion
+        Route::get('/credits/history', [CreditController::class, 'history'])->name('credits.history');
+        Route::get('/credits/balance', [CreditController::class, 'balance'])->name('credits.balance');
+
+        // Estimation de coûts
+        Route::post('/credits/estimate-session', [CreditController::class, 'estimateSessionCost'])->name('credits.estimate-session');
+
+        // Stripe success/cancel
+        Route::get('/credits/success', function() {
+            return view('credits.success');
+        })->name('credits.success');
+
+        Route::get('/credits/cancel', function() {
+            return view('credits.cancel');
+        })->name('credits.cancel');
+    });
+});
+
+// Routes API (sans préfixe locale)
+Route::prefix('api')->middleware(['auth'])->group(function () {
+
+    // API Stripe pour créer Payment Intent
+    Route::post('/create-payment-intent', [StripeApiController::class, 'createPaymentIntent']);
+    Route::post('/confirm-payment', [StripeApiController::class, 'confirmPayment']);
+
+    // API Crédits
+    Route::get('/credits/balance', [CreditController::class, 'balance']);
+    Route::post('/credits/estimate', [CreditController::class, 'estimateSessionCost']);
+});
+
+// Routes Admin (sans préfixe locale)
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+
+    // Dashboard principal des crédits
+    Route::get('/credits', [CreditAdminController::class, 'dashboard'])->name('credits.dashboard');
+
+    // Gestion des packages
+    Route::prefix('credits/packages')->name('credits.packages.')->group(function () {
+        Route::get('/', [CreditAdminController::class, 'packages'])->name('index');
+        Route::get('/create', [CreditAdminController::class, 'createPackage'])->name('create');
+        Route::post('/', [CreditAdminController::class, 'storePackage'])->name('store');
+        Route::get('/{package}/edit', [CreditAdminController::class, 'editPackage'])->name('edit');
+        Route::put('/{package}', [CreditAdminController::class, 'updatePackage'])->name('update');
+        Route::post('/{package}/toggle-status', [CreditAdminController::class, 'togglePackageStatus'])->name('toggle-status');
+        Route::delete('/{package}', [CreditAdminController::class, 'deletePackage'])->name('delete');
+    });
+
+    // Gestion des promotions
+    Route::prefix('credits/promotions')->name('credits.promotions.')->group(function () {
+        Route::get('/', [CreditAdminController::class, 'promotions'])->name('index');
+        Route::get('/create', [CreditAdminController::class, 'createPromotion'])->name('create');
+        Route::post('/', [CreditAdminController::class, 'storePromotion'])->name('store');
+        Route::get('/{promotion}/edit', [CreditAdminController::class, 'editPromotion'])->name('edit');
+        Route::put('/{promotion}', [CreditAdminController::class, 'updatePromotion'])->name('update');
+        Route::post('/{promotion}/toggle-status', [CreditAdminController::class, 'togglePromotionStatus'])->name('toggle-status');
+        Route::delete('/{promotion}', [CreditAdminController::class, 'deletePromotion'])->name('delete');
+    });
+
+    // Gestion des utilisateurs et ajustements
+    Route::prefix('credits/users')->name('credits.users.')->group(function () {
+        Route::get('/', [CreditAdminController::class, 'users'])->name('index');
+        Route::get('/{user}', [CreditAdminController::class, 'userDetails'])->name('details');
+        Route::post('/{user}/adjust-credits', [CreditAdminController::class, 'adjustUserCredits'])->name('adjust-credits');
+    });
+
+    // Rapports et analytics
+    Route::get('/credits/reports', [CreditAdminController::class, 'reports'])->name('credits.reports');
+    Route::get('/credits/export', [CreditAdminController::class, 'exportTransactions'])->name('credits.export');
+
+    // Transactions
+    Route::get('/credits/transactions', [CreditAdminController::class, 'transactions'])->name('credits.transactions');
+});
+
+// Webhooks Stripe (sans middleware auth)
+// Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('stripe.webhook');

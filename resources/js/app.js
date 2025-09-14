@@ -10,28 +10,348 @@ window.Alpine = Alpine;
 // ============================================
 
 // Store global pour la sidebar
-Alpine.store('sidebar', {
-    collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-    mobileOpen: false,
+// Amélioration du store sidebar pour mobile - VERSION CORRIGÉE
+document.addEventListener('alpine:init', () => {
+    // Assurons-nous de redéfinir complètement le store sidebar
+    Alpine.store('sidebar', {
+        collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
+        mobileOpen: false,
 
-    toggle() {
-        if (window.innerWidth >= 1024) {
-            this.collapsed = !this.collapsed;
-            localStorage.setItem('sidebar-collapsed', this.collapsed);
-        } else {
-            this.mobileOpen = !this.mobileOpen;
+        toggle() {
+            if (window.innerWidth >= 1024) {
+                // Desktop: toggle collapsed state
+                this.collapsed = !this.collapsed;
+                localStorage.setItem('sidebar-collapsed', this.collapsed);
+                console.log('Desktop sidebar toggled:', this.collapsed);
+            } else {
+                // Mobile: toggle mobile menu avec animations fluides
+                this.mobileOpen = !this.mobileOpen;
+                console.log('Mobile sidebar toggled:', this.mobileOpen);
+
+                // Prévenir le scroll du body quand la sidebar est ouverte
+                if (this.mobileOpen) {
+                    document.body.style.overflow = 'hidden';
+                    document.body.classList.add('sidebar-mobile-open');
+                } else {
+                    document.body.style.overflow = '';
+                    document.body.classList.remove('sidebar-mobile-open');
+                }
+
+                // Feedback haptique sur mobile si disponible
+                if ('vibrate' in navigator && this.mobileOpen) {
+                    navigator.vibrate(50);
+                }
+            }
+        },
+
+        close() {
+            if (this.mobileOpen) {
+                this.mobileOpen = false;
+                document.body.style.overflow = '';
+                document.body.classList.remove('sidebar-mobile-open');
+                console.log('Mobile sidebar closed');
+            }
+        },
+
+        open() {
+            if (window.innerWidth < 1024 && !this.mobileOpen) {
+                this.mobileOpen = true;
+                document.body.style.overflow = 'hidden';
+                document.body.classList.add('sidebar-mobile-open');
+
+                // Feedback haptique
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(50);
+                }
+                console.log('Mobile sidebar opened');
+            }
+        },
+
+        toggleCollapse() {
+            if (window.innerWidth >= 1024) {
+                this.collapsed = !this.collapsed;
+                localStorage.setItem('sidebar-collapsed', this.collapsed);
+                console.log('Desktop sidebar collapse toggled:', this.collapsed);
+            }
         }
-    },
+    });
+});
 
-    close() {
-        this.mobileOpen = false;
-    },
+// Gestionnaire d'événements amélioré pour mobile
+document.addEventListener('DOMContentLoaded', () => {
+    // Attendre qu'Alpine soit initialisé
+    setTimeout(() => {
+        initializeMobileSidebar();
+    }, 100);
+});
 
-    toggleCollapse() {
-        this.collapsed = !this.collapsed;
-        localStorage.setItem('sidebar-collapsed', this.collapsed);
+function initializeMobileSidebar() {
+    console.log('🔧 Initializing mobile sidebar enhancements...');
+
+    // Gestion du swipe pour ouvrir/fermer la sidebar sur mobile
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    let isSwipeDetected = false;
+
+    // Détection du swipe depuis le bord gauche pour ouvrir
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+        isSwipeDetected = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        // Empêcher le scroll horizontal pendant le swipe
+        if (Math.abs(e.changedTouches[0].screenX - touchStartX) > 10) {
+            isSwipeDetected = true;
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        if (isSwipeDetected) {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        }
+    }, { passive: true });
+
+    function handleSwipe() {
+        const swipeThreshold = 100;
+        const edgeThreshold = 50;
+        const verticalThreshold = 150;
+
+        const horizontalDistance = touchEndX - touchStartX;
+        const verticalDistance = Math.abs(touchEndY - touchStartY);
+
+        // Ignorer si le swipe est trop vertical
+        if (verticalDistance > verticalThreshold) return;
+
+        try {
+            const sidebarStore = Alpine.store('sidebar');
+
+            // Swipe depuis le bord gauche vers la droite (ouvrir)
+            if (touchStartX < edgeThreshold &&
+                horizontalDistance > swipeThreshold &&
+                window.innerWidth < 1024 &&
+                !sidebarStore.mobileOpen) {
+                sidebarStore.open();
+                console.log('✅ Swipe to open detected');
+            }
+
+            // Swipe vers la gauche (fermer)
+            if (horizontalDistance < -swipeThreshold &&
+                window.innerWidth < 1024 &&
+                sidebarStore.mobileOpen) {
+                sidebarStore.close();
+                console.log('✅ Swipe to close detected');
+            }
+        } catch (error) {
+            console.error('❌ Error handling swipe:', error);
+        }
+    }
+
+    // Fermer la sidebar quand on redimensionne vers desktop
+    window.addEventListener('resize', () => {
+        try {
+            if (window.innerWidth >= 1024) {
+                const sidebarStore = Alpine.store('sidebar');
+                if (sidebarStore && sidebarStore.mobileOpen) {
+                    sidebarStore.close();
+                    console.log('🖥️ Closed mobile sidebar on resize to desktop');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error on resize:', error);
+        }
+    });
+
+    // Gestion de l'orientation mobile
+    window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+            try {
+                const sidebarStore = Alpine.store('sidebar');
+                if (sidebarStore && sidebarStore.mobileOpen) {
+                    sidebarStore.close();
+                    console.log('📱 Closed sidebar on orientation change');
+                }
+            } catch (error) {
+                console.error('❌ Error on orientation change:', error);
+            }
+        }, 100);
+    });
+
+    // Amélioration de l'accessibilité clavier
+    document.addEventListener('keydown', (e) => {
+        try {
+            const sidebarStore = Alpine.store('sidebar');
+
+            // Escape ferme la sidebar mobile
+            if (e.key === 'Escape' && sidebarStore && sidebarStore.mobileOpen) {
+                e.preventDefault();
+                sidebarStore.close();
+                console.log('⌨️ Sidebar closed with Escape key');
+            }
+
+            // Entrée ou espace sur le bouton menu mobile
+            if ((e.key === 'Enter' || e.key === ' ') &&
+                e.target.closest('[data-mobile-menu-button]')) {
+                e.preventDefault();
+                sidebarStore.toggle();
+                console.log('⌨️ Sidebar toggled with keyboard');
+            }
+        } catch (error) {
+            console.error('❌ Error handling keyboard:', error);
+        }
+    });
+
+    // Focus management pour l'accessibilité
+    const sidebarElement = document.querySelector('.sidebar');
+    if (sidebarElement) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' &&
+                    mutation.attributeName === 'class') {
+                    try {
+                        if (sidebarElement.classList.contains('mobile-open')) {
+                            // Focus le premier lien navigable
+                            const firstLink = sidebarElement.querySelector('.sidebar-item');
+                            if (firstLink) {
+                                setTimeout(() => {
+                                    firstLink.focus();
+                                    console.log('🎯 Focused first sidebar item');
+                                }, 200);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('❌ Error managing focus:', error);
+                    }
+                }
+            });
+        });
+
+        observer.observe(sidebarElement, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+    }
+
+    console.log('📱 Mobile sidebar enhancements successfully loaded');
+}
+
+// Fonction utilitaire pour détecter les appareils tactiles
+window.isTouchDevice = () => {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+};
+
+// CSS dynamique pour les animations mobile (version sécurisée)
+function addMobileStyles() {
+    // Vérifier si les styles n'ont pas déjà été ajoutés
+    if (document.getElementById('mobile-sidebar-styles')) {
+        return;
+    }
+
+    const mobileStyles = document.createElement('style');
+    mobileStyles.id = 'mobile-sidebar-styles';
+    mobileStyles.textContent = `
+        /* Classe ajoutée au body quand la sidebar mobile est ouverte */
+        body.sidebar-mobile-open {
+            touch-action: none;
+            overflow: hidden !important;
+            position: fixed;
+            width: 100%;
+        }
+
+        /* Animation d'ouverture fluide */
+        @media (max-width: 1024px) {
+            .sidebar.mobile-open {
+                animation: slideInMobile 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            }
+
+            @keyframes slideInMobile {
+                0% {
+                    transform: translateX(-100%);
+                    opacity: 0.8;
+                }
+                100% {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            /* Animation des éléments internes */
+            .sidebar.mobile-open .sidebar-item {
+                animation: fadeInUp 0.6s ease-out forwards;
+                animation-delay: calc(var(--item-index, 0) * 0.05s);
+            }
+        }
+
+        /* Indicateur de swipe */
+        .swipe-indicator {
+            position: fixed;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 60px;
+            background: linear-gradient(180deg, transparent, rgba(79, 70, 229, 0.6), transparent);
+            border-radius: 0 4px 4px 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 30;
+            pointer-events: none;
+        }
+
+        .swipe-indicator.show {
+            opacity: 1;
+        }
+
+        @media (min-width: 1024px) {
+            .swipe-indicator {
+                display: none;
+            }
+        }
+
+        /* Debug helper */
+        .debug-sidebar {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 5px;
+            font-size: 10px;
+            z-index: 9999;
+            border-radius: 3px;
+        }
+    `;
+
+    document.head.appendChild(mobileStyles);
+    console.log('🎨 Mobile styles added successfully');
+}
+
+// Initialiser les styles mobile
+document.addEventListener('DOMContentLoaded', () => {
+    addMobileStyles();
+
+    // Ajouter l'indicateur de swipe sur mobile
+    if (window.innerWidth < 1024 && !document.querySelector('.swipe-indicator')) {
+        const swipeIndicator = document.createElement('div');
+        swipeIndicator.className = 'swipe-indicator';
+        document.body.appendChild(swipeIndicator);
+
+        // Montrer l'indicateur brièvement au chargement
+        setTimeout(() => {
+            swipeIndicator.classList.add('show');
+            setTimeout(() => {
+                swipeIndicator.classList.remove('show');
+            }, 2000);
+        }, 1000);
     }
 });
+
+console.log('📱 Mobile sidebar script loaded');
 
 // Store pour le télescope
 Alpine.store('telescope', {
