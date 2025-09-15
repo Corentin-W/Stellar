@@ -182,4 +182,111 @@ class User extends Authenticatable
                                 ->sum('credits_amount') * -1
         ];
     }
+    // Tickets créés par l'utilisateur
+public function tickets(): HasMany
+{
+    return $this->hasMany(SupportTicket::class, 'user_id');
+}
+
+// Tickets assignés à cet admin
+public function assignedTickets(): HasMany
+{
+    return $this->hasMany(SupportTicket::class, 'assigned_to');
+}
+
+// Messages de support envoyés par l'utilisateur
+public function supportMessages(): HasMany
+{
+    return $this->hasMany(SupportMessage::class, 'user_id');
+}
+
+// Templates créés par cet admin
+public function supportTemplates(): HasMany
+{
+    return $this->hasMany(SupportTemplate::class, 'created_by');
+}
+
+// Historique des actions sur les tickets
+public function supportHistory(): HasMany
+{
+    return $this->hasMany(SupportTicketHistory::class, 'user_id');
+}
+
+// Fichiers joints uploadés par l'utilisateur
+public function supportAttachments(): HasMany
+{
+    return $this->hasMany(SupportAttachment::class, 'user_id');
+}
+
+// Tickets résolus par cet admin
+public function resolvedTickets(): HasMany
+{
+    return $this->hasMany(SupportTicket::class, 'resolved_by');
+}
+
+// Tickets fermés par cet admin
+public function closedTickets(): HasMany
+{
+    return $this->hasMany(SupportTicket::class, 'closed_by');
+}
+
+/**
+ * Scopes pour le système de support
+ */
+
+// Scope pour récupérer seulement les admins
+public function scopeAdmins($query)
+{
+    return $query->where('admin', true);
+}
+
+/**
+ * Méthodes utilitaires pour le support
+ */
+
+// Vérifier si l'utilisateur est un agent de support
+public function isSupportAgent(): bool
+{
+    return $this->admin === true;
+}
+
+// Obtenir les statistiques de tickets pour cet agent
+public function getSupportStats(): array
+{
+    if (!$this->isSupportAgent()) {
+        return [];
+    }
+
+    return [
+        'total_assigned' => $this->assignedTickets()->count(),
+        'open_assigned' => $this->assignedTickets()->whereIn('status', ['open', 'in_progress', 'waiting_user', 'waiting_admin'])->count(),
+        'resolved_this_month' => $this->resolvedTickets()->whereMonth('resolved_at', now()->month)->count(),
+        'avg_resolution_time' => $this->calculateAvgResolutionTime(),
+    ];
+}
+
+// Calculer le temps de résolution moyen pour cet agent
+private function calculateAvgResolutionTime(): string
+{
+    $resolvedTickets = $this->resolvedTickets()
+                           ->whereNotNull('resolved_at')
+                           ->select('created_at', 'resolved_at')
+                           ->get();
+
+    if ($resolvedTickets->isEmpty()) {
+        return '0h';
+    }
+
+    $totalHours = $resolvedTickets->sum(function($ticket) {
+        return $ticket->created_at->diffInHours($ticket->resolved_at);
+    });
+
+    $avgHours = $totalHours / $resolvedTickets->count();
+
+    if ($avgHours < 1) {
+        return round($avgHours * 60) . 'min';
+    } else {
+        return round($avgHours, 1) . 'h';
+    }
+}
 }

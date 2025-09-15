@@ -5,9 +5,14 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\SupportController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\WaitingListController;
 use App\Http\Controllers\Admin\CreditAdminController;
+use App\Http\Controllers\Admin\SupportAdminController;
+use App\Http\Controllers\Admin\SupportReportController;
+use App\Http\Controllers\Admin\SupportCategoryController;
+use App\Http\Controllers\Admin\SupportTemplateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,7 +31,6 @@ Route::post('/locale/{newLocale}', [LocaleController::class, 'change'])
 
 // Routes avec préfixe de locale
 Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
-
 
     // ======================
     // ROUTES PUBLIQUES
@@ -91,6 +95,60 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
         // Paramètres
         Route::get('/settings', [HomeController::class, 'settings'])->name('settings');
         Route::put('/settings', [HomeController::class, 'updateSettings'])->name('settings.update');
+
+        // ======================
+        // ROUTES DE CRÉDITS
+        // ======================
+
+        // Boutique de crédits
+        Route::get('/credits/shop', [CreditController::class, 'shop'])->name('credits.shop');
+        Route::get('/credits/package/{package}', [CreditController::class, 'packageDetails'])->name('credits.package.details');
+        Route::post('/credits/validate-promotion', [CreditController::class, 'validatePromotion'])->name('credits.validate-promotion');
+        Route::post('/credits/purchase', [CreditController::class, 'purchase'])->name('credits.purchase');
+
+        // Historique et gestion
+        Route::get('/credits/history', [CreditController::class, 'history'])->name('credits.history');
+        Route::get('/credits/balance', [CreditController::class, 'balance'])->name('credits.balance');
+
+        // Estimation de coûts
+        Route::post('/credits/estimate-session', [CreditController::class, 'estimateSessionCost'])->name('credits.estimate-session');
+
+        // Stripe success/cancel
+        Route::get('/credits/success', function() {
+            return view('credits.success');
+        })->name('credits.success');
+
+        Route::get('/credits/cancel', function() {
+            return view('credits.cancel');
+        })->name('credits.cancel');
+
+        // ======================
+        // ROUTES DE SUPPORT UTILISATEURS
+        // ======================
+
+        Route::prefix('support')->name('support.')->group(function () {
+
+            // Liste des tickets de l'utilisateur
+            Route::get('/', [SupportController::class, 'index'])->name('index');
+
+            // Créer un nouveau ticket
+            Route::get('/create', [SupportController::class, 'create'])->name('create');
+            Route::post('/', [SupportController::class, 'store'])->name('store');
+
+            // Afficher un ticket spécifique
+            Route::get('/{ticket}', [SupportController::class, 'show'])->name('show');
+
+            // Répondre à un ticket
+            Route::post('/{ticket}/reply', [SupportController::class, 'reply'])->name('reply');
+
+            // Actions sur les tickets
+            Route::post('/{ticket}/close', [SupportController::class, 'close'])->name('close');
+            Route::post('/{ticket}/reopen', [SupportController::class, 'reopen'])->name('reopen');
+
+            // Téléchargement de fichiers joints
+            Route::get('/attachment/{attachment}/download', [SupportController::class, 'downloadAttachment'])
+                 ->name('attachment.download');
+        });
     });
 
     // ======================
@@ -117,9 +175,6 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
 Route::get('/lang/{locale}', [LanguageController::class, 'switchLang'])
     ->where('locale', 'fr|en')
     ->name('lang.switch');
-
-// SUPPRIMER CETTE LIGNE - ELLE EST MAINTENANT DANS LE GROUPE
-// Route::post('/locale/{locale}', [LocaleController::class, 'change'])->name('locale.change');
 
 // ======================
 // ROUTES DE FALLBACK
@@ -180,54 +235,12 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     });
 });
 
-
-// Routes admin
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/panel', [App\Http\Controllers\AdminController::class, 'panel'])->name('panel');
-    Route::post('/login-as/{user}', [App\Http\Controllers\AdminController::class, 'loginAsUser'])->name('login-as');
-    Route::post('/toggle-admin/{user}', [App\Http\Controllers\AdminController::class, 'toggleAdmin'])->name('toggle-admin');
-    Route::post('/switch-back', [App\Http\Controllers\AdminController::class, 'switchBack'])->name('switch-back');
-});
-
-
-
-Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
-
-    // Routes existantes...
-
-    // Routes de crédits (authentifiées)
-    Route::middleware('auth')->group(function () {
-
-        // Boutique de crédits
-        Route::get('/credits/shop', [CreditController::class, 'shop'])->name('credits.shop');
-        Route::get('/credits/package/{package}', [CreditController::class, 'packageDetails'])->name('credits.package.details');
-        Route::post('/credits/validate-promotion', [CreditController::class, 'validatePromotion'])->name('credits.validate-promotion');
-        Route::post('/credits/purchase', [CreditController::class, 'purchase'])->name('credits.purchase');
-
-        // Historique et gestion
-        Route::get('/credits/history', [CreditController::class, 'history'])->name('credits.history');
-        Route::get('/credits/balance', [CreditController::class, 'balance'])->name('credits.balance');
-
-        // Estimation de coûts
-        Route::post('/credits/estimate-session', [CreditController::class, 'estimateSessionCost'])->name('credits.estimate-session');
-
-        // Stripe success/cancel
-        Route::get('/credits/success', function() {
-            return view('credits.success');
-        })->name('credits.success');
-
-        Route::get('/credits/cancel', function() {
-            return view('credits.cancel');
-        })->name('credits.cancel');
-    });
-});
-
 // Routes API (sans préfixe locale)
 Route::prefix('api')->middleware(['auth'])->group(function () {
 
     // API Stripe pour créer Payment Intent
-    Route::post('/create-payment-intent', [StripeApiController::class, 'createPaymentIntent']);
-    Route::post('/confirm-payment', [StripeApiController::class, 'confirmPayment']);
+    // Route::post('/create-payment-intent', [StripeApiController::class, 'createPaymentIntent']);
+    // Route::post('/confirm-payment', [StripeApiController::class, 'confirmPayment']);
 
     // API Crédits
     Route::get('/credits/balance', [CreditController::class, 'balance']);
@@ -236,6 +249,12 @@ Route::prefix('api')->middleware(['auth'])->group(function () {
 
 // Routes Admin (sans préfixe locale)
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+
+    // Panel admin général
+    Route::get('/panel', [App\Http\Controllers\AdminController::class, 'panel'])->name('panel');
+    Route::post('/login-as/{user}', [App\Http\Controllers\AdminController::class, 'loginAsUser'])->name('login-as');
+    Route::post('/toggle-admin/{user}', [App\Http\Controllers\AdminController::class, 'toggleAdmin'])->name('toggle-admin');
+    Route::post('/switch-back', [App\Http\Controllers\AdminController::class, 'switchBack'])->name('switch-back');
 
     // Dashboard principal des crédits
     Route::get('/credits', [CreditAdminController::class, 'dashboard'])->name('credits.dashboard');
@@ -275,6 +294,61 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Transactions
     Route::get('/credits/transactions', [CreditAdminController::class, 'transactions'])->name('credits.transactions');
+
+    // ======================
+    // ROUTES ADMIN SUPPORT (DANS LE BON GROUPE ADMIN)
+    // ======================
+
+    Route::prefix('support')->name('support.')->group(function () {
+
+        // Dashboard principal du support
+        Route::get('/', [SupportAdminController::class, 'dashboard'])->name('dashboard');
+
+        // Gestion des tickets
+        Route::prefix('tickets')->name('tickets.')->group(function () {
+            Route::get('/', [SupportAdminController::class, 'tickets'])->name('index');
+            Route::get('/{ticket}', [SupportAdminController::class, 'show'])->name('show');
+            Route::post('/{ticket}/reply', [SupportAdminController::class, 'reply'])->name('reply');
+            Route::post('/{ticket}/assign', [SupportAdminController::class, 'assign'])->name('assign');
+            Route::post('/{ticket}/priority', [SupportAdminController::class, 'changePriority'])->name('change-priority');
+            Route::post('/{ticket}/category', [SupportAdminController::class, 'changeCategory'])->name('change-category');
+            Route::get('/attachment/{attachment}/download', [SupportAdminController::class, 'downloadAttachment'])->name('attachment.download');
+        });
+
+        // Gestion des catégories
+        Route::prefix('categories')->name('categories.')->group(function () {
+            Route::get('/', [SupportCategoryController::class, 'index'])->name('index');
+            Route::get('/create', [SupportCategoryController::class, 'create'])->name('create');
+            Route::post('/', [SupportCategoryController::class, 'store'])->name('store');
+            Route::get('/{category}/edit', [SupportCategoryController::class, 'edit'])->name('edit');
+            Route::put('/{category}', [SupportCategoryController::class, 'update'])->name('update');
+            Route::post('/{category}/toggle-status', [SupportCategoryController::class, 'toggleStatus'])->name('toggle-status');
+            Route::delete('/{category}', [SupportCategoryController::class, 'destroy'])->name('destroy');
+            Route::post('/reorder', [SupportCategoryController::class, 'reorder'])->name('reorder');
+        });
+
+        // Gestion des templates
+        Route::prefix('templates')->name('templates.')->group(function () {
+            Route::get('/', [SupportTemplateController::class, 'index'])->name('index');
+            Route::get('/create', [SupportTemplateController::class, 'create'])->name('create');
+            Route::post('/', [SupportTemplateController::class, 'store'])->name('store');
+            Route::get('/{template}/edit', [SupportTemplateController::class, 'edit'])->name('edit');
+            Route::put('/{template}', [SupportTemplateController::class, 'update'])->name('update');
+            Route::post('/{template}/toggle-status', [SupportTemplateController::class, 'toggleStatus'])->name('toggle-status');
+            Route::delete('/{template}', [SupportTemplateController::class, 'destroy'])->name('destroy');
+            Route::get('/{template}/content', [SupportTemplateController::class, 'getContent'])->name('get-content');
+        });
+
+        // Rapports et statistiques
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [SupportReportController::class, 'index'])->name('index');
+            Route::get('/period', [SupportReportController::class, 'period'])->name('period');
+            Route::get('/agents', [SupportReportController::class, 'agents'])->name('agents');
+            Route::get('/categories', [SupportReportController::class, 'categories'])->name('categories');
+            Route::get('/export/tickets', [SupportReportController::class, 'exportTickets'])->name('export.tickets');
+            Route::get('/export/messages', [SupportReportController::class, 'exportMessages'])->name('export.messages');
+        });
+    });
 });
 
 // Webhooks Stripe (sans middleware auth)

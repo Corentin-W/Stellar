@@ -39,7 +39,7 @@
             <!-- Mobile Header -->
             <header class="lg:hidden bg-white/5 backdrop-blur-lg border-b border-white/10 p-4">
                 <div class="flex items-center justify-between">
-                    
+
                     <label for="sidebar-toggle" role="button"
                             aria-controls="astral-sidebar"
                             class="text-white hover:text-blue-400 transition-colors cursor-pointer">
@@ -55,11 +55,11 @@
                 @yield('content')
             </main>
         </div>
-
-        <!-- Mobile Overlay (Tailwind only) -->
-        <label for="sidebar-toggle"
-               class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden opacity-0 pointer-events-none peer-checked:opacity-100 peer-checked:pointer-events-auto transition-opacity"></label>
     </div>
+
+    <!-- Mobile Overlay (Tailwind only) -->
+    <label for="sidebar-toggle"
+           class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden opacity-0 pointer-events-none peer-checked:opacity-100 peer-checked:pointer-events-auto transition-opacity"></label>
 
     <!-- Notifications Container -->
     <div class="notifications-container fixed top-6 right-6 z-50 max-w-sm space-y-3">
@@ -115,6 +115,6 @@
     <!-- Scripts supplémentaires via stack -->
     @stack('scripts')
 
-    
+
 </body>
 </html>

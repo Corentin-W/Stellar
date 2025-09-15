@@ -107,6 +107,23 @@
             <span class="ml-3 font-medium">Historique</span>
         </a>
 
+        <!-- SUPPORT SECTION -->
+        @php
+        $openTicketsCount = auth()->user()->tickets()->whereIn('status', ['open', 'in_progress', 'waiting_admin'])->count();
+        @endphp
+        <a href="{{ route('support.index') }}"
+           class="sidebar-item {{ request()->is('support') || request()->is('support/*') ? 'active' : '' }}">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <span class="ml-3 font-medium">Support</span>
+            @if($openTicketsCount > 0)
+                <span class="badge ml-auto bg-blue-500">
+                    {{ $openTicketsCount }}
+                </span>
+            @endif
+        </a>
+
         <!-- Divider for Admin Section -->
         @if(auth()->user()->admin == 1)
         <div class="px-3 py-2">
@@ -136,6 +153,32 @@
                 </svg>
             </span>
         </a>
+
+        <!-- Admin Support Management -->
+        @php
+        $urgentTicketsCount = \App\Models\SupportTicket::where('priority', 'urgent')
+                                                       ->where('status', '!=', 'closed')
+                                                       ->count();
+        $unassignedTicketsCount = \App\Models\SupportTicket::whereNull('assigned_to')
+                                                           ->whereIn('status', ['open', 'waiting_admin'])
+                                                           ->count();
+        @endphp
+        <a href="{{ route('admin.support.dashboard') }}"
+           class="sidebar-item {{ request()->is('admin/support') || request()->is('admin/support/*') ? 'active' : '' }}">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <span class="ml-3 font-medium">Gestion Support</span>
+            @if($urgentTicketsCount > 0)
+                <span class="badge ml-auto bg-red-500">
+                    {{ $urgentTicketsCount }}
+                </span>
+            @elseif($unassignedTicketsCount > 0)
+                <span class="badge ml-auto bg-orange-500">
+                    {{ $unassignedTicketsCount }}
+                </span>
+            @endif
+        </a>
         @endif
 
         <!-- Settings -->
@@ -148,13 +191,18 @@
             <span class="ml-3 font-medium">{{ __('app.sidebar.settings') }}</span>
         </a>
 
-        <!-- Help -->
-        <a href="#"
+        <!-- Help - Remplacé par un lien vers le support -->
+        <a href="{{ route('support.create') }}"
            class="sidebar-item">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <span class="ml-3 font-medium">{{ __('app.sidebar.help_support') }}</span>
+            <span class="badge ml-auto bg-green-500">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+            </span>
         </a>
 
         <!-- Logout -->
@@ -198,4 +246,43 @@
         -webkit-backdrop-filter: blur(15px) !important;
     }
 }
+
+/* Styles pour les badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    color: white;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 0.5rem;
+    transition: all 0.15s ease;
+    font-size: 0.875rem;
+}
+
+.sidebar-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.sidebar-item.active {
+    background: linear-gradient(to right, rgba(139, 92, 246, 0.2), rgba(219, 39, 119, 0.2));
+    color: white;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
 </style>
+</document_content>
+</document>
