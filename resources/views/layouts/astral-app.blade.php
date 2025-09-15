@@ -24,27 +24,29 @@
     <!-- Styles supplémentaires via stack -->
     @stack('styles')
 </head>
-<body x-data="astralApp()" x-init="init()" class="antialiased">
+<body x-data class="antialiased">
     <div class="astral-layout min-h-screen">
+
+        <!-- Mobile toggle (peer) -->
+        <input id="sidebar-toggle" type="checkbox" class="peer sr-only" aria-hidden="true" />
 
         <!-- Sidebar -->
         @include('layouts.partials.astral-sidebar')
 
         <!-- Main Content -->
-        <div class="content-area" :class="{ 'sidebar-collapsed': $store.sidebar.collapsed }">
+        <div class="content-area">
 
             <!-- Mobile Header -->
             <header class="lg:hidden bg-white/5 backdrop-blur-lg border-b border-white/10 p-4">
                 <div class="flex items-center justify-between">
-                    <h1 class="font-astral font-bold text-white text-lg">
-                        @yield('page-title', 'TelescopeApp')
-                    </h1>
-                    <button type="button" @click="$store.sidebar.toggle()"
-                            class="text-white hover:text-blue-400 transition-colors">
+                    
+                    <label for="sidebar-toggle" role="button"
+                            aria-controls="astral-sidebar"
+                            class="text-white hover:text-blue-400 transition-colors cursor-pointer">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
-                    </button>
+                    </label>
                 </div>
             </header>
 
@@ -53,18 +55,10 @@
                 @yield('content')
             </main>
         </div>
-    </div>
 
-    <!-- Mobile Overlay -->
-    <div x-show="$store.sidebar.mobileOpen" x-cloak
-         @click="$store.sidebar.close()"
-         class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
-         x-transition:enter="transition-opacity ease-linear duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition-opacity ease-linear duration-300"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0">
+        <!-- Mobile Overlay (Tailwind only) -->
+        <label for="sidebar-toggle"
+               class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden opacity-0 pointer-events-none peer-checked:opacity-100 peer-checked:pointer-events-auto transition-opacity"></label>
     </div>
 
     <!-- Notifications Container -->
@@ -121,36 +115,6 @@
     <!-- Scripts supplémentaires via stack -->
     @stack('scripts')
 
-    <script>
-        // Application principale Alpine.js
-        function astralApp() {
-            return {
-                init() {
-                    // Gestion responsive
-                    this.handleResize();
-                    window.addEventListener('resize', () => this.handleResize());
-
-                    // Raccourcis clavier
-                    document.addEventListener('keydown', (e) => {
-                        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
-                            e.preventDefault();
-                            this.$store.sidebar.toggle();
-                        }
-                        if (e.key === 'Escape') {
-                            this.$store.sidebar.close();
-                        }
-                    });
-
-                    console.log('🌌 TelescopeApp Astral Layout initialized');
-                },
-
-                handleResize() {
-                    if (window.innerWidth >= 1024) {
-                        this.$store.sidebar.mobileOpen = false;
-                    }
-                }
-            }
-        }
-    </script>
+    
 </body>
 </html>

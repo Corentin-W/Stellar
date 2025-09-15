@@ -320,12 +320,8 @@ body::before {
 /* Responsive */
 @media (max-width: 1024px) {
     .sidebar {
-        transform: translateX(-100%);
+        /* Transform handled by Tailwind peer/checked utilities */
         z-index: 50;
-    }
-
-    .sidebar.mobile-open {
-        transform: translateX(0) !important;
     }
 
     .content-area {
