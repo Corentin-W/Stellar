@@ -70,10 +70,10 @@ class SupportCategoryController extends Controller
      */
     public function update(Request $request, SupportCategory $category)
     {
-        $request->validate([
+       $request->validate([
             'name' => 'required|string|max:255|unique:support_categories,name,' . $category->id,
             'description' => 'nullable|string|max:1000',
-            'color' => 'required|regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/',
+            'color' => ['required', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
             'sort_order' => 'nullable|integer|min:0',
         ]);
 
@@ -293,7 +293,6 @@ use Carbon\Carbon;
 class SupportReportController extends Controller
 {
     // Le middleware 'auth' et 'admin' sont déjà appliqués dans les routes
-}
 
     /**
      * Page principale des rapports

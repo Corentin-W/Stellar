@@ -1,6 +1,5 @@
 <?php
 
-// app/Http/Controllers/Admin/SupportAdminController.php
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -19,9 +18,6 @@ use Carbon\Carbon;
 
 class SupportAdminController extends Controller
 {
-    // Le middleware 'auth' et 'admin' sont déjà appliqués dans les routes
-    // Pas besoin de les ajouter ici
-
     /**
      * Dashboard principal du support
      */
@@ -111,7 +107,7 @@ class SupportAdminController extends Controller
         $tickets = $query->paginate(20)->withQueryString();
 
         // Données pour les filtres
-        $categories = SupportCategory::active()->ordered()->get();
+        $categories = SupportCategory::where('is_active', true)->orderBy('sort_order')->get();
         $admins = User::where('admin', true)->orderBy('name')->get();
 
         return view('admin.support.tickets.index', compact('tickets', 'categories', 'admins'));
@@ -135,9 +131,9 @@ class SupportAdminController extends Controller
             }
         ]);
 
-        $categories = SupportCategory::active()->ordered()->get();
+        $categories = SupportCategory::where('is_active', true)->orderBy('sort_order')->get();
         $admins = User::where('admin', true)->orderBy('name')->get();
-        $templates = SupportTemplate::active()->orderBy('name')->get();
+        $templates = SupportTemplate::where('is_active', true)->orderBy('name')->get();
 
         return view('admin.support.tickets.show', compact('ticket', 'categories', 'admins', 'templates'));
     }

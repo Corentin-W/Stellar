@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,14 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class SupportTicket extends Model
 {
     protected $fillable = [
-        'ticket_number',
         'user_id',
-        'assigned_to',
         'category_id',
+        'assigned_to',
+        'ticket_number',
         'subject',
         'priority',
         'status',
-        'is_internal',
         'last_reply_at',
         'last_reply_by',
         'resolved_at',
@@ -27,7 +25,12 @@ class SupportTicket extends Model
     ];
 
     protected $casts = [
-        'is_internal' => 'boolean',
+        'user_id' => 'integer',
+        'category_id' => 'integer',
+        'assigned_to' => 'integer',
+        'last_reply_by' => 'integer',
+        'resolved_by' => 'integer',
+        'closed_by' => 'integer',
         'last_reply_at' => 'datetime',
         'resolved_at' => 'datetime',
         'closed_at' => 'datetime',
@@ -39,14 +42,29 @@ class SupportTicket extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(SupportCategory::class, 'category_id');
+    }
+
     public function assignedTo(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
-    public function category(): BelongsTo
+    public function lastReplyBy(): BelongsTo
     {
-        return $this->belongsTo(SupportCategory::class, 'category_id');
+        return $this->belongsTo(User::class, 'last_reply_by');
+    }
+
+    public function resolvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resolved_by');
+    }
+
+    public function closedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'closed_by');
     }
 
     public function messages(): HasMany
@@ -64,45 +82,15 @@ class SupportTicket extends Model
         return $this->hasMany(SupportTicketHistory::class, 'ticket_id');
     }
 
-    public function resolvedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'resolved_by');
-    }
-
-    public function closedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'closed_by');
-    }
-
-    public function lastReplyBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'last_reply_by');
-    }
-
     // Scopes
-    public function scopeOpen($query)
+    public function scopeForUser($query, $userId)
     {
-        return $query->where('status', 'open');
+        return $query->where('user_id', $userId);
     }
 
-    public function scopeInProgress($query)
+    public function scopeByStatus($query, $status)
     {
-        return $query->where('status', 'in_progress');
-    }
-
-    public function scopeResolved($query)
-    {
-        return $query->where('status', 'resolved');
-    }
-
-    public function scopeClosed($query)
-    {
-        return $query->where('status', 'closed');
-    }
-
-    public function scopeAssignedTo($query, $userId)
-    {
-        return $query->where('assigned_to', $userId);
+        return $query->where('status', $status);
     }
 
     public function scopeByPriority($query, $priority)
@@ -115,78 +103,33 @@ class SupportTicket extends Model
         return $query->where('category_id', $categoryId);
     }
 
-    // Méthodes d'état
-    public function isOpen(): bool
+    public function scopeAssignedTo($query, $userId)
     {
-        return $this->status === 'open';
+        return $query->where('assigned_to', $userId);
     }
 
-    public function isInProgress(): bool
+    public function scopeUnassigned($query)
     {
-        return $this->status === 'in_progress';
+        return $query->whereNull('assigned_to');
     }
 
-    public function isResolved(): bool
+    public function scopeOpen($query)
     {
-        return $this->status === 'resolved';
+        return $query->whereIn('status', ['open', 'in_progress', 'waiting_user', 'waiting_admin']);
     }
 
-    public function isClosed(): bool
+    public function scopeClosed($query)
     {
-        return $this->status === 'closed';
+        return $query->whereIn('status', ['resolved', 'closed']);
     }
 
-    public function isWaitingUser(): bool
+    public function scopeUrgent($query)
     {
-        return $this->status === 'waiting_user';
+        return $query->where('priority', 'urgent');
     }
 
-    public function isWaitingAdmin(): bool
-    {
-        return $this->status === 'waiting_admin';
-    }
-
-    public function canBeRepliedTo(): bool
-    {
-        return !in_array($this->status, ['closed']);
-    }
-
-    public function getPriorityColorAttribute(): string
-    {
-        return match($this->priority) {
-            'low' => 'text-blue-600 bg-blue-100',
-            'normal' => 'text-green-600 bg-green-100',
-            'high' => 'text-yellow-600 bg-yellow-100',
-            'urgent' => 'text-red-600 bg-red-100',
-            default => 'text-gray-600 bg-gray-100',
-        };
-    }
-
-    public function getStatusColorAttribute(): string
-    {
-        return match($this->status) {
-            'open' => 'text-blue-600 bg-blue-100',
-            'in_progress' => 'text-yellow-600 bg-yellow-100',
-            'waiting_user' => 'text-purple-600 bg-purple-100',
-            'waiting_admin' => 'text-orange-600 bg-orange-100',
-            'resolved' => 'text-green-600 bg-green-100',
-            'closed' => 'text-gray-600 bg-gray-100',
-            default => 'text-gray-600 bg-gray-100',
-        };
-    }
-
-    public function getPriorityLabelAttribute(): string
-    {
-        return match($this->priority) {
-            'low' => 'Faible',
-            'normal' => 'Normal',
-            'high' => 'Élevée',
-            'urgent' => 'Urgent',
-            default => 'Normal',
-        };
-    }
-
-    public function getStatusLabelAttribute(): string
+    // Accesseurs
+    public function getStatusLabelAttribute()
     {
         return match($this->status) {
             'open' => 'Ouvert',
@@ -195,39 +138,106 @@ class SupportTicket extends Model
             'waiting_admin' => 'En attente admin',
             'resolved' => 'Résolu',
             'closed' => 'Fermé',
-            default => 'Ouvert',
+            default => ucfirst($this->status)
         };
     }
 
-    // Boot method pour générer automatiquement le numéro de ticket
-    protected static function boot()
+    public function getPriorityLabelAttribute()
     {
-        parent::boot();
-
-        static::creating(function ($ticket) {
-            if (empty($ticket->ticket_number)) {
-                $ticket->ticket_number = self::generateTicketNumber();
-            }
-        });
+        return match($this->priority) {
+            'low' => 'Faible',
+            'normal' => 'Normale',
+            'high' => 'Élevée',
+            'urgent' => 'Urgente',
+            default => ucfirst($this->priority)
+        };
     }
 
-    public static function generateTicketNumber(): string
+    public function getStatusColorAttribute()
     {
-        $prefix = 'TICKET';
-        $date = Carbon::now()->format('Ymd');
+        return match($this->status) {
+            'open' => 'bg-green-100 text-green-800',
+            'in_progress' => 'bg-blue-100 text-blue-800',
+            'waiting_user' => 'bg-orange-100 text-orange-800',
+            'waiting_admin' => 'bg-yellow-100 text-yellow-800',
+            'resolved' => 'bg-purple-100 text-purple-800',
+            'closed' => 'bg-gray-100 text-gray-800',
+            default => 'bg-gray-100 text-gray-800'
+        };
+    }
 
-        // Trouver le dernier numéro pour aujourd'hui
-        $lastTicket = self::where('ticket_number', 'like', "{$prefix}-{$date}-%")
-                         ->orderBy('id', 'desc')
-                         ->first();
+    public function getPriorityColorAttribute()
+    {
+        return match($this->priority) {
+            'low' => 'bg-gray-100 text-gray-800',
+            'normal' => 'bg-blue-100 text-blue-800',
+            'high' => 'bg-orange-100 text-orange-800',
+            'urgent' => 'bg-red-100 text-red-800',
+            default => 'bg-gray-100 text-gray-800'
+        };
+    }
 
-        if ($lastTicket) {
-            $lastNumber = (int) substr($lastTicket->ticket_number, -4);
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '0001';
+    public function getIsOverdueAttribute()
+    {
+        if (in_array($this->status, ['resolved', 'closed'])) {
+            return false;
         }
 
-        return "{$prefix}-{$date}-{$newNumber}";
+        $hours = match($this->priority) {
+            'urgent' => 2,
+            'high' => 8,
+            'normal' => 24,
+            'low' => 48,
+            default => 24
+        };
+
+        $deadline = $this->last_reply_at ?: $this->created_at;
+        return $deadline->addHours($hours)->isPast();
+    }
+
+    public function getResponseTimeAttribute()
+    {
+        if (!$this->last_reply_at || $this->last_reply_by === $this->user_id) {
+            return null;
+        }
+
+        return $this->created_at->diffForHumans($this->last_reply_at, true);
+    }
+
+    public function getResolutionTimeAttribute()
+    {
+        if (!$this->resolved_at) {
+            return null;
+        }
+
+        return $this->created_at->diffForHumans($this->resolved_at, true);
+    }
+
+    // Méthodes
+    public function isOpen()
+    {
+        return in_array($this->status, ['open', 'in_progress', 'waiting_user', 'waiting_admin']);
+    }
+
+    public function isClosed()
+    {
+        return in_array($this->status, ['resolved', 'closed']);
+    }
+
+    public function canBeRepliedTo()
+    {
+        return $this->status !== 'closed';
+    }
+
+    public function canBeAssigned()
+    {
+        return $this->isOpen();
+    }
+
+    public function markAsRead($userId = null)
+    {
+        // Marquer tous les messages comme lus pour cet utilisateur
+        // Cette fonctionnalité pourrait être implémentée plus tard
+        return $this;
     }
 }

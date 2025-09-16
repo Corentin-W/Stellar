@@ -128,8 +128,7 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
 
         Route::prefix('support')->name('support.')->group(function () {
 
-            // Liste des tickets de l'utilisateur
-            Route::get('/', [SupportController::class, 'index'])->name('index');
+           Route::get('/', [SupportController::class, 'index'])->name('index');
 
             // Créer un nouveau ticket
             Route::get('/create', [SupportController::class, 'create'])->name('create');
@@ -147,7 +146,7 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
 
             // Téléchargement de fichiers joints
             Route::get('/attachment/{attachment}/download', [SupportController::class, 'downloadAttachment'])
-                 ->name('attachment.download');
+                ->name('attachment.download');
         });
     });
 

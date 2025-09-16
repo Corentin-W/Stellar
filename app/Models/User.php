@@ -289,4 +289,14 @@ private function calculateAvgResolutionTime(): string
         return round($avgHours, 1) . 'h';
     }
 }
+
+/**
+ * Relations avec les tickets de support
+ */
+public function supportTickets(): HasMany
+{
+    return $this->hasMany(SupportTicket::class, 'user_id');
+}
+
+
 }
