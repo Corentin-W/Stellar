@@ -446,6 +446,123 @@
             font-size: 1.2rem;
         }
 
+        /* EQUIPMENT SHOWCASE */
+        .equipment-section {
+            padding: 120px 5%;
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .equipment-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        .equipment-badge {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            backdrop-filter: blur(10px);
+        }
+        .equipment-title {
+            font-size: clamp(3rem, 8vw, 4.5rem);
+            font-weight: 800;
+            margin: 1.2rem 0 1rem;
+            background: linear-gradient(135deg, #fff 0%, var(--primary) 50%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .equipment-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+        }
+        .equipment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 380px));
+            justify-content: center;
+            gap: 2.4rem;
+            margin-top: 3rem;
+        }
+        .equipment-card {
+            position: relative;
+            border-radius: 28px;
+            background: radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.02) 100%);
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            transform: translateY(40px) scale(0.98);
+            opacity: 0;
+            transition: transform .9s cubic-bezier(.2,.7,.2,1), opacity .9s ease, box-shadow .5s ease;
+        }
+        .equipment-card.visible { opacity: 1; transform: translateY(0) scale(1); }
+        .equipment-card:hover { box-shadow: 0 50px 120px rgba(99,102,241,.25), inset 0 0 0 1px rgba(255,255,255,.06); }
+        .equip-glare { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(60% 60% at 20% 0%, rgba(255,255,255,.18), transparent 60%); mix-blend-mode: screen; }
+        .equipment-media { position: relative; aspect-ratio: 3/4; overflow: hidden; background: #0a0a0a; }
+        .equipment-media img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; filter: saturate(1.05) contrast(1.03); transform: none; transition: transform .8s ease; }
+        .equipment-card:hover .equipment-media img { transform: scale(1.06); }
+
+        /* Top actions & status pill */
+        .equip-top { position: absolute; top: 14px; left: 14px; right: 14px; display: flex; justify-content: space-between; align-items: center; z-index: 2; }
+        .equip-pill {
+          display: inline-flex; align-items: center; gap: .5rem; padding: .35rem .75rem; border-radius: 999px;
+          background: rgba(255,255,255,.9); color: #0b0b0b; font-weight: 700; font-size: .9rem; box-shadow: 0 4px 10px rgba(0,0,0,.15);
+        }
+        .equip-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
+        .equip-actions { display: inline-flex; gap: .6rem; }
+        .equip-btn { width: 38px; height: 38px; border-radius: 999px; display: grid; place-items: center; background: rgba(255,255,255,.85); border: 1px solid rgba(255,255,255,.6); box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+
+        /* Bottom blurred overlay */
+        .equip-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 1.2rem 1.4rem 1.4rem; color: #fff; z-index: 1; }
+        .equip-overlay::before { content: ""; position: absolute; left: -20px; right: -20px; bottom: 0; height: 52%; background:
+          linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.30) 30%, rgba(0,0,0,.55) 65%, rgba(0,0,0,.70) 100%);
+          -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); z-index: -1; border-bottom-left-radius: 28px; border-bottom-right-radius: 28px; }
+        .equip-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; }
+        .equip-title { font-size: 1.25rem; font-weight: 800; }
+        .equip-sub { font-size: .95rem; color: rgba(255,255,255,.8); margin-top: .15rem; }
+        .equip-price-hero { font-weight: 900; font-size: 1.6rem; letter-spacing: .2px; }
+        .equip-icons { display: flex; gap: 1.2rem; align-items: center; margin-top: .9rem; opacity: .95; }
+        .equip-icons span { display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; }
+        .equip-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; padding-top: 1rem; margin-top: 1rem; border-top: 1px solid rgba(255,255,255,.15); font-size: .95rem; }
+        .equip-metric { opacity: .95; }
+        .equip-metric .k { display: block; color: rgba(255,255,255,.7); font-size: .85rem; }
+        .equip-metric .v { display: block; font-weight: 800; font-size: 1.05rem; }
+        .equip-status {
+            position: absolute; top: 16px; left: 16px;
+            padding: .45rem .85rem; border-radius: 999px;
+            font-size: .85rem; font-weight: 700; letter-spacing: .4px;
+            background: var(--glass); border: 1px solid var(--glass-border);
+            backdrop-filter: blur(12px);
+        }
+        .equip-status.available { color: #10b981; border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.12); }
+        .equip-status.reserved { color: #3b82f6; border-color: rgba(59,130,246,.35); background: rgba(59,130,246,.12); }
+        .equip-status.maintenance { color: #f59e0b; border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.12); }
+        .equip-status.unavailable { color: #ef4444; border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.12); }
+        .equipment-info { padding: 1.4rem 1.6rem 1.6rem; display: grid; gap: .9rem; }
+        .equipment-name { font-size: 1.4rem; font-weight: 800; letter-spacing: .2px; }
+        .equipment-meta { display: flex; align-items: center; gap: .75rem; color: var(--text-muted); font-size: .95rem; }
+        .chip { display: inline-flex; align-items: center; gap: .4rem; padding: .4rem .7rem; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid var(--glass-border); }
+        .chip svg { width: 16px; height: 16px; opacity: .9; }
+        .equip-specs { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .2rem; }
+        .equip-spec { padding: .45rem .7rem; border-radius: 10px; font-size: .9rem; color: var(--text-light); background: rgba(255,255,255,.05); border: 1px solid var(--glass-border); }
+        .equip-footer { display: flex; justify-content: space-between; align-items: center; margin-top: .6rem; }
+        .equip-price { font-weight: 800; font-size: 1.05rem; }
+        .equip-cta { display: inline-flex; align-items: center; gap: .6rem; padding: .7rem 1rem; border-radius: 14px; text-decoration: none; font-weight: 700; border: 1px solid var(--glass-border); background: linear-gradient(135deg, rgba(99,102,241,.25), rgba(168,85,247,.2)); transition: transform .25s ease, box-shadow .3s ease; }
+        .equip-cta:hover { transform: translateY(-3px); box-shadow: 0 20px 50px rgba(99,102,241,.25); }
+        .equip-cta svg { width: 18px; height: 18px; }
+
+        @media (max-width: 768px) {
+            .equipment-section { padding: 80px 5%; }
+            .equipment-title { font-size: 2.2rem; }
+            .equipment-grid { grid-template-columns: 1fr; }
+            .equipment-card { border-radius: 24px; }
+            .equip-overlay::before { height: 58%; }
+        }
+
         /* WAITING LIST MODAL */
         .modal-overlay {
             position: fixed;
@@ -839,6 +956,158 @@
         </div>
     </section>
 
+    <!-- EQUIPMENT SHOWCASE -->
+    <section class="equipment-section" id="equipment">
+        <div class="equipment-header section-header visible">
+            <div class="equipment-badge">Notre Matériel</div>
+            <h2 class="equipment-title">Un Parc d'Observation d'Exception</h2>
+            <p class="equipment-subtitle">Du setup complet prêt à l'emploi aux caméras de dernière génération – découvrez l'excellence sélectionnée par nos astronomes.</p>
+        </div>
+
+        <div class="equipment-grid">
+            @php($list = isset($featuredEquipment) && count($featuredEquipment) ? $featuredEquipment : (isset($equipment) ? $equipment : []))
+
+            @forelse($list as $eq)
+                <article class="equipment-card">
+                    <div class="equip-glare"></div>
+                    <div class="equipment-media">
+                        <img src="{{ $eq->getMainImage() }}" alt="{{ $eq->name }}" loading="lazy">
+                        <div class="equip-top">
+                            <div class="equip-pill">
+                                <span class="equip-dot" style="background: {{ $eq->status === 'available' ? '#10b981' : ($eq->status === 'reserved' ? '#3b82f6' : ($eq->status === 'maintenance' ? '#f59e0b' : '#ef4444')) }};"></span>
+                                <span>{{ $eq->statusLabel }}</span>
+                            </div>
+                            <div class="equip-actions">
+                                <button class="equip-btn" title="Partager" aria-label="Partager">🔗</button>
+                                <button class="equip-btn" title="Favori" aria-label="Favori">♡</button>
+                            </div>
+                        </div>
+                        <div class="equip-overlay">
+                            <div class="equip-row">
+                                <div>
+                                    <div class="equip-title">{{ $eq->name }}</div>
+                                    <div class="equip-sub">{{ $eq->location ?: $eq->getTypeLabel() }}</div>
+                                </div>
+                                <div class="equip-price-hero">{{ $eq->price_per_hour_credits }} crédits</div>
+                            </div>
+                            <div class="equip-icons">
+                                <span>🔭 {{ $eq->getTypeLabel() }}</span>
+                                @if($eq->specifications && isset($eq->specifications['aperture']))
+                                    <span>🌀 {{ $eq->specifications['aperture'] }}</span>
+                                @endif
+                                @if($eq->specifications && isset($eq->specifications['focal_length']))
+                                    <span>📏 {{ $eq->specifications['focal_length'] }}</span>
+                                @endif
+                            </div>
+                            @php($specs = method_exists($eq, 'getMainSpecs') ? array_slice($eq->getMainSpecs(), 0, 3, true) : [])
+                            @if(!empty($specs))
+                                <div class="equip-metrics">
+                                    @foreach($specs as $k => $v)
+                                        <div class="equip-metric">
+                                            <span class="k">{{ is_string($k) ? $k : 'Spéc.' }}</span>
+                                            <span class="v">{{ $v }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </article>
+            @empty
+                <!-- Placeholders si aucune donnée n'est fournie -->
+                <article class="equipment-card visible">
+                    <div class="equip-glare"></div>
+                    <div class="equipment-media">
+                        <img src="/img/welcome/sample-telescope.jpg" alt="Télescope Exemple" loading="lazy">
+                        <div class="equip-top">
+                            <div class="equip-pill"><span class="equip-dot"></span><span>Disponible</span></div>
+                            <div class="equip-actions"><button class="equip-btn">🔗</button><button class="equip-btn">♡</button></div>
+                        </div>
+                        <div class="equip-overlay">
+                            <div class="equip-row">
+                                <div>
+                                    <div class="equip-title">Takahashi TOA-150B • Setup Pro</div>
+                                    <div class="equip-sub">Atacama, Chili</div>
+                                </div>
+                                <div class="equip-price-hero">120 crédits</div>
+                            </div>
+                            <div class="equip-icons">
+                                <span>🔭 Télescope</span>
+                                <span>🌀 150mm</span>
+                                <span>📏 1100mm</span>
+                            </div>
+                            <div class="equip-metrics">
+                                <div class="equip-metric"><span class="k">Monture</span><span class="v">10Micron GM2000</span></div>
+                                <div class="equip-metric"><span class="k">Caméra</span><span class="v">ASI6400MM Pro</span></div>
+                                <div class="equip-metric"><span class="k">Filtres</span><span class="v">Chroma LRGB + SHO</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                <article class="equipment-card visible">
+                    <div class="equip-glare"></div>
+                    <div class="equipment-media">
+                        <img src="/img/welcome/sample-camera.jpg" alt="Caméra Exemple" loading="lazy">
+                        <div class="equip-top">
+                            <div class="equip-pill"><span class="equip-dot" style="background:#3b82f6"></span><span>Réservé</span></div>
+                            <div class="equip-actions"><button class="equip-btn">🔗</button><button class="equip-btn">♡</button></div>
+                        </div>
+                        <div class="equip-overlay">
+                            <div class="equip-row">
+                                <div>
+                                    <div class="equip-title">ZWO ASI6200MM Pro</div>
+                                    <div class="equip-sub">La Palma, ESP</div>
+                                </div>
+                                <div class="equip-price-hero">40 crédits</div>
+                            </div>
+                            <div class="equip-icons">
+                                <span>📸 Caméra</span>
+                                <span>🧊 -35°C</span>
+                                <span>🧮 16‑bit</span>
+                            </div>
+                            <div class="equip-metrics">
+                                <div class="equip-metric"><span class="k">Capteur</span><span class="v">Full‑Frame Mono</span></div>
+                                <div class="equip-metric"><span class="k">ADC</span><span class="v">16‑bit</span></div>
+                                <div class="equip-metric"><span class="k">Refroidie</span><span class="v">-35°C</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                <article class="equipment-card visible">
+                    <div class="equip-glare"></div>
+                    <div class="equipment-media">
+                        <img src="/img/welcome/sample-mount.jpg" alt="Monture Exemple" loading="lazy">
+                        <div class="equip-top">
+                            <div class="equip-pill"><span class="equip-dot" style="background:#f59e0b"></span><span>Maintenance</span></div>
+                            <div class="equip-actions"><button class="equip-btn">🔗</button><button class="equip-btn">♡</button></div>
+                        </div>
+                        <div class="equip-overlay">
+                            <div class="equip-row">
+                                <div>
+                                    <div class="equip-title">10Micron GM2000 HPS</div>
+                                    <div class="equip-sub">NamibRand, NAM</div>
+                                </div>
+                                <div class="equip-price-hero">55 crédits</div>
+                            </div>
+                            <div class="equip-icons">
+                                <span>🗼 Monture</span>
+                                <span>🎯 < 1" RMS</span>
+                                <span>🧰 50 kg</span>
+                            </div>
+                            <div class="equip-metrics">
+                                <div class="equip-metric"><span class="k">Pointage</span><span class="v">Absolu</span></div>
+                                <div class="equip-metric"><span class="k">Précision</span><span class="v">< 1" RMS</span></div>
+                                <div class="equip-metric"><span class="k">Charge</span><span class="v">50 kg</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            @endforelse
+        </div>
+
+       
+    </section>
+
     <!-- WAITING LIST MODAL -->
     <div class="modal-overlay" id="waitingListModal">
         <div class="modal">
@@ -1112,7 +1381,7 @@
             createParticles();
 
             // Observe elements for animations
-            document.querySelectorAll('.section-header, .feature-card').forEach(el => {
+            document.querySelectorAll('.section-header, .feature-card, .equipment-card').forEach(el => {
                 observer.observe(el);
             });
 
