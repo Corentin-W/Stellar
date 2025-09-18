@@ -181,6 +181,22 @@
         </a>
         @endif
 
+
+        <!-- Admin Equipment Management -->
+        <a href="{{ route('admin.equipment.index') }}"
+           class="sidebar-item {{ request()->is('admin/equipment') || request()->is('admin/equipment/*') ? 'active' : '' }}">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+            <span class="ml-3 font-medium">Gestion Matériel</span>
+            <span class="badge ml-auto bg-cyan-500">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
+                    <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-5a1 1 0 10-2 0v5H5V7h5a1 1 0 000-2H5z"/>
+                </svg>
+            </span>
+        </a>
+
         <!-- Settings -->
         <a href="#"
            class="sidebar-item">

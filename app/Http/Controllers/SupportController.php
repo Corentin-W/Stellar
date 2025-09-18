@@ -149,12 +149,8 @@ public function store(Request $request)
     /**
      * Afficher un ticket spécifique
      */
-    public function show($language, $ticketId)
+    public function show(string $locale, SupportTicket $ticket)
     {
-
-        // Récupérer le ticket par ID
-        $ticket = SupportTicket::findOrFail($ticketId);
-
         // Vérifier que l'utilisateur peut voir ce ticket
         if ($ticket->user_id !== Auth::user()->id) {
             abort(403, 'Vous n\'êtes pas autorisé à voir ce ticket.');
@@ -175,7 +171,7 @@ public function store(Request $request)
     /**
      * Répondre à un ticket
      */
-    public function reply(Request $request, SupportTicket $ticket)
+    public function reply(Request $request, string $locale, SupportTicket $ticket)
     {
         // Vérifier que l'utilisateur peut répondre à ce ticket
         if ($ticket->user_id !== auth()->id()) {
@@ -232,7 +228,7 @@ public function store(Request $request)
     /**
      * Fermer un ticket (marquer comme résolu)
      */
-    public function close(SupportTicket $ticket)
+    public function close(string $locale, SupportTicket $ticket)
     {
         // Vérifier que l'utilisateur peut fermer ce ticket
         if ($ticket->user_id !== auth()->id()) {
@@ -264,7 +260,7 @@ public function store(Request $request)
     /**
      * Rouvrir un ticket
      */
-    public function reopen(SupportTicket $ticket)
+    public function reopen(string $locale, SupportTicket $ticket)
     {
         // Vérifier que l'utilisateur peut rouvrir ce ticket
         if ($ticket->user_id !== auth()->id()) {
@@ -300,7 +296,7 @@ public function store(Request $request)
     /**
      * Télécharger un fichier joint
      */
-    public function downloadAttachment(SupportAttachment $attachment)
+    public function downloadAttachment(string $locale, SupportAttachment $attachment)
     {
         // Vérifier que l'utilisateur peut télécharger ce fichier
         if ($attachment->ticket->user_id !== auth()->id()) {

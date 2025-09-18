@@ -352,3 +352,22 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
 // Webhooks Stripe (sans middleware auth)
 // Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('stripe.webhook');
+
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('equipment')->name('equipment.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\EquipmentController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Admin\EquipmentController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Admin\EquipmentController::class, 'store'])->name('store');
+        Route::get('/{equipment}', [App\Http\Controllers\Admin\EquipmentController::class, 'show'])->name('show');
+        Route::get('/{equipment}/edit', [App\Http\Controllers\Admin\EquipmentController::class, 'edit'])->name('edit');
+        Route::put('/{equipment}', [App\Http\Controllers\Admin\EquipmentController::class, 'update'])->name('update');
+        Route::delete('/{equipment}', [App\Http\Controllers\Admin\EquipmentController::class, 'destroy'])->name('destroy');
+
+        // Actions rapides
+        Route::post('/{equipment}/toggle-status', [App\Http\Controllers\Admin\EquipmentController::class, 'toggleStatus'])->name('toggle-status');
+        Route::post('/{equipment}/toggle-active', [App\Http\Controllers\Admin\EquipmentController::class, 'toggleActive'])->name('toggle-active');
+        Route::post('/{equipment}/toggle-featured', [App\Http\Controllers\Admin\EquipmentController::class, 'toggleFeatured'])->name('toggle-featured');
+    });
+});
+
+
