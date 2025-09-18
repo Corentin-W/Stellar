@@ -1,6 +1,6 @@
 {{-- resources/views/layouts/partials/astral-sidebar.blade.php --}}
 
-<aside id="astral-sidebar" class="sidebar fixed left-0 top-0 h-full z-40 transition-transform duration-300 -translate-x-full lg:translate-x-0 peer-checked:translate-x-0"
+<aside id="astral-sidebar" class="sidebar fixed inset-y-0 left-0 z-40 flex flex-col overflow-hidden transition-transform duration-300 -translate-x-full lg:translate-x-0 peer-checked:translate-x-0"
        style="background: rgba(0, 0, 0, 0.25); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); border-right: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);">
 
     <!-- Logo Section -->
@@ -256,6 +256,11 @@
 
 <!-- CSS pour mobile -->
 <style>
+#astral-sidebar nav {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
 @media (max-width: 768px) {
     #astral-sidebar {
         backdrop-filter: blur(15px) !important;
