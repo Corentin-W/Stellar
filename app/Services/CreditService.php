@@ -1,7 +1,5 @@
 <?php
 
-// app/Services/CreditService.php
-
 namespace App\Services;
 
 use App\Models\User;
@@ -18,296 +16,12 @@ class CreditService
     ) {}
 
     /**
-     * Acheter un package de crédits
+     * Obtenir les recommandations pour un utilisateur
+     * Méthode principale appelée par le contrôleur
      */
-    public function purchaseCredits(
-        User $user,
-        CreditPackage $package,
-        Promotion $promotion = null,
-        array $paymentMethodData = []
-    ): array {
-        // Vérifier la validité du package
-        if (!$package->is_active) {
-            throw new \Exception('Ce package de crédits n\'est plus disponible');
-        }
-
-        // Vérifier et appliquer la promotion
-        $promotionData = null;
-        if ($promotion) {
-            if (!$promotion->canBeUsedBy($user)) {
-                throw new \Exception('Cette promotion ne peut pas être utilisée');
-            }
-            $promotionData = $promotion->calculateDiscount($package);
-        }
-
-        // Calculer le prix final
-        $pricing = $this->calculateFinalPricing($package, $promotion);
-
-        DB::beginTransaction();
-        try {
-            // Traitement du paiement Stripe
-            $paymentResult = $this->stripeService->processPayment(
-                $user,
-                $pricing['final_price'],
-                $package,
-                $promotion,
-                $paymentMethodData
-            );
-
-            // Créer la transaction de crédits
-            $transaction = $user->addCredits(
-                $pricing['total_credits'],
-                'purchase',
-                "Achat de {$package->name}" . ($promotion ? " (Code: {$promotion->code})" : ""),
-                null,
-                $package
-            );
-
-            // Associer le payment intent Stripe
-            $transaction->update([
-                'stripe_payment_intent_id' => $paymentResult['payment_intent_id']
-            ]);
-
-            // Marquer la promotion comme utilisée
-            if ($promotion) {
-                $promotionUsage = $promotion->markAsUsed($user, $transaction);
-                $promotionUsage->update(['discount_amount' => $pricing['discount_amount']]);
-            }
-
-            // Log de l'achat
-            Log::info('Credit purchase completed', [
-                'user_id' => $user->id,
-                'package_id' => $package->id,
-                'credits_amount' => $pricing['total_credits'],
-                'amount_paid' => $pricing['final_price'],
-                'promotion_code' => $promotion?->code,
-                'transaction_id' => $transaction->id
-            ]);
-
-            DB::commit();
-
-            return [
-                'success' => true,
-                'transaction' => $transaction,
-                'payment_result' => $paymentResult,
-                'credits_added' => $pricing['total_credits'],
-                'amount_paid' => $pricing['final_price'],
-                'new_balance' => $user->fresh()->credits_balance
-            ];
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Credit purchase failed', [
-                'user_id' => $user->id,
-                'package_id' => $package->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            throw $e;
-        }
-    }
-
-    /**
-     * Calculer le prix final avec promotions
-     */
-    public function calculateFinalPricing(CreditPackage $package, Promotion $promotion = null): array
+    public function getRecommendations(User $user): array
     {
-        $pricing = [
-            'original_price' => $package->price_cents,
-            'discount_amount' => 0,
-            'final_price' => $package->price_cents,
-            'base_credits' => $package->credits_amount,
-            'bonus_credits' => $package->bonus_credits,
-            'promotion_bonus' => 0,
-            'total_credits' => $package->credits_amount + $package->bonus_credits
-        ];
-
-        if ($promotion && $promotion->isValid() && $promotion->isApplicableToPackage($package)) {
-            $discount = $promotion->calculateDiscount($package);
-
-            $pricing['discount_amount'] = $discount['discount_amount'];
-            $pricing['promotion_bonus'] = $discount['bonus_credits'];
-            $pricing['final_price'] = max(0, $pricing['original_price'] - $pricing['discount_amount']);
-            $pricing['total_credits'] += $pricing['promotion_bonus'];
-        }
-
-        return $pricing;
-    }
-
-    /**
-     * Consommer des crédits pour une action
-     */
-    public function consumeCredits(
-        User $user,
-        int $amount,
-        string $description,
-        $reference = null
-    ): CreditTransaction {
-        if (!$user->hasEnoughCredits($amount)) {
-            throw new \Exception('Solde de crédits insuffisant. Solde actuel: ' . $user->credits_balance);
-        }
-
-        return $user->deductCredits($amount, $description, $reference);
-    }
-
-    /**
-     * Estimation du coût d'une session d'observation
-     */
-    public function estimateSessionCost(array $sessionData): int
-    {
-        $baseCost = 10; // Coût de base par session
-        $durationCost = ($sessionData['duration_minutes'] ?? 0) * 0.5; // 0.5 crédit par minute
-        $imageCost = ($sessionData['expected_images'] ?? 0) * 2; // 2 crédits par image
-
-        return (int) ceil($baseCost + $durationCost + $imageCost);
-    }
-
-    /**
-     * Statistiques des crédits pour un utilisateur
-     */
-    public function getUserCreditAnalytics(User $user, int $days = 30): array
-    {
-        $startDate = now()->subDays($days);
-
-        $transactions = $user->creditTransactions()
-                            ->where('created_at', '>=', $startDate)
-                            ->get();
-
-        $purchases = $transactions->where('type', 'purchase');
-        $usage = $transactions->where('type', 'usage');
-
-        return [
-            'period_days' => $days,
-            'current_balance' => $user->credits_balance,
-            'total_purchased_period' => $purchases->sum('credits_amount'),
-            'total_used_period' => abs($usage->sum('credits_amount')),
-            'amount_spent_period' => $this->calculateSpentAmount($purchases),
-            'avg_daily_usage' => $days > 0 ? abs($usage->sum('credits_amount')) / $days : 0,
-            'efficiency_score' => $this->calculateEfficiencyScore($user),
-            'top_usage_categories' => $this->getTopUsageCategories($user, $days),
-            'purchase_history' => $purchases->map(function ($transaction) {
-                return [
-                    'date' => $transaction->created_at,
-                    'package' => $transaction->creditPackage?->name,
-                    'credits' => $transaction->credits_amount,
-                    'amount' => $transaction->metadata['amount_paid'] ?? 0
-                ];
-            })
-        ];
-    }
-
-    /**
-     * Calculer le score d'efficacité d'un utilisateur
-     */
-    private function calculateEfficiencyScore(User $user): int
-    {
-        $totalPurchased = $user->total_credits_purchased;
-        $totalUsed = $user->total_credits_used;
-
-        if ($totalPurchased === 0) return 0;
-
-        $usageRate = ($totalUsed / $totalPurchased) * 100;
-        $balanceRatio = ($user->credits_balance / $totalPurchased) * 100;
-
-        // Score basé sur l'utilisation et la gestion du solde
-        if ($usageRate > 80 && $balanceRatio < 20) return 100; // Utilisation optimale
-        if ($usageRate > 60) return 80;
-        if ($usageRate > 40) return 60;
-        if ($usageRate > 20) return 40;
-        return 20;
-    }
-
-    /**
-     * Obtenir les catégories d'utilisation principales
-     */
-    private function getTopUsageCategories(User $user, int $days): array
-    {
-        $transactions = $user->creditTransactions()
-                            ->where('type', 'usage')
-                            ->where('created_at', '>=', now()->subDays($days))
-                            ->get();
-
-        $categories = [];
-        foreach ($transactions as $transaction) {
-            $category = $this->categorizeTra​nsaction($transaction);
-            $categories[$category] = ($categories[$category] ?? 0) + abs($transaction->credits_amount);
-        }
-
-        arsort($categories);
-        return array_slice($categories, 0, 5, true);
-    }
-
-    /**
-     * Catégoriser une transaction
-     */
-    private function categorizeTransaction(CreditTransaction $transaction): string
-    {
-        if ($transaction->reference_type === 'ObservationSession') {
-            return 'Sessions d\'observation';
-        }
-        if ($transaction->reference_type === 'ImageCapture') {
-            return 'Capture d\'images';
-        }
-        if (str_contains($transaction->description, 'traitement')) {
-            return 'Traitement d\'images';
-        }
-        return 'Autres';
-    }
-
-    /**
-     * Calculer le montant dépensé
-     */
-    private function calculateSpentAmount($purchases): int
-    {
-        return $purchases->sum(function ($transaction) {
-            return $transaction->metadata['amount_paid'] ?? 0;
-        });
-    }
-
-    /**
-     * Valider et appliquer un code promo
-     */
-    public function validatePromotionCode(string $code, User $user, CreditPackage $package = null): array
-    {
-        $promotion = Promotion::byCode($code)->valid()->first();
-
-        if (!$promotion) {
-            return [
-                'valid' => false,
-                'message' => 'Code promo invalide ou expiré'
-            ];
-        }
-
-        if (!$promotion->canBeUsedBy($user)) {
-            return [
-                'valid' => false,
-                'message' => 'Ce code promo a déjà été utilisé'
-            ];
-        }
-
-        if ($package && !$promotion->isApplicableToPackage($package)) {
-            return [
-                'valid' => false,
-                'message' => 'Ce code promo ne s\'applique pas à ce package'
-            ];
-        }
-
-        if ($package && !$promotion->meetsMinimumPurchase($package->price_cents)) {
-            $minAmount = $promotion->min_purchase_amount / 100;
-            return [
-                'valid' => false,
-                'message' => "Montant minimum requis: {$minAmount}€"
-            ];
-        }
-
-        $discount = $package ? $promotion->calculateDiscount($package) : null;
-
-        return [
-            'valid' => true,
-            'promotion' => $promotion,
-            'discount' => $discount,
-            'message' => 'Code promo valide!'
-        ];
+        return $this->getPackageRecommendations($user);
     }
 
     /**
@@ -316,300 +30,362 @@ class CreditService
     public function getPackageRecommendations(User $user): array
     {
         $stats = $user->getCreditStats();
-        $monthlyUsage = $stats['monthly_usage'];
-
         $recommendations = [];
 
-        // Analyser les habitudes d'utilisation
-        if ($monthlyUsage > 200) {
+        // Si l'utilisateur n'a jamais acheté de crédits
+        if ($stats['total_purchased'] == 0) {
             $recommendations[] = [
-                'type' => 'heavy_user',
-                'packages' => CreditPackage::active()->where('credits_amount', '>=', 500)->get(),
-                'reason' => 'Basé sur votre forte utilisation mensuelle'
-            ];
-        } elseif ($monthlyUsage > 100) {
-            $recommendations[] = [
-                'type' => 'regular_user',
-                'packages' => CreditPackage::active()->whereBetween('credits_amount', [200, 500])->get(),
-                'reason' => 'Parfait pour votre utilisation régulière'
+                'type' => 'first_time',
+                'packages' => CreditPackage::active()->where('credits_amount', '<=', 200)->ordered()->take(3)->get(),
+                'reason' => 'Idéal pour débuter - Petits packages pour tester'
             ];
         } else {
+            // Calculer l'usage mensuel moyen
+            $monthlyUsage = $this->calculateMonthlyUsage($user);
+
+            if ($monthlyUsage > 500) {
+                $recommendations[] = [
+                    'type' => 'heavy_user',
+                    'packages' => CreditPackage::active()->where('credits_amount', '>=', 1000)->ordered()->take(3)->get(),
+                    'reason' => 'Pour votre usage intensif - Meilleure valeur'
+                ];
+            } elseif ($monthlyUsage > 100) {
+                $recommendations[] = [
+                    'type' => 'regular_user',
+                    'packages' => CreditPackage::active()->whereBetween('credits_amount', [200, 1000])->ordered()->take(3)->get(),
+                    'reason' => 'Parfait pour votre utilisation régulière'
+                ];
+            } else {
+                $recommendations[] = [
+                    'type' => 'light_user',
+                    'packages' => CreditPackage::active()->where('credits_amount', '<=', 500)->ordered()->take(3)->get(),
+                    'reason' => 'Adapté à votre usage occasionnel'
+                ];
+            }
+        }
+
+        // Packages populaires
+        $popularPackages = CreditPackage::active()->featured()->ordered()->get();
+        if ($popularPackages->count() > 0) {
             $recommendations[] = [
-                'type' => 'light_user',
-                'packages' => CreditPackage::active()->where('credits_amount', '<=', 200)->get(),
-                'reason' => 'Idéal pour débuter ou une utilisation occasionnelle'
+                'type' => 'popular',
+                'packages' => $popularPackages,
+                'reason' => 'Les plus populaires - Choix de la communauté'
             ];
         }
 
-        // Ajouter les packages en promotion
-        $promotions = Promotion::valid()->get();
-        if ($promotions->count() > 0) {
+        // Packages avec promotions actives
+        $activePromotions = Promotion::valid()->get();
+        if ($activePromotions->count() > 0) {
+            $promotionPackages = CreditPackage::active()->ordered()->take(3)->get();
             $recommendations[] = [
                 'type' => 'promotion',
-                'packages' => CreditPackage::active()->featured()->get(),
+                'packages' => $promotionPackages,
                 'reason' => 'Offres spéciales disponibles',
-                'promotions' => $promotions
+                'promotions' => $activePromotions
             ];
         }
 
         return $recommendations;
     }
-}
 
-// ================================================
-
-// app/Services/StripeService.php
-
-namespace App\Services;
-
-use App\Models\User;
-use App\Models\CreditPackage;
-use App\Models\Promotion;
-use Stripe\StripeClient;
-use Stripe\Exception\ApiErrorException;
-use Illuminate\Support\Facades\Log;
-
-class StripeService
-{
-    private StripeClient $stripe;
-
-    public function __construct()
+    /**
+     * Calculer l'usage mensuel moyen d'un utilisateur
+     */
+    private function calculateMonthlyUsage(User $user): int
     {
-        $this->stripe = new StripeClient(config('cashier.secret'));
+        $usageTransactions = $user->creditTransactions()
+                                 ->where('type', 'usage')
+                                 ->where('created_at', '>=', now()->subMonths(3))
+                                 ->get();
+
+        if ($usageTransactions->isEmpty()) {
+            return 0;
+        }
+
+        $totalUsage = abs($usageTransactions->sum('credits_amount'));
+        $months = max(1, now()->diffInMonths($usageTransactions->first()->created_at));
+
+        return (int) ($totalUsage / $months);
     }
 
     /**
-     * Traiter un paiement pour des crédits
+     * Valider un code promotionnel
      */
-    public function processPayment(
-        User $user,
-        int $amountCents,
-        CreditPackage $package,
-        Promotion $promotion = null,
-        array $paymentMethodData = []
-    ): array {
+    public function validatePromotion(string $code, User $user, CreditPackage $package): array
+    {
+        $promotion = Promotion::byCode($code)->first();
+
+        if (!$promotion) {
+            return [
+                'valid' => false,
+                'message' => 'Code promotionnel invalide'
+            ];
+        }
+
+        if (!$promotion->is_valid) {
+            return [
+                'valid' => false,
+                'message' => $promotion->getValidationMessage() ?? 'Code promotionnel invalide'
+            ];
+        }
+
+        if (!$promotion->canBeUsedBy($user)) {
+            return [
+                'valid' => false,
+                'message' => 'Vous avez déjà utilisé ce code promotionnel'
+            ];
+        }
+
+        if (!$promotion->isApplicableToPackage($package)) {
+            return [
+                'valid' => false,
+                'message' => 'Ce code n\'est pas applicable à ce package'
+            ];
+        }
+
+        $discount = $promotion->calculateDiscount($package);
+
+        return [
+            'valid' => true,
+            'message' => 'Code promotionnel appliqué !',
+            'promotion' => [
+                'code' => $promotion->code,
+                'name' => $promotion->name,
+                'type' => $promotion->type,
+                'formatted_value' => $promotion->formatted_value ?? $promotion->value,
+                'discount_amount' => $discount['discount_amount'],
+                'final_price' => $discount['final_price'],
+                'bonus_credits' => $discount['bonus_credits']
+            ]
+        ];
+    }
+
+    /**
+     * Estimer le coût d'une session
+     */
+    public function estimateSessionCost(string $type = 'observation', int $minutes = 30, string $complexity = 'medium'): int
+    {
+        // Coûts de base par type d'activité
+        $baseCosts = [
+            'observation' => 2,    // 2 crédits par minute
+            'imaging' => 5,        // 5 crédits par minute
+            'spectroscopy' => 8,   // 8 crédits par minute
+            'photometry' => 3,     // 3 crédits par minute
+        ];
+
+        // Multiplicateurs selon la complexité
+        $complexityMultipliers = [
+            'low' => 0.8,
+            'medium' => 1.0,
+            'high' => 1.5,
+            'expert' => 2.0
+        ];
+
+        $baseCost = $baseCosts[$type] ?? $baseCosts['observation'];
+        $multiplier = $complexityMultipliers[$complexity] ?? $complexityMultipliers['medium'];
+
+        // Coût minimum de 10 crédits
+        return max(10, (int) ceil($baseCost * $minutes * $multiplier));
+    }
+
+    /**
+     * Calculer le prix final avec promotion
+     */
+    public function calculateFinalPrice(CreditPackage $package, ?Promotion $promotion = null): array
+    {
+        if (!$promotion) {
+            return [
+                'original_price' => $package->price_cents,
+                'final_price' => $package->price_cents,
+                'discount_amount' => 0,
+                'bonus_credits' => 0,
+                'total_credits' => $package->total_credits
+            ];
+        }
+
+        $discount = $promotion->calculateDiscount($package);
+
+        return [
+            'original_price' => $package->price_cents,
+            'final_price' => $discount['final_price'],
+            'discount_amount' => $discount['discount_amount'],
+            'bonus_credits' => $discount['bonus_credits'],
+            'total_credits' => $package->total_credits + $discount['bonus_credits']
+        ];
+    }
+
+    /**
+     * Acheter des crédits avec Stripe
+     */
+    public function purchaseCredits(User $user, CreditPackage $package, ?Promotion $promotion = null): array
+    {
+        if (!$package->is_active) {
+            throw new \Exception('Ce package n\'est plus disponible');
+        }
+
+        $pricing = $this->calculateFinalPrice($package, $promotion);
+
+        DB::beginTransaction();
         try {
-            // S'assurer que l'utilisateur a un customer Stripe
-            $customer = $this->ensureStripeCustomer($user);
+            // Créer le Payment Intent Stripe
+            $paymentResult = $this->stripeService->createPaymentIntent($user, $package, $promotion);
 
-            // Créer le Payment Intent
-            $paymentIntent = $this->stripe->paymentIntents->create([
-                'amount' => $amountCents,
-                'currency' => $package->currency,
-                'customer' => $customer->id,
-                'description' => "Achat de crédits: {$package->name}",
-                'metadata' => [
-                    'user_id' => $user->id,
-                    'package_id' => $package->id,
-                    'package_name' => $package->name,
-                    'credits_amount' => $package->credits_amount + $package->bonus_credits,
-                    'promotion_code' => $promotion?->code,
-                    'original_price' => $package->price_cents,
-                    'discount_amount' => $promotion ? $promotion->calculateDiscount($package)['discount_amount'] : 0
-                ],
-                'automatic_payment_methods' => [
-                    'enabled' => true,
-                ],
-            ]);
+            if (!$paymentResult['success']) {
+                throw new \Exception($paymentResult['error']);
+            }
 
-            Log::info('Stripe Payment Intent created', [
-                'payment_intent_id' => $paymentIntent->id,
-                'user_id' => $user->id,
-                'amount' => $amountCents,
-                'package_id' => $package->id
-            ]);
+            DB::commit();
 
             return [
-                'payment_intent_id' => $paymentIntent->id,
-                'client_secret' => $paymentIntent->client_secret,
-                'status' => $paymentIntent->status,
-                'amount' => $paymentIntent->amount,
-                'customer_id' => $customer->id
+                'success' => true,
+                'payment_intent' => $paymentResult['payment_intent_id'],
+                'client_secret' => $paymentResult['client_secret'],
+                'amount' => $paymentResult['amount'],
+                'credits_to_receive' => $pricing['total_credits']
             ];
 
-        } catch (ApiErrorException $e) {
-            Log::error('Stripe payment failed', [
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Credit purchase failed', [
                 'user_id' => $user->id,
                 'package_id' => $package->id,
-                'error' => $e->getMessage(),
-                'stripe_error_code' => $e->getStripeCode()
-            ]);
-
-            throw new \Exception('Erreur de paiement: ' . $e->getUserMessage());
-        }
-    }
-
-    /**
-     * S'assurer qu'un utilisateur a un customer Stripe
-     */
-    private function ensureStripeCustomer(User $user)
-    {
-        if ($user->stripe_customer_id) {
-            try {
-                return $this->stripe->customers->retrieve($user->stripe_customer_id);
-            } catch (ApiErrorException $e) {
-                // Customer n'existe plus, on en crée un nouveau
-                Log::warning('Stripe customer not found, creating new one', [
-                    'user_id' => $user->id,
-                    'old_customer_id' => $user->stripe_customer_id
-                ]);
-            }
-        }
-
-        // Créer un nouveau customer
-        $customer = $this->stripe->customers->create([
-            'email' => $user->email,
-            'name' => $user->name,
-            'metadata' => [
-                'user_id' => $user->id,
-                'app_name' => config('app.name'),
-            ]
-        ]);
-
-        $user->update(['stripe_customer_id' => $customer->id]);
-
-        return $customer;
-    }
-
-    /**
-     * Confirmer un paiement
-     */
-    public function confirmPayment(string $paymentIntentId): array
-    {
-        try {
-            $paymentIntent = $this->stripe->paymentIntents->retrieve($paymentIntentId);
-
-            return [
-                'status' => $paymentIntent->status,
-                'succeeded' => $paymentIntent->status === 'succeeded',
-                'amount' => $paymentIntent->amount,
-                'metadata' => $paymentIntent->metadata->toArray()
-            ];
-
-        } catch (ApiErrorException $e) {
-            Log::error('Failed to confirm payment', [
-                'payment_intent_id' => $paymentIntentId,
                 'error' => $e->getMessage()
             ]);
-
-            throw new \Exception('Impossible de confirmer le paiement');
+            throw $e;
         }
     }
 
     /**
-     * Créer un remboursement
+     * Confirmer l'achat après paiement Stripe
      */
-    public function createRefund(string $paymentIntentId, int $amountCents = null, string $reason = null): array
+    public function confirmPurchase(string $paymentIntentId): array
     {
-        try {
-            $refundData = [
-                'payment_intent' => $paymentIntentId,
-                'reason' => $reason ?? 'requested_by_customer'
-            ];
-
-            if ($amountCents) {
-                $refundData['amount'] = $amountCents;
-            }
-
-            $refund = $this->stripe->refunds->create($refundData);
-
-            Log::info('Stripe refund created', [
-                'refund_id' => $refund->id,
-                'payment_intent_id' => $paymentIntentId,
-                'amount' => $refund->amount,
-                'reason' => $reason
-            ]);
-
-            return [
-                'refund_id' => $refund->id,
-                'status' => $refund->status,
-                'amount' => $refund->amount
-            ];
-
-        } catch (ApiErrorException $e) {
-            Log::error('Stripe refund failed', [
-                'payment_intent_id' => $paymentIntentId,
-                'error' => $e->getMessage()
-            ]);
-
-            throw new \Exception('Impossible de créer le remboursement');
-        }
+        return $this->stripeService->confirmPayment($paymentIntentId);
     }
 
     /**
-     * Obtenir l'historique des paiements d'un utilisateur
+     * Obtenir les statistiques d'usage d'un utilisateur
      */
-    public function getCustomerPayments(User $user, int $limit = 20): array
+    public function getUserStats(User $user, int $days = 30): array
     {
-        if (!$user->stripe_customer_id) {
-            return [];
-        }
+        $transactions = $user->creditTransactions()
+                            ->where('created_at', '>=', now()->subDays($days))
+                            ->get();
 
-        try {
-            $paymentIntents = $this->stripe->paymentIntents->all([
-                'customer' => $user->stripe_customer_id,
-                'limit' => $limit
-            ]);
+        $purchased = $transactions->where('type', 'purchase')->sum('credits_amount');
+        $used = abs($transactions->where('type', 'usage')->sum('credits_amount'));
 
-            return array_map(function ($paymentIntent) {
-                return [
-                    'id' => $paymentIntent->id,
-                    'amount' => $paymentIntent->amount,
-                    'currency' => $paymentIntent->currency,
-                    'status' => $paymentIntent->status,
-                    'created' => $paymentIntent->created,
-                    'description' => $paymentIntent->description,
-                    'metadata' => $paymentIntent->metadata->toArray()
-                ];
-            }, $paymentIntents->data);
-
-        } catch (ApiErrorException $e) {
-            Log::error('Failed to retrieve customer payments', [
-                'user_id' => $user->id,
-                'customer_id' => $user->stripe_customer_id,
-                'error' => $e->getMessage()
-            ]);
-
-            return [];
-        }
+        return [
+            'current_balance' => $user->credits_balance,
+            'purchased_period' => $purchased,
+            'used_period' => $used,
+            'transactions_count' => $transactions->count(),
+            'avg_daily_usage' => $days > 0 ? round($used / $days, 1) : 0,
+            'efficiency_rate' => $purchased > 0 ? round(($used / $purchased) * 100, 1) : 0
+        ];
     }
 
     /**
-     * Synchroniser les prix Stripe avec les packages
+     * Vérifier si un utilisateur peut effectuer une action
      */
-    public function syncPackagePrices(): void
+    public function canUserAfford(User $user, int $requiredCredits): array
     {
-        $packages = CreditPackage::active()->whereNull('stripe_price_id')->get();
+        $hasEnough = $user->hasEnoughCredits($requiredCredits);
+        $currentBalance = $user->credits_balance;
 
-        foreach ($packages as $package) {
-            try {
-                $price = $this->stripe->prices->create([
-                    'unit_amount' => $package->price_cents,
-                    'currency' => $package->currency,
-                    'product_data' => [
-                        'name' => $package->name,
-                        'description' => $package->description,
-                        'metadata' => [
-                            'package_id' => $package->id,
-                            'credits_amount' => $package->credits_amount,
-                            'bonus_credits' => $package->bonus_credits
-                        ]
-                    ]
-                ]);
+        return [
+            'can_afford' => $hasEnough,
+            'current_balance' => $currentBalance,
+            'required_credits' => $requiredCredits,
+            'missing_credits' => $hasEnough ? 0 : $requiredCredits - $currentBalance,
+            'suggested_package' => $hasEnough ? null : $this->getSuggestedPackage($requiredCredits - $currentBalance)
+        ];
+    }
 
-                $package->update(['stripe_price_id' => $price->id]);
+    /**
+     * Suggérer un package basé sur les crédits manquants
+     */
+    private function getSuggestedPackage(int $missingCredits): ?CreditPackage
+    {
+        return CreditPackage::active()
+                           ->where('credits_amount', '>=', $missingCredits)
+                           ->orderBy('credits_amount')
+                           ->first();
+    }
 
-                Log::info('Stripe price created for package', [
-                    'package_id' => $package->id,
-                    'price_id' => $price->id
-                ]);
-
-            } catch (ApiErrorException $e) {
-                Log::error('Failed to create Stripe price', [
-                    'package_id' => $package->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
+    /**
+     * Gérer l'utilisation des crédits
+     */
+    public function consumeCredits(User $user, int $amount, string $description, $reference = null): bool
+    {
+        if (!$user->hasEnoughCredits($amount)) {
+            return false;
         }
+
+        $transaction = $user->deductCredits($amount, $description);
+
+        if ($reference) {
+            $transaction->update([
+                'reference_type' => get_class($reference),
+                'reference_id' => $reference->id
+            ]);
+        }
+
+        return true;
+    }
+
+    /**
+     * Obtenir l'historique détaillé d'un utilisateur
+     */
+    public function getUserHistory(User $user, int $limit = 50): array
+    {
+        $transactions = $user->creditTransactions()
+                            ->with(['creditPackage'])
+                            ->orderBy('created_at', 'desc')
+                            ->limit($limit)
+                            ->get();
+
+        $stats = [
+            'total_purchased' => $user->creditTransactions()->where('type', 'purchase')->sum('credits_amount'),
+            'total_used' => abs($user->creditTransactions()->where('type', 'usage')->sum('credits_amount')),
+            'current_balance' => $user->credits_balance,
+            'transaction_count' => $user->creditTransactions()->count(),
+            'first_purchase' => $user->creditTransactions()->where('type', 'purchase')->orderBy('created_at')->first()?->created_at,
+            'last_activity' => $user->creditTransactions()->orderBy('created_at', 'desc')->first()?->created_at
+        ];
+
+        return [
+            'transactions' => $transactions,
+            'stats' => $stats,
+            'summary' => $this->generateUserSummary($user, $stats)
+        ];
+    }
+
+    /**
+     * Générer un résumé pour l'utilisateur
+     */
+    private function generateUserSummary(User $user, array $stats): array
+    {
+        $level = 'Débutant';
+        $badgeClass = 'bg-gray-500';
+
+        if ($stats['total_purchased'] >= 5000) {
+            $level = 'Expert';
+            $badgeClass = 'bg-purple-500';
+        } elseif ($stats['total_purchased'] >= 2000) {
+            $level = 'Avancé';
+            $badgeClass = 'bg-blue-500';
+        } elseif ($stats['total_purchased'] >= 500) {
+            $level = 'Intermédiaire';
+            $badgeClass = 'bg-green-500';
+        }
+
+        return [
+            'level' => $level,
+            'badge_class' => $badgeClass,
+            'usage_efficiency' => $stats['total_purchased'] > 0 ? round(($stats['total_used'] / $stats['total_purchased']) * 100) : 0,
+            'monthly_average' => $stats['first_purchase'] ? round($stats['total_used'] / max(1, now()->diffInMonths($stats['first_purchase']))) : 0
+        ];
     }
 }
