@@ -52,18 +52,7 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
     // Page d'accueil
     Route::get('/', [HomeController::class, 'index'])->name('home');
 
-    // Boutique produits
-    Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
-    Route::get('/shop/category/{category}', [ShopController::class, 'category'])->name('shop.category');
-    Route::get('/shop/product/{product}', [ShopController::class, 'show'])->name('shop.show');
-    Route::get('/shop/search', [ShopController::class, 'search'])->name('shop.search');
 
-    // Panier et commande
-    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-    Route::post('/cart/{product}', [CartController::class, 'add'])->name('cart.add');
-    Route::put('/cart/item/{itemKey}', [CartController::class, 'update'])->name('cart.update');
-    Route::delete('/cart/item/{itemKey}', [CartController::class, 'remove'])->name('cart.remove');
-    Route::delete('/cart', [CartController::class, 'clear'])->name('cart.clear');
 
     // ======================
     // ROUTES D'AUTHENTIFICATION
@@ -147,10 +136,6 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
             return view('credits.cancel');
         })->name('credits.cancel');
 
-        // Commandes utilisateur
-        Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
-        Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
-        Route::get('/orders/{order}/download/{fileId}', [OrderController::class, 'download'])->name('orders.download');
 
         // ======================
         // ROUTES DE SUPPORT UTILISATEURS
@@ -323,66 +308,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/credits/export', [CreditAdminController::class, 'exportTransactions'])->name('credits.export');
     Route::get('/credits/transactions', [CreditAdminController::class, 'transactions'])->name('credits.transactions');
 
-    // ======================
-    // ROUTES ADMIN PRODUITS
-    // ======================
-
-    // Gestion des produits
-    Route::prefix('products')->name('products.')->group(function () {
-        Route::get('/', [ProductAdminController::class, 'dashboard'])->name('dashboard');
-        Route::get('/list', [ProductAdminController::class, 'index'])->name('index');
-        Route::get('/create', [ProductAdminController::class, 'create'])->name('create');
-        Route::post('/', [ProductAdminController::class, 'store'])->name('store');
-        Route::get('/export', [ProductAdminController::class, 'export'])->name('export');
-
-        // Catégories
-        Route::prefix('categories')->name('categories.')->group(function () {
-            Route::get('/', [ProductCategoryController::class, 'index'])->name('index');
-            Route::get('/create', [ProductCategoryController::class, 'create'])->name('create');
-            Route::post('/', [ProductCategoryController::class, 'store'])->name('store');
-            Route::get('/{category}', [ProductCategoryController::class, 'show'])->name('show');
-            Route::get('/{category}/edit', [ProductCategoryController::class, 'edit'])->name('edit');
-            Route::put('/{category}', [ProductCategoryController::class, 'update'])->name('update');
-            Route::post('/{category}/toggle-status', [ProductCategoryController::class, 'toggleStatus'])->name('toggle-status');
-            Route::delete('/{category}', [ProductCategoryController::class, 'destroy'])->name('destroy');
-        });
-
-        // Promotions produits
-        Route::prefix('promotions')->name('promotions.')->group(function () {
-            Route::get('/', [ProductPromotionController::class, 'index'])->name('index');
-            Route::get('/create', [ProductPromotionController::class, 'create'])->name('create');
-            Route::post('/', [ProductPromotionController::class, 'store'])->name('store');
-            Route::get('/{promotion}', [ProductPromotionController::class, 'show'])->name('show');
-            Route::get('/{promotion}/edit', [ProductPromotionController::class, 'edit'])->name('edit');
-            Route::put('/{promotion}', [ProductPromotionController::class, 'update'])->name('update');
-            Route::post('/{promotion}/toggle-status', [ProductPromotionController::class, 'toggleStatus'])->name('toggle-status');
-            Route::delete('/{promotion}', [ProductPromotionController::class, 'destroy'])->name('destroy');
-        });
-
-        Route::get('/{product}', [ProductAdminController::class, 'show'])->name('show');
-        Route::get('/{product}/edit', [ProductAdminController::class, 'edit'])->name('edit');
-        Route::put('/{product}', [ProductAdminController::class, 'update'])->name('update');
-        Route::post('/{product}/toggle-status', [ProductAdminController::class, 'toggleStatus'])->name('toggle-status');
-        Route::post('/{product}/toggle-featured', [ProductAdminController::class, 'toggleFeatured'])->name('toggle-featured');
-        Route::post('/{product}/adjust-stock', [ProductAdminController::class, 'adjustStock'])->name('adjust-stock');
-        Route::post('/{product}/duplicate', [ProductAdminController::class, 'duplicate'])->name('duplicate');
-        Route::delete('/{product}', [ProductAdminController::class, 'destroy'])->name('destroy');
-    });
-
-    // ======================
-    // ROUTES ADMIN COMMANDES
-    // ======================
-
-    // Gestion des commandes
-    Route::prefix('orders')->name('orders.')->group(function () {
-        Route::get('/', [OrderAdminController::class, 'index'])->name('index');
-        Route::get('/export/csv', [OrderAdminController::class, 'export'])->name('export');
-        Route::get('/{order}', [OrderAdminController::class, 'show'])->name('show');
-        Route::post('/{order}/status', [OrderAdminController::class, 'updateStatus'])->name('update-status');
-        Route::post('/{order}/tracking', [OrderAdminController::class, 'updateTracking'])->name('update-tracking');
-        Route::post('/{order}/notes', [OrderAdminController::class, 'addNote'])->name('add-note');
-        Route::post('/{order}/refund', [OrderAdminController::class, 'refund'])->name('refund');
-    });
 
     // ======================
     // ROUTES ADMIN SUPPORT

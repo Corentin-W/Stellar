@@ -55,5 +55,14 @@ return [
         'client_secret' => env('TWITTER_CLIENT_SECRET'),
         'redirect' => env('APP_URL') . '/auth/twitter/callback',
     ],
+    'stripe' => [
+        'model' => env('STRIPE_MODEL', App\Models\User::class),
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook' => [
+            'secret' => env('STRIPE_WEBHOOK_SECRET'),
+            'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300),
+        ],
+    ],
 
 ];

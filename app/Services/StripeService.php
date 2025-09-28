@@ -4,15 +4,18 @@
 
 namespace App\Services;
 
+use Stripe\Price;
+use Stripe\Stripe;
+use Stripe\Product;
 use App\Models\User;
-use App\Models\CreditPackage;
-use App\Models\Promotion;
-use App\Models\CreditTransaction;
-use Laravel\Cashier\Cashier;
 use Stripe\StripeClient;
-use Stripe\Exception\ApiErrorException;
-use Illuminate\Support\Facades\Log;
+use App\Models\Promotion;
+use Laravel\Cashier\Cashier;
+use App\Models\CreditPackage;
+use App\Models\CreditTransaction;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Stripe\Exception\ApiErrorException;
 
 class StripeService
 {
@@ -20,73 +23,48 @@ class StripeService
 
     public function __construct()
     {
-        $this->stripe = new StripeClient(config('cashier.secret'));
+        // Vérifier que la configuration existe
+        $secretKey = env('STRIPE_SECRET');
+
+        if (empty($secretKey)) {
+            throw new \Exception('Stripe secret key not configured. Please set STRIPE_SECRET in your .env file.');
+        }
+
+        $this->stripe = new StripeClient($secretKey);
     }
 
-    /**
-     * Créer un Payment Intent pour l'achat de crédits
-     */
-    public function createPaymentIntent(
-        User $user,
-        CreditPackage $package,
-        ?Promotion $promotion = null
-    ): array {
+public function createPaymentIntent(CreditPackage $package, $promotionCode = null): array
+    {
         try {
-            // S'assurer que l'utilisateur a un customer Stripe
-            if (!$user->hasStripeId()) {
-                $user->createAsStripeCustomer();
+            $amount = $package->price_cents;
+
+            // Appliquer la promotion si fournie
+            if ($promotionCode) {
+                // Logic pour appliquer la promotion
+                // À implémenter selon vos besoins
             }
 
-            // Calculer le prix final avec promotion
-            $discount = $promotion ? $promotion->calculateDiscount($package) : [
-                'discount_amount' => 0,
-                'final_price' => $package->price_cents,
-                'bonus_credits' => 0
-            ];
-
-            // Minimum 50 centimes pour Stripe
-            $amount = max(50, $discount['final_price']);
-
-            $paymentIntent = $this->stripe->paymentIntents->create([
+            $paymentIntent = \Stripe\PaymentIntent::create([
                 'amount' => $amount,
                 'currency' => strtolower($package->currency),
-                'customer' => $user->stripe_id,
-                'description' => "Achat de crédits: {$package->name}",
                 'metadata' => [
-                    'user_id' => $user->id,
                     'package_id' => $package->id,
-                    'package_name' => $package->name,
-                    'credits_amount' => $package->total_credits,
-                    'promotion_code' => $promotion?->code,
-                    'promotion_discount' => $discount['discount_amount'],
-                    'bonus_credits' => $discount['bonus_credits'],
-                    'original_price' => $package->price_cents,
-                    'type' => 'credit_purchase'
-                ],
-                'automatic_payment_methods' => [
-                    'enabled' => true,
-                ],
+                    'credits_amount' => $package->credits_amount,
+                    'user_id' => auth()->id()
+                ]
             ]);
 
             return [
-                'success' => true,
                 'client_secret' => $paymentIntent->client_secret,
-                'payment_intent_id' => $paymentIntent->id,
-                'amount' => $amount,
-                'discount' => $discount
+                'payment_intent_id' => $paymentIntent->id
             ];
 
-        } catch (ApiErrorException $e) {
-            Log::error('Stripe Payment Intent creation failed', [
-                'user_id' => $user->id,
+        } catch (\Exception $e) {
+            Log::error('Failed to create payment intent', [
                 'package_id' => $package->id,
                 'error' => $e->getMessage()
             ]);
-
-            return [
-                'success' => false,
-                'error' => 'Erreur lors de la création du paiement: ' . $e->getMessage()
-            ];
+            throw $e;
         }
     }
 
@@ -189,46 +167,183 @@ class StripeService
         ]);
     }
 
-    /**
-     * Synchroniser les packages avec les prix Stripe
-     */
-    public function syncPackagePrices(): void
-    {
+/**
+ * Synchroniser les prix Stripe avec les packages
+ */
+public function syncPackagePrices(): void
+{
+    $packages = CreditPackage::active()->get();
+
+    foreach ($packages as $package) {
         try {
-            $packages = CreditPackage::whereNull('stripe_price_id')
-                                   ->orWhere('stripe_price_id', '')
-                                   ->get();
+            $productId = $package->stripe_product_id;
 
-            foreach ($packages as $package) {
-                $product = $this->stripe->products->create([
-                    'name' => $package->name,
-                    'description' => $package->description,
+            // 1. Gérer le produit (créer seulement s'il n'existe pas)
+            if (!$productId) {
+                $productData = [
+                    'name' => $package->name ?: 'Package de crédits',
                     'metadata' => [
-                        'credits_amount' => $package->credits_amount,
-                        'bonus_credits' => $package->bonus_credits,
-                        'package_id' => $package->id
+                        'package_id' => (string)$package->id,
+                        'credits_amount' => (string)$package->credits_amount,
+                        'bonus_credits' => (string)($package->bonus_credits ?? 0)
                     ]
-                ]);
+                ];
 
-                $price = $this->stripe->prices->create([
-                    'product' => $product->id,
-                    'unit_amount' => $package->price_cents,
-                    'currency' => strtolower($package->currency),
+                // Ajouter description seulement si elle est valide
+                $description = trim($package->description ?? '');
+                if ($description !== '') {
+                    $productData['description'] = $description;
+                }
+
+                $product = $this->stripe->products->create($productData);
+                $productId = $product->id;
+                $package->update(['stripe_product_id' => $productId]);
+            } else {
+                // 2. Mettre à jour le produit existant (nom, description, metadata)
+                $updateData = [
+                    'name' => $package->name ?: 'Package de crédits',
                     'metadata' => [
-                        'package_id' => $package->id
+                        'package_id' => (string)$package->id,
+                        'credits_amount' => (string)$package->credits_amount,
+                        'bonus_credits' => (string)($package->bonus_credits ?? 0)
                     ]
-                ]);
+                ];
 
-                $package->update(['stripe_price_id' => $price->id]);
+                $description = trim($package->description ?? '');
+                if ($description !== '') {
+                    $updateData['description'] = $description;
+                }
+
+                $this->stripe->products->update($productId, $updateData);
             }
 
+            // 3. Désactiver l'ancien prix s'il existe
+            if ($package->stripe_price_id) {
+                $this->stripe->prices->update($package->stripe_price_id, [
+                    'active' => false
+                ]);
+            }
+
+            // 4. Créer un nouveau prix (obligatoire car on ne peut pas modifier un prix)
+            $price = $this->stripe->prices->create([
+                'unit_amount' => $package->price_cents,
+                'currency' => $package->currency ?? 'eur',
+                'product' => $productId
+            ]);
+
+            // 5. Mettre à jour le package avec le nouveau prix
+            $package->update(['stripe_price_id' => $price->id]);
+
+            Log::info('Stripe price synced for package', [
+                'package_id' => $package->id,
+                'product_id' => $productId,
+                'old_price_id' => $package->getOriginal('stripe_price_id'),
+                'new_price_id' => $price->id,
+                'amount' => $package->price_cents
+            ]);
+
         } catch (ApiErrorException $e) {
-            Log::error('Failed to sync package prices with Stripe', [
+            Log::error('Failed to sync Stripe price', [
+                'package_id' => $package->id,
                 'error' => $e->getMessage()
             ]);
-            throw $e;
         }
     }
+}
+
+/**
+ * Synchroniser un package spécifique avec Stripe
+ */
+public function syncSinglePackage(CreditPackage $package, ?string $oldStripePriceId = null): void
+{
+    try {
+        $productId = $package->stripe_product_id;
+
+        // Gérer le produit
+        if (!$productId) {
+            // Créer le produit
+            $productData = [
+                'name' => $package->name ?: 'Package de crédits',
+                'metadata' => [
+                    'package_id' => (string)$package->id,
+                    'credits_amount' => (string)$package->credits_amount,
+                    'bonus_credits' => (string)($package->bonus_credits ?? 0)
+                ]
+            ];
+
+            $description = trim($package->description ?? '');
+            if ($description !== '') {
+                $productData['description'] = $description;
+            }
+
+            $product = $this->stripe->products->create($productData);
+            $productId = $product->id;
+            $package->update(['stripe_product_id' => $productId]);
+        } else {
+            // Mettre à jour le produit existant
+            $updateData = [
+                'name' => $package->name ?: 'Package de crédits',
+                'metadata' => [
+                    'package_id' => (string)$package->id,
+                    'credits_amount' => (string)$package->credits_amount,
+                    'bonus_credits' => (string)($package->bonus_credits ?? 0)
+                ]
+            ];
+
+            $description = trim($package->description ?? '');
+            if ($description !== '') {
+                $updateData['description'] = $description;
+            }
+
+            $this->stripe->products->update($productId, $updateData);
+        }
+
+        // Utiliser l'ancien prix fourni ou celui du package
+        $priceToDisable = $oldStripePriceId ?? $package->stripe_price_id;
+
+        // Désactiver l'ancien prix s'il existe
+        if ($priceToDisable) {
+            try {
+                $this->stripe->prices->update($priceToDisable, [
+                    'active' => false
+                ]);
+                Log::info('Old Stripe price disabled', [
+                    'package_id' => $package->id,
+                    'disabled_price_id' => $priceToDisable
+                ]);
+            } catch (ApiErrorException $e) {
+                Log::warning('Failed to disable old price', [
+                    'price_id' => $priceToDisable,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        // Créer nouveau prix
+        $price = $this->stripe->prices->create([
+            'unit_amount' => $package->price_cents,
+            'currency' => $package->currency ?? 'eur',
+            'product' => $productId
+        ]);
+
+        $package->update(['stripe_price_id' => $price->id]);
+
+        Log::info('Stripe price synced for package', [
+            'package_id' => $package->id,
+            'product_id' => $productId,
+            'old_price_id' => $priceToDisable,
+            'new_price_id' => $price->id,
+            'amount' => $package->price_cents
+        ]);
+
+    } catch (ApiErrorException $e) {
+        Log::error('Failed to sync package with Stripe', [
+            'package_id' => $package->id,
+            'error' => $e->getMessage()
+        ]);
+        throw new \Exception('Impossible de synchroniser avec Stripe: ' . $e->getMessage());
+    }
+}
 
     /**
      * Traiter les webhooks Stripe
@@ -372,6 +487,73 @@ class StripeService
             return [
                 'error' => $e->getMessage()
             ];
+        }
+    }
+
+private function createStripePrice(CreditPackage $package): void
+    {
+        try {
+            Log::info('Création produit Stripe pour package', [
+                'package_id' => $package->id,
+                'package_name' => $package->name
+            ]);
+
+            // Préparer les données du produit
+            $productData = [
+                'name' => $package->name,
+                'metadata' => [
+                    'credits_amount' => $package->credits_amount,
+                    'bonus_credits' => $package->bonus_credits ?? 0,
+                    'package_id' => $package->id
+                ]
+            ];
+
+            // Ajouter la description seulement si elle n'est pas vide
+            if (!empty($package->description)) {
+                $productData['description'] = $package->description;
+            }
+
+            // Créer le produit Stripe
+            $product = Product::create($productData);
+
+            Log::info('Produit Stripe créé', [
+                'product_id' => $product->id,
+                'package_id' => $package->id
+            ]);
+
+            // Créer le prix
+            $price = Price::create([
+                'unit_amount' => $package->price_cents,
+                'currency' => strtolower($package->currency),
+                'product' => $product->id,
+                'metadata' => [
+                    'package_id' => $package->id,
+                    'credits_amount' => $package->credits_amount
+                ]
+            ]);
+
+            Log::info('Prix Stripe créé', [
+                'price_id' => $price->id,
+                'package_id' => $package->id,
+                'amount' => $package->price_cents
+            ]);
+
+            // Mettre à jour le package avec le price_id
+            $package->update(['stripe_price_id' => $price->id]);
+
+            Log::info('Package mis à jour avec stripe_price_id', [
+                'package_id' => $package->id,
+                'stripe_price_id' => $price->id
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create Stripe price for package', [
+                'package_id' => $package->id,
+                'package_name' => $package->name,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
         }
     }
 }

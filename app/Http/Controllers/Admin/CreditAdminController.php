@@ -68,11 +68,29 @@ class CreditAdminController extends Controller
         return view('admin.credits.packages.create');
     }
 
-    /**
-     * Sauvegarder un nouveau package
-     */
-    public function storePackage(Request $request)
-    {
+/**
+ * Sauvegarder un nouveau package
+ */
+public function storePackage(Request $request)
+{
+    // Log initial complet
+    \Log::info('=== DÉBUT CRÉATION PACKAGE ===', [
+        'timestamp' => now()->toISOString(),
+        'request_data' => $request->all(),
+        'user_id' => auth()->id(),
+        'user_email' => auth()->user()->email,
+        'user_is_admin' => auth()->user()->isAdmin(),
+        'url' => $request->url(),
+        'method' => $request->method(),
+        'ip' => $request->ip()
+    ]);
+
+    try {
+        // Log avant validation
+        \Log::info('Début validation des données', [
+            'raw_input' => $request->all()
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
@@ -80,8 +98,8 @@ class CreditAdminController extends Controller
             'price_euros' => 'required|numeric|min:0.01|max:5000',
             'bonus_credits' => 'nullable|integer|min:0|max:10000',
             'discount_percentage' => 'nullable|integer|min:0|max:100',
-            'is_active' => 'boolean',
-            'is_featured' => 'boolean',
+            /* 'is_active' => 'boolean',
+            'is_featured' => 'boolean', */
             'sort_order' => 'nullable|integer|min:0|max:1000'
         ], [
             'name.required' => 'Le nom du package est obligatoire',
@@ -91,31 +109,172 @@ class CreditAdminController extends Controller
             'price_euros.min' => 'Le prix doit être supérieur à 0.01€'
         ]);
 
+        \Log::info('Validation réussie', [
+            'validated_data' => $validated
+        ]);
+
+        // Log transformation des données
+        \Log::info('Transformation des données', [
+            'original_price_euros' => $validated['price_euros'],
+            'calculated_price_cents' => round($validated['price_euros'] * 100)
+        ]);
+
         // Convertir le prix en centimes
         $validated['price_cents'] = round($validated['price_euros'] * 100);
         unset($validated['price_euros']);
 
-        // Valeurs par défaut
+        // Valeurs par défaut avec logs
         $validated['currency'] = 'EUR';
         $validated['is_active'] = $request->has('is_active');
         $validated['is_featured'] = $request->has('is_featured');
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
 
+        \Log::info('Données finales préparées', [
+            'final_data' => $validated,
+            'checkbox_is_active' => $request->has('is_active'),
+            'checkbox_is_featured' => $request->has('is_featured')
+        ]);
+
+        // Vérifications système avant création
+        \Log::info('Vérifications système', [
+            'credit_package_class_exists' => class_exists(\App\Models\CreditPackage::class),
+            'table_exists' => \Schema::hasTable('credit_packages'),
+            'db_connection' => \DB::connection()->getName()
+        ]);
+
+        // Test d'accès à la table
         try {
-            $package = CreditPackage::create($validated);
+            $tableColumns = \Schema::getColumnListing('credit_packages');
+            \Log::info('Colonnes de la table credit_packages', [
+                'columns' => $tableColumns,
+                'columns_count' => count($tableColumns)
+            ]);
 
-            // Synchroniser avec Stripe
-            $this->stripeService->syncPackagePrices();
+            // Test de requête simple
+            $existingPackagesCount = \DB::table('credit_packages')->count();
+            \Log::info('Test requête sur table', [
+                'existing_packages_count' => $existingPackagesCount
+            ]);
 
-            return redirect()->route('admin.credits.packages.index')
-                           ->with('success', 'Package créé avec succès et synchronisé avec Stripe');
-
-        } catch (\Exception $e) {
-            return redirect()->back()
-                           ->withErrors(['error' => 'Erreur lors de la création: ' . $e->getMessage()])
-                           ->withInput();
+        } catch (\Exception $dbTest) {
+            \Log::error('Erreur lors du test de la table', [
+                'error' => $dbTest->getMessage(),
+                'file' => $dbTest->getFile(),
+                'line' => $dbTest->getLine()
+            ]);
         }
+
+        // Vérification du modèle CreditPackage
+        try {
+            $model = new \App\Models\CreditPackage();
+            \Log::info('Test modèle CreditPackage', [
+                'table_name' => $model->getTable(),
+                'fillable_fields' => $model->getFillable(),
+                'connection' => $model->getConnectionName()
+            ]);
+        } catch (\Exception $modelTest) {
+            \Log::error('Erreur lors du test du modèle', [
+                'error' => $modelTest->getMessage(),
+                'file' => $modelTest->getFile(),
+                'line' => $modelTest->getLine()
+            ]);
+        }
+
+        // Tentative de création avec logs détaillés
+        \Log::info('=== TENTATIVE CRÉATION PACKAGE ===');
+
+        try {
+            // Test avec DB::table d'abord
+            \Log::info('Test insertion avec DB::table...');
+            $insertedId = \DB::table('credit_packages')->insertGetId($validated);
+            \Log::info('Insertion DB::table réussie', [
+                'inserted_id' => $insertedId
+            ]);
+
+            // Récupérer le package créé
+            $package = CreditPackage::find($insertedId);
+            \Log::info('Package récupéré via modèle', [
+                'package_id' => $package->id,
+                'package_name' => $package->name,
+                'package_data' => $package->toArray()
+            ]);
+
+        } catch (\Exception $dbInsertError) {
+            \Log::error('Erreur insertion DB::table', [
+                'error' => $dbInsertError->getMessage(),
+                'file' => $dbInsertError->getFile(),
+                'line' => $dbInsertError->getLine(),
+                'data_to_insert' => $validated
+            ]);
+
+            // Essayer avec le modèle Eloquent
+            \Log::info('Tentative avec CreditPackage::create...');
+            $package = CreditPackage::create($validated);
+            \Log::info('CreditPackage::create réussi', [
+                'package_id' => $package->id
+            ]);
+        }
+
+        \Log::info('=== PACKAGE CRÉÉ AVEC SUCCÈS ===', [
+            'package_id' => $package->id,
+            'package_name' => $package->name
+        ]);
+
+        // Synchronisation Stripe avec gestion d'erreur
+        try {
+            \Log::info('Début synchronisation Stripe...');
+            $this->stripeService->syncPackagePrices();
+            \Log::info('Synchronisation Stripe terminée avec succès');
+
+            $successMessage = 'Package créé avec succès et synchronisé avec Stripe';
+        } catch (\Exception $stripeError) {
+            \Log::warning('Erreur Stripe (non bloquante)', [
+                'error' => $stripeError->getMessage(),
+                'package_id' => $package->id
+            ]);
+
+            $successMessage = 'Package créé avec succès (erreur de synchronisation Stripe)';
+        }
+
+        \Log::info('Redirection vers liste des packages', [
+            'redirect_route' => 'admin.credits.packages.index',
+            'success_message' => $successMessage
+        ]);
+
+        return redirect()->route('admin.credits.packages.index')
+                       ->with('success', $successMessage);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        \Log::error('=== ERREUR DE VALIDATION ===', [
+            'errors' => $e->errors(),
+            'input' => $request->all(),
+            'validator_failed_rules' => $e->validator->failed()
+        ]);
+
+        return redirect()->back()
+                       ->withErrors($e->errors())
+                       ->withInput();
+
+    } catch (\Exception $e) {
+        \Log::error('=== ERREUR GÉNÉRALE ===', [
+            'error_message' => $e->getMessage(),
+            'error_class' => get_class($e),
+            'error_file' => $e->getFile(),
+            'error_line' => $e->getLine(),
+            'error_trace' => $e->getTraceAsString(),
+            'request_data' => $request->all(),
+            'user_id' => auth()->id()
+        ]);
+
+        return redirect()->back()
+                       ->withErrors(['error' => 'Erreur lors de la création: ' . $e->getMessage()])
+                       ->withInput();
+    } finally {
+        \Log::info('=== FIN CRÉATION PACKAGE ===', [
+            'timestamp' => now()->toISOString()
+        ]);
     }
+}
 
     /**
      * Éditer un package
@@ -125,42 +284,56 @@ class CreditAdminController extends Controller
         return view('admin.credits.packages.edit', compact('package'));
     }
 
-    /**
-     * Mettre à jour un package
-     */
-    public function updatePackage(Request $request, CreditPackage $package)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'credits_amount' => 'required|integer|min:1|max:50000',
-            'price_euros' => 'required|numeric|min:0.01|max:5000',
-            'bonus_credits' => 'nullable|integer|min:0|max:10000',
-            'discount_percentage' => 'nullable|integer|min:0|max:100',
-            'is_active' => 'boolean',
-            'is_featured' => 'boolean',
-            'sort_order' => 'nullable|integer|min:0|max:1000'
-        ]);
+public function updatePackage(Request $request, CreditPackage $package)
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string|max:1000',
+        'credits_amount' => 'required|integer|min:1|max:50000',
+        'price_euros' => 'required|numeric|min:0.01|max:5000',
+        'bonus_credits' => 'nullable|integer|min:0|max:10000',
+        'discount_percentage' => 'nullable|integer|min:0|max:100',
+        'is_active' => 'boolean',
+        'is_featured' => 'boolean',
+        'sort_order' => 'nullable|integer|min:0|max:1000'
+    ]);
 
-        // Convertir le prix en centimes
-        $validated['price_cents'] = round($validated['price_euros'] * 100);
-        unset($validated['price_euros']);
+    // Convertir le prix en centimes
+    $validated['price_cents'] = round($validated['price_euros'] * 100);
+    unset($validated['price_euros']);
 
-        $validated['is_active'] = $request->has('is_active');
-        $validated['is_featured'] = $request->has('is_featured');
+    $validated['is_active'] = $request->has('is_active');
+    $validated['is_featured'] = $request->has('is_featured');
 
+    try {
+        // Stocker l'ancien stripe_price_id AVANT la mise à jour
+        $oldStripePriceId = $package->stripe_price_id;
+
+        $package->update($validated);
+
+        // Synchroniser avec Stripe après mise à jour
         try {
-            $package->update($validated);
-
-            return redirect()->route('admin.credits.packages.index')
-                           ->with('success', 'Package mis à jour avec succès');
-
-        } catch (\Exception $e) {
-            return redirect()->back()
-                           ->withErrors(['error' => 'Erreur lors de la mise à jour: ' . $e->getMessage()])
-                           ->withInput();
+            $this->stripeService->syncSinglePackage($package, $oldStripePriceId);
+            $successMessage = 'Package mis à jour avec succès et synchronisé avec Stripe';
+        } catch (\Exception $stripeError) {
+            \Log::warning('Erreur Stripe lors de la mise à jour du package', [
+                'package_id' => $package->id,
+                'error' => $stripeError->getMessage()
+            ]);
+            $successMessage = 'Package mis à jour avec succès (erreur de synchronisation Stripe)';
         }
+
+        return redirect()->route('admin.credits.packages.index')
+                       ->with('success', $successMessage);
+
+    } catch (\Exception $e) {
+        return redirect()->back()
+                       ->withErrors(['error' => 'Erreur lors de la mise à jour: ' . $e->getMessage()])
+                       ->withInput();
     }
+}
+
+
 
     /**
      * Activer/désactiver un package (AJAX)
