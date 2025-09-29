@@ -3,16 +3,19 @@
 // ====================================
 
 /**
- * Configuration Bootstrap pour TelescopeApp
- * Chargement des dépendances et configuration initiale
+ * Configuration Bootstrap pour AstroSphere
+ * Compatible avec Vite (Laravel 11+)
  */
 
-// Configuration globale pour les requêtes AJAX
-window.axios = require('axios');
+// Import d'Axios (compatible Vite)
+import axios from 'axios';
+window.axios = axios;
+
+// Configuration par défaut d'Axios
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 // Token CSRF pour Laravel
-let token = document.head.querySelector('meta[name="csrf-token"]');
+const token = document.head.querySelector('meta[name="csrf-token"]');
 if (token) {
     window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
 } else {
@@ -76,4 +79,3 @@ window.api = {
         return this.call('DELETE', url, data);
     }
 };
-

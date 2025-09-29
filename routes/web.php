@@ -416,3 +416,9 @@ Route::fallback(function () {
     // Sinon, 404
     abort(404);
 });
+
+// Dans le groupe middleware auth
+Route::post('/credits/checkout', [CreditController::class, 'createCheckoutSession'])->name('credits.checkout');
+Route::get('/credits/success', [CreditController::class, 'paymentSuccess'])->name('credits.success');
+// Webhook Stripe (sans middleware auth)
+Route::post('/stripe/webhook', [CreditController::class, 'stripeWebhook'])->name('stripe.webhook');

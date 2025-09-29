@@ -12,38 +12,73 @@
 
         <!-- Animation de succès -->
         <div class="mb-8 relative">
-            <div class="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full mx-auto flex items-center justify-center mb-4 animate-pulse">
-                <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                </svg>
+            <div class="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full mx-auto flex items-center justify-center mb-4 {{ $already_processed ?? false ? 'animate-pulse' : 'animate-bounce' }}">
+                @if($already_processed ?? false)
+                    <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                @else
+                    <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                @endif
             </div>
 
             <!-- Particules de succès -->
+            @if(!($already_processed ?? false))
             <div class="absolute inset-0 pointer-events-none">
                 <div class="absolute top-4 left-8 w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style="animation-delay: 0.1s;"></div>
                 <div class="absolute top-6 right-6 w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0.3s;"></div>
                 <div class="absolute bottom-8 left-12 w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 0.5s;"></div>
                 <div class="absolute bottom-6 right-8 w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce" style="animation-delay: 0.7s;"></div>
             </div>
+            @endif
         </div>
 
-        <!-- Message de succès -->
-        <h1 class="text-3xl font-bold text-white mb-4">
-            Achat Confirmé !
-        </h1>
-
-        <p class="text-xl text-white/70 mb-8">
-            Vos crédits ont été ajoutés à votre compte avec succès
-        </p>
+        <!-- Message de succès ou d'information -->
+        @if($already_processed ?? false)
+            <h1 class="text-3xl font-bold text-yellow-400 mb-4">
+                Transaction Déjà Traitée
+            </h1>
+            <div class="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
+                <p class="text-yellow-300">{{ $message ?? 'Cette transaction a déjà été traitée.' }}</p>
+            </div>
+        @else
+            <h1 class="text-3xl font-bold text-white mb-4">
+                Achat Confirmé !
+            </h1>
+            <div class="bg-green-500/20 border border-green-500/30 rounded-lg p-4 mb-6">
+                <p class="text-green-300">{{ $message ?? 'Vos crédits ont été ajoutés avec succès !' }}</p>
+            </div>
+        @endif
 
         <!-- Informations sur l'achat -->
         <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 mb-8">
             <div class="space-y-4">
+
+                @if(!($already_processed ?? false) && isset($credits_added) && $credits_added > 0)
+                <!-- Afficher les crédits ajoutés pour les nouveaux paiements -->
                 <div class="flex items-center justify-between">
-                    <span class="text-white/70">Nouveau solde</span>
+                    <span class="text-white/70">Crédits ajoutés</span>
+                    <span class="text-2xl font-bold text-green-400">+{{ number_format($credits_added) }}</span>
+                </div>
+                <div class="border-t border-white/10 pt-4"></div>
+                @endif
+
+                <!-- Solde actuel -->
+                <div class="flex items-center justify-between">
+                    <span class="text-white/70">Votre solde actuel</span>
                     <span class="text-xl font-bold text-white">{{ number_format(auth()->user()->credits_balance) }} crédits</span>
                 </div>
 
+                @if(isset($session) && isset($session->amount_total))
+                <div class="flex items-center justify-between">
+                    <span class="text-white/70">Montant payé</span>
+                    <span class="text-white font-semibold">{{ number_format($session->amount_total / 100, 2) }}€</span>
+                </div>
+                @endif
+
+                @if(!($already_processed ?? false))
                 <div class="border-t border-white/10 pt-4">
                     <div class="flex items-center gap-3 text-green-400">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,8 +87,20 @@
                         <span class="font-medium">Crédits disponibles immédiatement</span>
                     </div>
                 </div>
+                @endif
             </div>
         </div>
+
+        <!-- Informations de session (debug - à retirer en production) -->
+        @if(config('app.debug') && isset($session))
+        <div class="bg-gray-800/50 border border-gray-600 rounded-lg p-3 mb-6 text-xs text-gray-400">
+            <p><strong>Session ID:</strong> {{ $session->id }}</p>
+            @if(isset($credits_added))
+            <p><strong>Crédits ajoutés:</strong> {{ $credits_added }}</p>
+            @endif
+            <p><strong>Déjà traité:</strong> {{ ($already_processed ?? false) ? 'Oui' : 'Non' }}</p>
+        </div>
+        @endif
 
         <!-- Actions suivantes -->
         <div class="space-y-4">
@@ -93,3 +140,15 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+// Actualiser le solde dans la sidebar si elle existe
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebarBalance = document.querySelector('#sidebar-balance');
+    if (sidebarBalance) {
+        sidebarBalance.textContent = '{{ number_format(auth()->user()->credits_balance) }} crédits';
+    }
+});
+</script>
+@endpush
