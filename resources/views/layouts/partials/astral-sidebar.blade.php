@@ -84,6 +84,14 @@
             <span class="ml-3 font-medium">{{ __('app.sidebar.dashboard') }}</span>
         </a>
 
+        <a href="{{ route('bookings.calendar') }}"
+        class="sidebar-item {{ request()->is('bookings') || request()->is('bookings/*') ? 'active' : '' }}">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <span class="ml-3 font-medium">Réservations</span>
+        </a>
+
         <a href="{{ route('credits.shop') }}"
         class="sidebar-item {{ request()->is('credits/shop') ? 'active' : '' }}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,7 +143,24 @@
             <span class="ml-3 font-medium">Panel Admin</span>
         </a>
 
-
+@if(auth()->user()->admin == 1)
+    <!-- Gestion Réservations Admin -->
+    @php
+    $pendingCount = \App\Models\EquipmentBooking::where('status', 'pending')->count();
+    @endphp
+    <a href="{{ route('admin.bookings.dashboard') }}"
+       class="sidebar-item {{ request()->is('admin/bookings') || request()->is('admin/bookings/*') ? 'active' : '' }}">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        <span class="ml-3 font-medium">Gestion Réservations</span>
+        @if($pendingCount > 0)
+            <span class="badge ml-auto bg-yellow-500">
+                {{ $pendingCount }}
+            </span>
+        @endif
+    </a>
+@endif
 
 
         <!-- Admin Equipment Management -->

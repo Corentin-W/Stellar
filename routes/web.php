@@ -8,11 +8,13 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\WaitingListController;
 use App\Http\Controllers\Admin\OrderAdminController;
 use App\Http\Controllers\Admin\CreditAdminController;
+use App\Http\Controllers\Admin\BookingAdminController;
 use App\Http\Controllers\Admin\ProductAdminController;
 use App\Http\Controllers\Admin\SupportAdminController;
 use App\Http\Controllers\Admin\SupportReportController;
@@ -422,3 +424,54 @@ Route::post('/credits/checkout', [CreditController::class, 'createCheckoutSessio
 Route::get('/credits/success', [CreditController::class, 'paymentSuccess'])->name('credits.success');
 // Webhook Stripe (sans middleware auth)
 Route::post('/stripe/webhook', [CreditController::class, 'stripeWebhook'])->name('stripe.webhook');
+
+
+// Routes utilisateur (avec locale)
+Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
+
+    Route::middleware('auth')->group(function () {
+
+        // Réservations utilisateur
+        Route::prefix('bookings')->name('bookings.')->group(function () {
+            Route::get('/calendar', [BookingController::class, 'calendar'])->name('calendar');
+            Route::get('/events', [BookingController::class, 'events'])->name('events');
+            Route::get('/create', [BookingController::class, 'create'])->name('create');
+            Route::post('/', [BookingController::class, 'store'])->name('store');
+            Route::get('/my-bookings', [BookingController::class, 'myBookings'])->name('my-bookings');
+            Route::post('/{booking}/cancel', [BookingController::class, 'cancel'])->name('cancel');
+        });
+
+    });
+});
+
+// Routes admin (sans locale)
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+
+    Route::prefix('bookings')->name('bookings.')->group(function () {
+        // Dashboard
+        Route::get('/', [BookingAdminController::class, 'dashboard'])->name('dashboard');
+
+          // Blocages
+        Route::get('/blackouts', [BookingAdminController::class, 'blackouts'])->name('blackouts');
+        Route::post('/blackouts', [BookingAdminController::class, 'storeBlackout'])->name('blackouts.store');
+        Route::delete('/blackouts/{blackout}', [BookingAdminController::class, 'destroyBlackout'])->name('blackouts.destroy');
+        
+        Route::get('/{booking}', [BookingAdminController::class, 'show'])->name('show');
+
+        // Actions sur les réservations
+        Route::post('/{booking}/confirm', [BookingAdminController::class, 'confirm'])->name('confirm');
+        Route::post('/{booking}/reject', [BookingAdminController::class, 'reject'])->name('reject');
+
+        // Calendrier admin
+        Route::get('/calendar/view', [BookingAdminController::class, 'calendar'])->name('calendar');
+        Route::get('/calendar/events', [BookingAdminController::class, 'calendarEvents'])->name('calendar-events');
+
+        // Plages horaires
+        Route::get('/equipment/{equipment}/time-slots', [BookingAdminController::class, 'timeSlots'])->name('time-slots');
+        Route::post('/equipment/{equipment}/time-slots', [BookingAdminController::class, 'storeTimeSlot'])->name('time-slots.store');
+        Route::delete('/time-slots/{timeSlot}', [BookingAdminController::class, 'destroyTimeSlot'])->name('time-slots.destroy');
+
+
+    });
+
+});

@@ -65,11 +65,11 @@
                 <div class="border-t border-white/10 pt-4"></div>
                 @endif
 
-                <!-- Solde actuel -->
+              {{--   <!-- Solde actuel -->
                 <div class="flex items-center justify-between">
                     <span class="text-white/70">Votre solde actuel</span>
                     <span class="text-xl font-bold text-white">{{ number_format(auth()->user()->credits_balance) }} crédits</span>
-                </div>
+                </div> --}}
 
                 @if(isset($session) && isset($session->amount_total))
                 <div class="flex items-center justify-between">

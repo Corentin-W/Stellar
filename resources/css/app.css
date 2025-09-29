@@ -9,6 +9,8 @@
 /* Alpine: hide elements until hydrated */
 [x-cloak] { display: none !important; }
 
+
+
 /* Variables CSS - Astral Theme */
 :root {
     /* Layout */
@@ -364,4 +366,104 @@ body::before {
         /* Slight solid background so UI still readable without blur */
         background-color: rgba(255, 255, 255, 0.04);
     }
+}
+
+/* Styles personnalisés FullCalendar */
+.fc {
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.fc-toolbar-title {
+    color: white !important;
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+}
+
+.fc-button {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    transition: all 0.2s !important;
+    text-transform: capitalize !important;
+}
+
+.fc-button:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.fc-button-active {
+    background: linear-gradient(135deg, #8b5cf6, #db2777) !important;
+    border-color: rgba(139, 92, 246, 0.5) !important;
+}
+
+.fc-daygrid-day-number,
+.fc-col-header-cell-cushion {
+    color: white !important;
+}
+
+.fc-day-today {
+    background: rgba(139, 92, 246, 0.15) !important;
+}
+
+.fc-day-today .fc-daygrid-day-number {
+    background: linear-gradient(135deg, #8b5cf6, #db2777);
+    color: white !important;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.fc-event {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-size: 0.85rem;
+}
+
+.fc-event:hover {
+    transform: scale(1.02);
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.fc-timegrid-slot-label,
+.fc-timegrid-axis {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.fc-timegrid-slot {
+    height: 3em !important;
+}
+
+.fc-scrollgrid {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.fc-list {
+    background: transparent !important;
+}
+
+.fc-list-event:hover td {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.fc-list-day-cushion {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.fc-event-title {
+    font-weight: 500;
 }

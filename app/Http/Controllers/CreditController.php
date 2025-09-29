@@ -318,11 +318,11 @@ class CreditController extends Controller
         $oldBalance = $user->credits_balance;
         $newBalance = $oldBalance + $creditsToAdd;
 
-        Log::info('Traitement crédits', [
+        Log::info('DIAGNOSTIC SOLDE', [
             'user_id' => $user->id,
             'credits_to_add' => $creditsToAdd,
             'old_balance' => $oldBalance,
-            'new_balance' => $newBalance,
+            'calculated_new_balance' => $newBalance,
             'session_id' => $session->id
         ]);
 
@@ -335,8 +335,31 @@ class CreditController extends Controller
                 throw new \Exception('Transaction déjà créée dans la transaction DB');
             }
 
-            // Mettre à jour le solde utilisateur
-            $user->lockForUpdate()->increment('credits_balance', $creditsToAdd);
+            // DIAGNOSTIC AVANT UPDATE
+            $balanceBeforeUpdate = $user->lockForUpdate()->value('credits_balance');
+            Log::info('AVANT UPDATE', [
+                'balance_before_update' => $balanceBeforeUpdate,
+                'credits_to_add' => $creditsToAdd
+            ]);
+
+            // Mettre à jour le solde utilisateur - version alternative
+            $currentBalance = DB::table('users')->where('id', $user->id)->lockForUpdate()->value('credits_balance');
+            $newCalculatedBalance = $currentBalance + $creditsToAdd;
+
+            Log::info('UPDATE ALTERNATIF', [
+                'current_balance_from_db' => $currentBalance,
+                'credits_to_add' => $creditsToAdd,
+                'new_calculated_balance' => $newCalculatedBalance
+            ]);
+
+            DB::table('users')->where('id', $user->id)->update(['credits_balance' => $newCalculatedBalance]);
+
+            // DIAGNOSTIC APRÈS UPDATE
+            $balanceAfterUpdate = $user->fresh()->credits_balance;
+            Log::info('APRÈS UPDATE', [
+                'balance_after_update' => $balanceAfterUpdate,
+                'expected_balance' => $balanceBeforeUpdate + $creditsToAdd
+            ]);
 
             // Créer la transaction
             return CreditTransaction::create([
