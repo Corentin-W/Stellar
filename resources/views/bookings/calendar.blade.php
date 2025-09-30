@@ -2,6 +2,52 @@
 
 @section('title', 'Calendrier de Réservation')
 
+@push('styles')
+<!-- FullCalendar CSS -->
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+<style>
+    /* Personnalisation du calendrier */
+    .fc {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 20px;
+    }
+    .fc .fc-toolbar-title {
+        color: white !important;
+        font-size: 1.5rem;
+    }
+    .fc .fc-button {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: white !important;
+    }
+    .fc .fc-button:hover {
+        background: rgba(255, 255, 255, 0.2) !important;
+    }
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+        background: rgba(139, 92, 246, 0.5) !important;
+    }
+    .fc-theme-standard td, .fc-theme-standard th {
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    .fc-theme-standard .fc-scrollgrid {
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    .fc .fc-col-header-cell {
+        background: rgba(255, 255, 255, 0.05) !important;
+    }
+    .fc .fc-col-header-cell-cushion {
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+    .fc .fc-daygrid-day-number, .fc .fc-timegrid-slot-label-cushion {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+    .fc .fc-timegrid-slot {
+        height: 3em !important;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="min-h-screen p-6">
     <div class="max-w-7xl mx-auto">
@@ -18,7 +64,9 @@
             <select id="equipment-select" class="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20">
                 <option value="">-- Sélectionnez un équipement --</option>
                 @foreach($equipments as $equipment)
-                    <option value="{{ $equipment->id }}" {{ $selectedEquipment && $selectedEquipment->id == $equipment->id ? 'selected' : '' }}>
+                    <option value="{{ $equipment->id }}"
+                            data-price="{{ $equipment->price_per_hour_credits }}"
+                            {{ $selectedEquipment && $selectedEquipment->id == $equipment->id ? 'selected' : '' }}>
                         {{ $equipment->name }} ({{ $equipment->price_per_hour_credits }} crédits/heure)
                     </option>
                 @endforeach
@@ -48,6 +96,14 @@
                 </div>
             </div>
         </div>
+
+        @if($activeTimeSlotCount === 0)
+        <div class="dashboard-card p-6 mb-6 bg-yellow-500/10 border border-yellow-500/30">
+            <p class="text-yellow-400 text-sm">
+                Aucune plage horaire active n'est définie pour cet équipement pour le moment. Contactez un administrateur pour connaître les disponibilités.
+            </p>
+        </div>
+        @endif
 
         <!-- Calendrier -->
         <div class="dashboard-card p-6">
@@ -137,9 +193,11 @@
 </div>
 @endsection
 
-
-
 @push('scripts')
+    <!-- FullCalendar JS -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/fr.global.min.js'></script>
+
     @vite('resources/js/calendar.js')
 
     <script>
@@ -148,37 +206,82 @@
     document.addEventListener('DOMContentLoaded', function() {
         const calendarEl = document.getElementById('calendar');
         const equipmentSelect = document.getElementById('equipment-select');
-        const equipmentId = equipmentSelect ? equipmentSelect.value : null;
 
-        if (!calendarEl || !equipmentId) {
-            console.log('Calendar or equipment not selected');
-            return;
+        // Fonction pour initialiser le calendrier
+        function initCalendar() {
+            const equipmentId = equipmentSelect ? equipmentSelect.value : null;
+
+            if (!calendarEl) {
+                console.log('Calendar element not found');
+                return;
+            }
+
+            if (!equipmentId) {
+                console.log('No equipment selected');
+                return;
+            }
+
+            // Vérifier que FullCalendar est chargé
+            if (typeof FullCalendar === 'undefined') {
+                console.error('FullCalendar library not loaded');
+                return;
+            }
+
+            // Vérifier que la fonction est disponible
+            if (typeof window.initBookingCalendar !== 'function') {
+                console.error('initBookingCalendar function not found');
+                return;
+            }
+
+            // Détruire l'ancien calendrier s'il existe
+            if (calendar) {
+                calendar.destroy();
+            }
+
+            // Initialiser le calendrier
+            calendar = window.initBookingCalendar(calendarEl, equipmentId);
+
+            console.log('✅ Booking calendar initialized for equipment:', equipmentId);
         }
 
-        // Initialiser le calendrier
-        calendar = window.initBookingCalendar(calendarEl, equipmentId);
+        // Initialiser le calendrier si un équipement est déjà sélectionné
+        @if($selectedEquipment)
+            initCalendar();
+        @endif
 
         // Rechargement lors du changement d'équipement
         if (equipmentSelect) {
             equipmentSelect.addEventListener('change', function() {
                 if (this.value) {
                     window.location.href = '{{ route("bookings.calendar") }}?equipment_id=' + this.value;
+                } else {
+                    // Détruire le calendrier si aucun équipement sélectionné
+                    if (calendar) {
+                        calendar.destroy();
+                        calendar = null;
+                    }
                 }
             });
         }
-
-        console.log('✅ Booking calendar initialized');
     });
 
     // Fonction pour ouvrir le modal de réservation
     window.openBookingModal = function(start, end) {
-        const equipment = @json($selectedEquipment ?? null);
-        if (!equipment) return;
+        const equipmentSelect = document.getElementById('equipment-select');
+        const selectedOption = equipmentSelect.options[equipmentSelect.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            alert('Veuillez sélectionner un équipement');
+            return;
+        }
+
+        const equipmentId = selectedOption.value;
+        const pricePerHour = parseInt(selectedOption.dataset.price);
 
         const hoursDiff = (end - start) / (1000 * 60 * 60);
-        const cost = Math.round(hoursDiff * equipment.price_per_hour_credits);
+        const cost = Math.round(hoursDiff * pricePerHour);
 
-        document.getElementById('modal-equipment-id').value = equipment.id;
+        document.getElementById('modal-equipment-id').value = equipmentId;
         document.getElementById('modal-start').value = start.toISOString();
         document.getElementById('modal-end').value = end.toISOString();
 

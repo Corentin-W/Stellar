@@ -23,11 +23,16 @@ class BookingController extends Controller
                               ->get();
 
         $selectedEquipment = null;
-        if ($request->has('equipment_id')) {
-            $selectedEquipment = Equipment::findOrFail($request->equipment_id);
+        $activeTimeSlotCount = 0;
+
+        if ($request->filled('equipment_id')) {
+            $selectedEquipment = Equipment::findOrFail($request->integer('equipment_id'));
+            $activeTimeSlotCount = EquipmentTimeSlot::where('equipment_id', $selectedEquipment->id)
+                ->where('is_active', true)
+                ->count();
         }
 
-        return view('bookings.calendar', compact('equipments', 'selectedEquipment'));
+        return view('bookings.calendar', compact('equipments', 'selectedEquipment', 'activeTimeSlotCount'));
     }
 
     /**
@@ -94,6 +99,26 @@ class BookingController extends Controller
         }
 
         return response()->json($events);
+    }
+
+    /**
+     * API: Récupérer les plages horaires actives
+     */
+    public function timeSlots(Request $request)
+    {
+        $equipmentId = $request->integer('equipment_id');
+
+        if (!$equipmentId) {
+            return response()->json([]);
+        }
+
+        $timeSlots = EquipmentTimeSlot::where('equipment_id', $equipmentId)
+            ->where('is_active', true)
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get(['id', 'day_of_week', 'start_time', 'end_time', 'max_concurrent_bookings']);
+
+        return response()->json($timeSlots);
     }
 
     /**
@@ -232,8 +257,36 @@ class BookingController extends Controller
     // Méthodes privées
     private function checkAvailability($equipmentId, $start, $end)
     {
-        // Vérifier les réservations existantes
-        $hasConflict = EquipmentBooking::where('equipment_id', $equipmentId)
+        $timeSlots = EquipmentTimeSlot::where('equipment_id', $equipmentId)
+            ->where('is_active', true)
+            ->get();
+
+        $matchingSlot = null;
+
+        if ($timeSlots->isNotEmpty()) {
+            $dayOfWeek = $start->dayOfWeek;
+            $daySlots = $timeSlots->where('day_of_week', $dayOfWeek);
+
+            foreach ($daySlots as $slot) {
+                $slotStart = $start->copy()->setTimeFromTimeString($slot->start_time);
+                $slotEnd = $start->copy()->setTimeFromTimeString($slot->end_time);
+
+                if ($slotEnd->lessThanOrEqualTo($slotStart)) {
+                    $slotEnd->addDay();
+                }
+
+                if ($start->greaterThanOrEqualTo($slotStart) && $end->lessThanOrEqualTo($slotEnd)) {
+                    $matchingSlot = $slot;
+                    break;
+                }
+            }
+
+            if (!$matchingSlot) {
+                return false;
+            }
+        }
+
+        $overlappingBookingsQuery = EquipmentBooking::where('equipment_id', $equipmentId)
             ->whereIn('status', ['pending', 'confirmed'])
             ->where(function($query) use ($start, $end) {
                 $query->whereBetween('start_datetime', [$start, $end])
@@ -242,14 +295,20 @@ class BookingController extends Controller
                           $q->where('start_datetime', '<=', $start)
                             ->where('end_datetime', '>=', $end);
                       });
-            })
-            ->exists();
+            });
 
-        if ($hasConflict) {
-            return false;
+        if ($matchingSlot) {
+            $maxBookings = max(1, $matchingSlot->max_concurrent_bookings ?? 1);
+
+            if ($overlappingBookingsQuery->count() >= $maxBookings) {
+                return false;
+            }
+        } else {
+            if ($overlappingBookingsQuery->exists()) {
+                return false;
+            }
         }
 
-        // Vérifier les blocages
         $hasBlackout = EquipmentBlackout::forEquipment($equipmentId)
             ->where(function($query) use ($start, $end) {
                 $query->whereBetween('start_datetime', [$start, $end])

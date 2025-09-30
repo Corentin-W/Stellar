@@ -435,6 +435,7 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
         Route::prefix('bookings')->name('bookings.')->group(function () {
             Route::get('/calendar', [BookingController::class, 'calendar'])->name('calendar');
             Route::get('/events', [BookingController::class, 'events'])->name('events');
+            Route::get('/time-slots', [BookingController::class, 'timeSlots'])->name('time-slots');
             Route::get('/create', [BookingController::class, 'create'])->name('create');
             Route::post('/', [BookingController::class, 'store'])->name('store');
             Route::get('/my-bookings', [BookingController::class, 'myBookings'])->name('my-bookings');

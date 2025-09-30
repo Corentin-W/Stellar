@@ -2,6 +2,58 @@
 
 @section('title', 'Calendrier Admin - Réservations')
 
+@push('styles')
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+    <style>
+        .fc {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .fc .fc-toolbar-title {
+            color: white !important;
+            font-size: 1.5rem;
+        }
+        .fc .fc-button {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            color: white !important;
+        }
+        .fc .fc-button:hover {
+            background: rgba(255, 255, 255, 0.2) !important;
+        }
+        .fc .fc-button-primary:not(:disabled).fc-button-active {
+            background: rgba(139, 92, 246, 0.5) !important;
+        }
+        .fc-theme-standard td,
+        .fc-theme-standard th {
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        .fc-theme-standard .fc-scrollgrid {
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        .fc .fc-col-header-cell {
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+        .fc .fc-col-header-cell-cushion {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+        .fc .fc-daygrid-day-number,
+        .fc .fc-timegrid-slot-label-cushion {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+        .fc .fc-timegrid-slot {
+            height: 3em !important;
+        }
+        #admin-calendar {
+            min-height: 600px;
+        }
+        #admin-calendar .fc-view {
+            min-height: 560px;
+        }
+    </style>
+@endpush
+
 @section('content')
 <div class="min-h-screen p-6">
     <div class="max-w-7xl mx-auto">
