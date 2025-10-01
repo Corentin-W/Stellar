@@ -247,29 +247,67 @@
     @vite('resources/js/calendar.js')
 
     <script>
-    let calendar;
-
-    document.addEventListener('DOMContentLoaded', function() {
+    (function() {
         const calendarEl = document.getElementById('admin-calendar');
         const equipmentFilter = document.getElementById('equipment-filter');
+        let adminCalendar = null;
 
-        if (!calendarEl) {
-            console.error('Calendar element not found');
-            return;
+        function canInitAdminCalendar() {
+            return Boolean(
+                calendarEl &&
+                window.bookingCalendarReady &&
+                typeof window.initAdminCalendar === 'function' &&
+                typeof window.FullCalendar !== 'undefined'
+            );
         }
 
-        // Initialiser le calendrier admin
-        calendar = window.initAdminCalendar(calendarEl);
+        function initAdminCalendar() {
+            if (!canInitAdminCalendar()) {
+                return false;
+            }
 
-        // Rechargement lors du changement de filtre
+            if (adminCalendar) {
+                adminCalendar.destroy();
+            }
+
+            adminCalendar = window.initAdminCalendar(calendarEl);
+            return true;
+        }
+
+        function waitForAdminCalendar() {
+            let attempts = 0;
+            const maxAttempts = 20;
+
+            const attempt = () => {
+                if (initAdminCalendar()) {
+                    return;
+                }
+
+                attempts += 1;
+                if (attempts >= maxAttempts) {
+                    console.error('Impossible d\'initialiser le calendrier administrateur (scripts indisponibles).');
+                    return;
+                }
+
+                setTimeout(attempt, 100);
+            };
+
+            attempt();
+        }
+
+        if (calendarEl) {
+            if (!initAdminCalendar()) {
+                waitForAdminCalendar();
+            }
+        }
+
         if (equipmentFilter) {
             equipmentFilter.addEventListener('change', function() {
-                console.log('Filter changed to:', this.value || 'All');
-                calendar.refetchEvents();
+                if (adminCalendar) {
+                    adminCalendar.refetchEvents();
+                }
             });
         }
-
-        console.log('✅ Admin calendar initialized');
-    });
+    })();
     </script>
 @endpush

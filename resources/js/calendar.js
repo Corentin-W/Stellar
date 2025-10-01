@@ -411,3 +411,8 @@ window.initAdminCalendar = function(calendarEl) {
 
 // Les fonctions sont déjà disponibles globalement via window.initBookingCalendar et window.initAdminCalendar
 console.log('📅 Calendar module loaded successfully');
+
+// Inform the UI when the calendar helpers are ready so views can safely initialize them
+if (typeof window !== 'undefined') {
+    window.bookingCalendarReady = true;
+}
