@@ -101,4 +101,65 @@ class EquipmentBooking extends Model
         return in_array($this->status, ['pending', 'confirmed'])
                && $this->start_datetime->isFuture();
     }
+
+    /**
+     * État d'accès côté utilisateur en fonction du statut et de l'heure courante.
+     */
+    public function getAccessState(Carbon $reference = null): string
+    {
+        $reference ??= now($this->start_datetime->getTimezone());
+        $reference = $reference->copy()->setTimezone($this->start_datetime->getTimezone());
+
+        return match ($this->status) {
+            'pending' => 'pending',
+            'rejected' => 'blocked',
+            'cancelled' => 'cancelled',
+            'completed' => 'finished',
+            'confirmed' => $this->resolveTimeBasedAccessState($reference),
+            default => 'blocked',
+        };
+    }
+
+    /**
+     * Nombre de secondes avant le début de la session (0 si déjà démarrée ou terminée).
+     */
+    public function secondsUntilStart(Carbon $reference = null): int
+    {
+        $reference ??= now($this->start_datetime->getTimezone());
+        $reference = $reference->copy()->setTimezone($this->start_datetime->getTimezone());
+
+        return max(0, $reference->diffInSeconds($this->start_datetime, false));
+    }
+
+    /**
+     * Nombre de secondes avant la fin de la session (0 si déjà terminée).
+     */
+    public function secondsUntilEnd(Carbon $reference = null): int
+    {
+        $reference ??= now($this->end_datetime->getTimezone());
+        $reference = $reference->copy()->setTimezone($this->end_datetime->getTimezone());
+
+        return max(0, $reference->diffInSeconds($this->end_datetime, false));
+    }
+
+    /**
+     * Vrai lorsque la fenêtre d'accès est active.
+     */
+    public function isAccessWindowOpen(Carbon $reference = null): bool
+    {
+        return $this->getAccessState($reference) === 'active';
+    }
+
+    private function resolveTimeBasedAccessState(Carbon $reference): string
+    {
+        if ($reference->lt($this->start_datetime)) {
+            return 'upcoming';
+        }
+
+        if ($reference->lessThanOrEqualTo($this->end_datetime)) {
+            return 'active';
+        }
+
+        return 'finished';
+    }
 }

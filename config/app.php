@@ -69,6 +69,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Timezone for Booking Logic
+    |--------------------------------------------------------------------------
+    |
+    | Les réservations utilisateurs sont saisies depuis le navigateur avec
+    | l'heure locale. Ce paramètre permet d'indiquer la référence utilisée pour
+    | comparer ces créneaux avec les plages horaires configurées dans l'admin.
+    | Les dates seront stockées en UTC, mais les vérifications côté serveur
+    | utiliseront cette zone pour effectuer les comparaisons horaires.
+    |
+    */
+
+    'booking_timezone' => env('BOOKING_TIMEZONE', 'Europe/Paris'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

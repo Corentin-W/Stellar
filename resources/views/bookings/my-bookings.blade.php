@@ -129,15 +129,55 @@
 
                     <!-- Actions -->
                     <div class="flex flex-col gap-2">
+                        @php
+                            $accessState = $booking->getAccessState();
+                            $startLabel = $booking->start_datetime->copy()->locale(app()->getLocale())->isoFormat('ddd D MMM HH:mm');
+                            $endLabel = $booking->end_datetime->copy()->locale(app()->getLocale())->isoFormat('ddd D MMM HH:mm');
+                        @endphp
+
                         @if($booking->canBeCancelled())
-                        <button onclick="openCancelModal({{ $booking->id }})" class="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors text-sm font-medium">
+                        <button onclick="openCancelModal(this)"
+                                data-cancel-action="{{ route('bookings.cancel', ['locale' => app()->getLocale(), 'booking' => $booking]) }}"
+                                class="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors text-sm font-medium">
                             Annuler
                         </button>
                         @endif
 
-                        @if($booking->status === 'confirmed' && $booking->start_datetime->isFuture())
-                        <div class="px-4 py-2 rounded-lg bg-green-500/20 text-green-400 text-sm text-center">
-                            ✅ Confirmée
+                        @if($accessState === 'active')
+                        <a href="{{ route('bookings.access', ['locale' => app()->getLocale(), 'booking' => $booking]) }}"
+                           class="px-4 py-2 rounded-lg bg-green-500/20 text-green-200 hover:bg-green-500/30 transition-colors text-sm font-medium text-center">
+                            Accéder au matériel
+                        </a>
+                        <div class="px-4 py-2 rounded-lg bg-white/5 text-white/70 text-xs text-center">
+                            Session en cours jusqu'au {{ $endLabel }}
+                        </div>
+                        @elseif($accessState === 'upcoming')
+                        <a href="{{ route('bookings.access', ['locale' => app()->getLocale(), 'booking' => $booking]) }}"
+                           class="px-4 py-2 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 transition-colors text-sm font-medium text-center">
+                            Page d'accès
+                        </a>
+                        <div class="px-4 py-2 rounded-lg bg-white/5 text-white/70 text-xs text-center">
+                            Débute le {{ $startLabel }}
+                        </div>
+                        @elseif($accessState === 'pending')
+                        <div class="px-4 py-2 rounded-lg bg-yellow-500/20 text-yellow-200 text-sm text-center">
+                            ⏳ En attente de validation
+                        </div>
+                        @elseif($accessState === 'finished')
+                        <div class="px-4 py-2 rounded-lg bg-blue-500/20 text-blue-200 text-sm text-center">
+                            ✅ Session terminée
+                        </div>
+                        <a href="{{ route('bookings.access', ['locale' => app()->getLocale(), 'booking' => $booking]) }}"
+                           class="px-4 py-2 rounded-lg bg-white/5 text-white/60 hover:text-white/80 transition-colors text-xs text-center">
+                            Revoir la page d'accès
+                        </a>
+                        @elseif($accessState === 'cancelled')
+                        <div class="px-4 py-2 rounded-lg bg-gray-500/20 text-gray-300 text-sm text-center">
+                            Réservation annulée
+                        </div>
+                        @elseif($accessState === 'blocked')
+                        <div class="px-4 py-2 rounded-lg bg-gray-500/20 text-gray-300 text-sm text-center">
+                            Accès indisponible
                         </div>
                         @endif
                     </div>
@@ -170,7 +210,15 @@
 </div>
 
 <!-- Modal d'annulation -->
-<div id="cancel-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" x-data="{ show: false }" x-show="show" x-cloak>
+<div id="cancel-modal"
+     class="hidden fixed inset-0 z-50 overflow-y-auto"
+     x-data="{ show: false }"
+     x-show="show"
+     x-cloak
+     x-effect="show ? $el.classList.remove('hidden') : $el.classList.add('hidden')"
+     x-on:cancel-modal-open.window="show = true"
+     x-on:cancel-modal-close.window="show = false"
+>
     <div class="flex items-center justify-center min-h-screen px-4">
         <div class="fixed inset-0 bg-black/70 backdrop-blur-sm" @click="show = false"></div>
 
@@ -180,6 +228,7 @@
             <form id="cancel-form" method="POST">
                 @csrf
                 @method('POST')
+                <input type="hidden" name="expects_json" value="1">
 
                 <div class="mb-6">
                     <label class="block text-white font-medium mb-2">Raison de l'annulation *</label>
@@ -196,7 +245,8 @@
                     <button type="button" @click="show = false" class="flex-1 px-6 py-3 rounded-lg bg-white/5 text-white hover:bg-white/10 transition-colors">
                         Retour
                     </button>
-                    <button type="submit" class="flex-1 px-6 py-3 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-all">
+                    <button type="submit" id="cancel-submit"
+                            class="flex-1 px-6 py-3 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-all">
                         Confirmer l'annulation
                     </button>
                 </div>
@@ -208,15 +258,100 @@
 
 @push('scripts')
 <script>
-function openCancelModal(bookingId) {
+function openCancelModal(trigger) {
     const modal = document.getElementById('cancel-modal');
     const form = document.getElementById('cancel-form');
-    form.action = `/bookings/${bookingId}/cancel`;
+    const submitBtn = document.getElementById('cancel-submit');
+
+    if (!modal || !form || !submitBtn) {
+        console.warn('[Bookings] Impossible d\'ouvrir le modal d\'annulation (éléments manquants).');
+        return;
+    }
+
+    const actionUrl = typeof trigger === 'string'
+        ? trigger
+        : trigger?.dataset?.cancelAction;
+
+    if (!actionUrl) {
+        console.warn('[Bookings] URL d\'annulation indisponible.');
+        return;
+    }
+
+    form.action = actionUrl;
+    submitBtn.disabled = false;
+    submitBtn.dataset.originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Confirmer l\'annulation';
+    form.dataset.redirectRefresh = window.location.href;
 
     modal.classList.remove('hidden');
-    setTimeout(() => {
-        modal.querySelector('[x-data]').__x.$data.show = true;
-    }, 10);
+    window.dispatchEvent(new CustomEvent('cancel-modal-open'));
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('cancel-form');
+    const submitBtn = document.getElementById('cancel-submit');
+
+    if (!form || !submitBtn) {
+        return;
+    }
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Annulation en cours...';
+
+        try {
+            const formData = new FormData(form);
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                },
+                credentials: 'same-origin',
+                body: formData
+            });
+
+            let payload = {};
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                payload = await response.json();
+            }
+
+            if (!response.ok) {
+                throw new Error(payload.message || 'Réponse inattendue du serveur');
+            }
+
+            window.dispatchEvent(new CustomEvent('cancel-modal-close'));
+            form.reset();
+
+            if (typeof window.showNotification === 'function') {
+                window.showNotification('Réservation annulée', payload.message || 'Crédits remboursés.', 'success', 4000);
+            }
+
+            const redirectUrl = payload.redirect
+                || form.dataset.redirectRefresh
+                || formData.get('redirect_url');
+
+            const targetUrl = redirectUrl || `${window.location.pathname}?refresh=${Date.now()}`;
+
+            setTimeout(() => {
+                window.location.href = targetUrl;
+            }, 800);
+
+        } catch (error) {
+            console.error('[Bookings] Erreur lors de l\'annulation', error);
+
+            submitBtn.disabled = false;
+            submitBtn.textContent = submitBtn.dataset.originalText || 'Confirmer l\'annulation';
+
+            if (typeof window.showNotification === 'function') {
+                window.showNotification('Erreur', 'Impossible d\'annuler la réservation.', 'error', 4500);
+            }
+        }
+    });
+});
 </script>
 @endpush

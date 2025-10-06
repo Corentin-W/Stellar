@@ -410,6 +410,11 @@ Route::get('/lang/{locale}', [LanguageController::class, 'switchLang'])
 Route::fallback(function () {
     $path = request()->path();
 
+    if (preg_match('/^(fr|en)\/bookings\/[^\/]+\/cancel$/', $path, $matches)) {
+        $locale = $matches[1] ?? config('app.locale', 'fr');
+        return redirect('/' . $locale . '/bookings/my-bookings');
+    }
+
     // Si l'URL ne commence pas par une locale, rediriger avec la locale par défaut
     if (!preg_match('/^(fr|en)\//', $path)) {
         return redirect('/' . config('app.locale', 'fr') . '/' . $path);
@@ -439,7 +444,13 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
             Route::get('/create', [BookingController::class, 'create'])->name('create');
             Route::post('/', [BookingController::class, 'store'])->name('store');
             Route::get('/my-bookings', [BookingController::class, 'myBookings'])->name('my-bookings');
+            Route::get('/{booking}/access', [BookingController::class, 'access'])->name('access');
             Route::post('/{booking}/cancel', [BookingController::class, 'cancel'])->name('cancel');
+            Route::get('/{booking}/cancel', function ($locale = null, $booking = null) {
+                $targetLocale = $locale ?? app()->getLocale();
+
+                return redirect()->route('bookings.my-bookings', ['locale' => $targetLocale]);
+            })->name('cancel.redirect');
         });
 
     });

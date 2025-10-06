@@ -49,6 +49,7 @@ class BookingController extends Controller
         if ($equipmentId) {
             // Réservations existantes
             $bookings = EquipmentBooking::where('equipment_id', $equipmentId)
+                ->whereIn('status', ['pending', 'confirmed'])
                 ->whereBetween('start_datetime', [$start, $end])
                 ->with('user')
                 ->get();
@@ -127,18 +128,21 @@ class BookingController extends Controller
     public function create(Request $request)
     {
         $equipment = Equipment::findOrFail($request->equipment_id);
-        $start = Carbon::parse($request->start);
-        $end = Carbon::parse($request->end);
+        $startUtc = Carbon::parse($request->start)->utc();
+        $endUtc = Carbon::parse($request->end)->utc();
+
+        $start = $startUtc->copy()->setTimezone($this->bookingTimezone());
+        $end = $endUtc->copy()->setTimezone($this->bookingTimezone());
 
         // Vérifier disponibilité
-        $isAvailable = $this->checkAvailability($equipment->id, $start, $end);
+        $isAvailable = $this->checkAvailability($equipment->id, $startUtc, $endUtc);
 
         if (!$isAvailable) {
             return back()->with('error', 'Ce créneau n\'est pas disponible.');
         }
 
         // Calculer le coût
-        $hours = $start->diffInHours($end);
+        $hours = $startUtc->diffInHours($endUtc);
         $cost = $equipment->price_per_hour_credits * $hours;
 
         return view('bookings.create', compact('equipment', 'start', 'end', 'cost'));
@@ -157,16 +161,16 @@ class BookingController extends Controller
         ]);
 
         $equipment = Equipment::findOrFail($validated['equipment_id']);
-        $start = Carbon::parse($validated['start_datetime']);
-        $end = Carbon::parse($validated['end_datetime']);
+        $startUtc = Carbon::parse($validated['start_datetime'])->utc();
+        $endUtc = Carbon::parse($validated['end_datetime'])->utc();
 
         // Vérifier disponibilité
-        if (!$this->checkAvailability($equipment->id, $start, $end)) {
+        if (!$this->checkAvailability($equipment->id, $startUtc, $endUtc)) {
             return back()->with('error', 'Ce créneau n\'est plus disponible.');
         }
 
         // Calculer coût
-        $hours = $start->diffInHours($end);
+        $hours = $startUtc->diffInHours($endUtc);
         $cost = $equipment->price_per_hour_credits * $hours;
 
         // Vérifier crédits
@@ -180,11 +184,11 @@ class BookingController extends Controller
             $booking = EquipmentBooking::create([
                 'equipment_id' => $equipment->id,
                 'user_id' => auth()->id(),
-                'start_datetime' => $start,
-                'end_datetime' => $end,
+                'start_datetime' => $startUtc,
+                'end_datetime' => $endUtc,
                 'credits_cost' => $cost,
                 'status' => 'pending',
-                'user_notes' => $validated['user_notes']
+                'user_notes' => $validated['user_notes'] ?? null
             ]);
 
             // Débiter temporairement les crédits (en attente de validation)
@@ -215,16 +219,56 @@ class BookingController extends Controller
     }
 
     /**
+     * Afficher/contrôler l'accès à l'équipement pour une réservation donnée.
+     */
+    public function access(Request $request, $locale = null, $booking = null)
+    {
+        $booking = $this->resolveBooking($booking);
+
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $timezone = $this->bookingTimezone();
+        $reference = now($timezone);
+
+        $state = $booking->getAccessState($reference);
+
+        if ($state === 'blocked') {
+            abort(403, "Accès non autorisé pour cette réservation.");
+        }
+
+        $booking->loadMissing('equipment');
+
+        return view('bookings.access', [
+            'booking' => $booking,
+            'equipment' => $booking->equipment,
+            'state' => $state,
+            'start' => $booking->start_datetime->copy()->setTimezone($timezone),
+            'end' => $booking->end_datetime->copy()->setTimezone($timezone),
+            'current' => $reference,
+            'secondsToStart' => $booking->secondsUntilStart($reference),
+            'secondsToEnd' => $booking->secondsUntilEnd($reference),
+            'timezoneLabel' => $timezone,
+        ]);
+    }
+
+    /**
      * Annuler une réservation
      */
-    public function cancel(Request $request, EquipmentBooking $booking)
+    public function cancel(Request $request, $locale = null, $booking = null)
     {
+        $booking = $this->resolveBooking($booking);
+
         if ($booking->user_id !== auth()->id()) {
             abort(403);
         }
 
         if (!$booking->canBeCancelled()) {
-            return back()->with('error', 'Cette réservation ne peut plus être annulée.');
+            return $this->respond($request, [
+                'status' => 'error',
+                'message' => 'Cette réservation ne peut plus être annulée.',
+            ], 422);
         }
 
         $validated = $request->validate([
@@ -239,24 +283,36 @@ class BookingController extends Controller
                 'cancellation_reason' => $validated['cancellation_reason']
             ]);
 
-            // Rembourser les crédits
             $refundAmount = $booking->credits_cost - $booking->credits_refunded;
             auth()->user()->increment('credits_balance', $refundAmount);
             $booking->update(['credits_refunded' => $refundAmount]);
 
             DB::commit();
 
-            return back()->with('success', 'Réservation annulée et crédits remboursés.');
+            return $this->respond($request, [
+                'status' => 'success',
+                'message' => 'Réservation annulée et crédits remboursés.',
+                'bookingId' => $booking->id,
+                'redirect' => $this->redirectToMyBookingsUrl($request),
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Erreur lors de l\'annulation.');
+
+            return $this->respond($request, [
+                'status' => 'error',
+                'message' => "Erreur lors de l'annulation.",
+            ], 500);
         }
     }
 
     // Méthodes privées
-    private function checkAvailability($equipmentId, $start, $end)
+    private function checkAvailability(int $equipmentId, Carbon $startUtc, Carbon $endUtc): bool
     {
+        $bookingTimezone = $this->bookingTimezone();
+        $startLocal = $startUtc->copy()->setTimezone($bookingTimezone);
+        $endLocal = $endUtc->copy()->setTimezone($bookingTimezone);
+
         $timeSlots = EquipmentTimeSlot::where('equipment_id', $equipmentId)
             ->where('is_active', true)
             ->get();
@@ -264,18 +320,18 @@ class BookingController extends Controller
         $matchingSlot = null;
 
         if ($timeSlots->isNotEmpty()) {
-            $dayOfWeek = $start->dayOfWeek;
+            $dayOfWeek = $startLocal->dayOfWeek;
             $daySlots = $timeSlots->where('day_of_week', $dayOfWeek);
 
             foreach ($daySlots as $slot) {
-                $slotStart = $start->copy()->setTimeFromTimeString($slot->start_time);
-                $slotEnd = $start->copy()->setTimeFromTimeString($slot->end_time);
+                $slotStart = $startLocal->copy()->setTimeFromTimeString($slot->start_time);
+                $slotEnd = $startLocal->copy()->setTimeFromTimeString($slot->end_time);
 
                 if ($slotEnd->lessThanOrEqualTo($slotStart)) {
                     $slotEnd->addDay();
                 }
 
-                if ($start->greaterThanOrEqualTo($slotStart) && $end->lessThanOrEqualTo($slotEnd)) {
+                if ($startLocal->greaterThanOrEqualTo($slotStart) && $endLocal->lessThanOrEqualTo($slotEnd)) {
                     $matchingSlot = $slot;
                     break;
                 }
@@ -288,12 +344,12 @@ class BookingController extends Controller
 
         $overlappingBookingsQuery = EquipmentBooking::where('equipment_id', $equipmentId)
             ->whereIn('status', ['pending', 'confirmed'])
-            ->where(function($query) use ($start, $end) {
-                $query->whereBetween('start_datetime', [$start, $end])
-                      ->orWhereBetween('end_datetime', [$start, $end])
-                      ->orWhere(function($q) use ($start, $end) {
-                          $q->where('start_datetime', '<=', $start)
-                            ->where('end_datetime', '>=', $end);
+            ->where(function($query) use ($startUtc, $endUtc) {
+                $query->whereBetween('start_datetime', [$startUtc->copy(), $endUtc->copy()])
+                      ->orWhereBetween('end_datetime', [$startUtc->copy(), $endUtc->copy()])
+                      ->orWhere(function($q) use ($startUtc, $endUtc) {
+                          $q->where('start_datetime', '<=', $startUtc->copy())
+                            ->where('end_datetime', '>=', $endUtc->copy());
                       });
             });
 
@@ -310,17 +366,22 @@ class BookingController extends Controller
         }
 
         $hasBlackout = EquipmentBlackout::forEquipment($equipmentId)
-            ->where(function($query) use ($start, $end) {
-                $query->whereBetween('start_datetime', [$start, $end])
-                      ->orWhereBetween('end_datetime', [$start, $end])
-                      ->orWhere(function($q) use ($start, $end) {
-                          $q->where('start_datetime', '<=', $start)
-                            ->where('end_datetime', '>=', $end);
+            ->where(function($query) use ($startUtc, $endUtc) {
+                $query->whereBetween('start_datetime', [$startUtc->copy(), $endUtc->copy()])
+                      ->orWhereBetween('end_datetime', [$startUtc->copy(), $endUtc->copy()])
+                      ->orWhere(function($q) use ($startUtc, $endUtc) {
+                          $q->where('start_datetime', '<=', $startUtc->copy())
+                            ->where('end_datetime', '>=', $endUtc->copy());
                       });
             })
             ->exists();
 
         return !$hasBlackout;
+    }
+
+    private function bookingTimezone(): string
+    {
+        return config('app.booking_timezone', config('app.timezone', 'UTC'));
     }
 
     private function getStatusColor($status)
@@ -333,5 +394,43 @@ class BookingController extends Controller
             'completed' => '#3b82f6',
             default => '#9ca3af'
         };
+    }
+
+    private function redirectToMyBookings(Request $request)
+    {
+        return redirect()->to($this->redirectToMyBookingsUrl($request));
+    }
+
+    private function redirectToMyBookingsUrl(Request $request): string
+    {
+        $locale = $request->route('locale') ?? app()->getLocale();
+
+        return route('bookings.my-bookings', ['locale' => $locale]);
+    }
+
+    private function resolveBooking($booking): EquipmentBooking
+    {
+        if ($booking instanceof EquipmentBooking) {
+            return $booking;
+        }
+
+        if (empty($booking)) {
+            abort(404);
+        }
+
+        return EquipmentBooking::findOrFail($booking);
+    }
+
+    private function respond(Request $request, array $payload, int $status = 200)
+    {
+        if ($request->wantsJson() || $request->expectsJson() || $request->isXmlHttpRequest()) {
+            return response()->json($payload, $status);
+        }
+
+        if ($payload['status'] === 'success') {
+            return $this->redirectToMyBookings($request)->with('success', $payload['message']);
+        }
+
+        return $this->redirectToMyBookings($request)->with('error', $payload['message']);
     }
 }

@@ -64,6 +64,10 @@
         from { opacity: 0; }
         to { opacity: 1; }
     }
+    .fc .pending-selection-highlight {
+        background: rgba(139, 92, 246, 0.25) !important;
+        border: 1px solid rgba(139, 92, 246, 0.45) !important;
+    }
 </style>
 @endpush
 
@@ -78,21 +82,30 @@
                 </p>
             </div>
             @auth
-                <div class="dashboard-card flex items-center gap-3 px-5 py-4">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20 text-purple-300">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2m9-4a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-xs uppercase tracking-wide text-white/50">Vos crédits</p>
-                        <div class="flex items-center gap-2">
-                            <span class="text-lg font-semibold text-white">{{ number_format(auth()->user()->credits_balance) }}</span>
-                            <span class="text-xs text-white/50">crédits</span>
+                <div class="flex flex-col gap-3 sm:items-end">
+                    <a
+                        href="{{ route('bookings.my-bookings', ['locale' => app()->getLocale()]) }}"
+                        class="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 text-sm font-semibold text-white transition-all hover:from-purple-700 hover:to-pink-700"
+                    >
+                        Voir mes réservations
+                    </a>
+
+                    <div class="dashboard-card flex items-center gap-3 px-5 py-4">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20 text-purple-300">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2m9-4a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                         </div>
-                        <a href="{{ route('credits.shop', ['locale' => app()->getLocale()]) }}" class="text-xs font-medium text-purple-300 hover:text-purple-200">
-                            Acheter des crédits
-                        </a>
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-white/50">Vos crédits</p>
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg font-semibold text-white">{{ number_format(auth()->user()->credits_balance) }}</span>
+                                <span class="text-xs text-white/50">crédits</span>
+                            </div>
+                            <a href="{{ route('credits.shop', ['locale' => app()->getLocale()]) }}" class="text-xs font-medium text-purple-300 hover:text-purple-200">
+                                Acheter des crédits
+                            </a>
+                        </div>
                     </div>
                 </div>
             @endauth
@@ -361,6 +374,7 @@
         let availableTimeSlots = [];
         let currentEquipmentId = equipmentSelect ? (equipmentSelect.value || '') : '';
         let pendingSelectionStart = null;
+        let pendingSelectionHighlight = null;
 
         updateUrl(currentEquipmentId);
         updateEquipmentPanel(getSelectedOption(), []);
@@ -414,6 +428,33 @@
 
         ensureFullCalendar(() => initOrRefreshCalendar(currentEquipmentId));
 
+        function showPendingSelectionHighlight(start, end = null) {
+            if (!calendarInstance || !start) {
+                return;
+            }
+
+            const highlightStart = new Date(start.getTime());
+            const highlightEnd = end ? new Date(end.getTime()) : new Date(highlightStart.getTime() + 60 * 60 * 1000);
+
+            removePendingSelectionHighlight();
+
+            pendingSelectionHighlight = calendarInstance.addEvent({
+                id: 'pending-selection-highlight',
+                start: highlightStart,
+                end: highlightEnd,
+                display: 'background',
+                overlap: false,
+                classNames: ['pending-selection-highlight']
+            });
+        }
+
+        function removePendingSelectionHighlight() {
+            if (pendingSelectionHighlight) {
+                pendingSelectionHighlight.remove();
+                pendingSelectionHighlight = null;
+            }
+        }
+
         function initOrRefreshCalendar(equipmentId) {
             if (!calendarEl) {
                 debugLog('Impossible d\'initialiser : élément calendrier introuvable');
@@ -433,6 +474,7 @@
         debugLog('Initialisation/rafraîchissement du calendrier', { currentEquipmentId });
 
             if (calendarInstance) {
+                removePendingSelectionHighlight();
                 calendarInstance.destroy();
                 debugLog('Ancienne instance détruite');
             }
@@ -530,6 +572,7 @@
                     if (typeof window.openBookingModal === 'function') {
                         debugLog('select -> ouverture du modal');
                         notify('Créneau sélectionné. Complétez le formulaire pour valider votre demande.', 'success');
+                        showPendingSelectionHighlight(info.start, info.end);
                         window.openBookingModal(info.start, info.end);
                     } else {
                         console.error(LOG_PREFIX, 'openBookingModal indisponible.');
@@ -537,7 +580,6 @@
                     }
 
                     calendarInstance.unselect();
-                    resetPendingSelection();
                 },
                 eventClick(info) {
                     const props = info.event.extendedProps || {};
@@ -852,6 +894,7 @@
 
             if (!pendingSelectionStart) {
                 pendingSelectionStart = normalizedDate;
+                showPendingSelectionHighlight(pendingSelectionStart);
                 notify('Heure de début enregistrée. Cliquez sur l\'heure de fin souhaitée.', 'info');
                 debugLog('Début de sélection défini', { start: pendingSelectionStart });
                 return;
@@ -865,6 +908,7 @@
                     resetPendingSelection();
                     return;
                 }
+                showPendingSelectionHighlight(pendingSelectionStart, defaultEnd);
                 notify('Créneau sélectionné. Complétez le formulaire pour valider votre demande.', 'success');
                 debugLog('Plage validée (1 heure) via double clic', { start: pendingSelectionStart, end: defaultEnd });
                 const start = pendingSelectionStart;
@@ -875,6 +919,7 @@
 
             if (normalizedDate.getDay() !== pendingSelectionStart.getDay()) {
                 pendingSelectionStart = normalizedDate;
+                showPendingSelectionHighlight(pendingSelectionStart);
                 notify('Nouvelle date sélectionnée. Choisissez l\'heure de fin sur cette journée.', 'info');
                 debugLog('Début de sélection repositionné sur un autre jour', { start: pendingSelectionStart });
                 return;
@@ -882,6 +927,7 @@
 
             if (normalizedDate <= pendingSelectionStart) {
                 pendingSelectionStart = normalizedDate;
+                showPendingSelectionHighlight(pendingSelectionStart);
                 notify('Heure de début mise à jour. Cliquez sur une heure plus tard pour définir la fin.', 'info');
                 debugLog('Début de sélection mis à jour (cliqué plus tôt)', { start: pendingSelectionStart });
                 return;
@@ -897,6 +943,7 @@
                 return;
             }
 
+            showPendingSelectionHighlight(selectionStart, selectionEnd);
             notify('Créneau sélectionné. Complétez le formulaire pour valider votre demande.', 'success');
             debugLog('Plage validée via clics successifs', { selectionStart, selectionEnd });
             pendingSelectionStart = null;
@@ -959,6 +1006,7 @@
                 debugLog('Réinitialisation de la sélection en cours');
             }
             pendingSelectionStart = null;
+            removePendingSelectionHighlight();
         }
     });
 
