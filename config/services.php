@@ -65,4 +65,11 @@ return [
         ],
     ],
 
+    'voyager' => [
+        'proxy_url' => env('VOYAGER_PROXY_URL', 'http://localhost:3000'),
+        'profile' => env('VOYAGER_PROFILE', 'Default.v2y'),
+        'default_sequence' => env('VOYAGER_DEFAULT_SEQUENCE_GUID'),
+        'webcam_url' => env('VOYAGER_WEBCAM_URL'),
+    ],
+
 ];

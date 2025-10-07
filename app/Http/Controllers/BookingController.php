@@ -240,6 +240,16 @@ class BookingController extends Controller
 
         $booking->loadMissing('equipment');
 
+        $currentLocale = $locale ?? app()->getLocale();
+
+        $controlRoutes = [
+            'status' => route('bookings.control.status', ['locale' => $currentLocale, 'booking' => $booking]),
+            'abort' => route('bookings.control.abort', ['locale' => $currentLocale, 'booking' => $booking]),
+            'toggle' => route('bookings.control.toggle', ['locale' => $currentLocale, 'booking' => $booking]),
+            'preview' => route('bookings.control.preview', ['locale' => $currentLocale, 'booking' => $booking]),
+            'webcam' => config('services.voyager.webcam_url'),
+        ];
+
         return view('bookings.access', [
             'booking' => $booking,
             'equipment' => $booking->equipment,
@@ -250,6 +260,7 @@ class BookingController extends Controller
             'secondsToStart' => $booking->secondsUntilStart($reference),
             'secondsToEnd' => $booking->secondsUntilEnd($reference),
             'timezoneLabel' => $timezone,
+            'controlRoutes' => $controlRoutes,
         ]);
     }
 
@@ -379,7 +390,7 @@ class BookingController extends Controller
         return !$hasBlackout;
     }
 
-    private function bookingTimezone(): string
+    protected function bookingTimezone(): string
     {
         return config('app.booking_timezone', config('app.timezone', 'UTC'));
     }
@@ -408,7 +419,7 @@ class BookingController extends Controller
         return route('bookings.my-bookings', ['locale' => $locale]);
     }
 
-    private function resolveBooking($booking): EquipmentBooking
+    protected function resolveBooking($booking): EquipmentBooking
     {
         if ($booking instanceof EquipmentBooking) {
             return $booking;

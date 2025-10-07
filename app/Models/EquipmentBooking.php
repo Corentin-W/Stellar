@@ -21,7 +21,9 @@ class EquipmentBooking extends Model
         'validated_at',
         'cancelled_at',
         'cancellation_reason',
-        'rejection_reason'
+        'rejection_reason',
+        'voyager_set_guid',
+        'voyager_target_guid',
     ];
 
     protected $casts = [
@@ -30,7 +32,9 @@ class EquipmentBooking extends Model
         'validated_at' => 'datetime',
         'cancelled_at' => 'datetime',
         'credits_cost' => 'integer',
-        'credits_refunded' => 'integer'
+        'credits_refunded' => 'integer',
+        'voyager_set_guid' => 'string',
+        'voyager_target_guid' => 'string',
     ];
 
     // Relations

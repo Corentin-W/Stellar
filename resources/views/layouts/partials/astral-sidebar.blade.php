@@ -18,6 +18,49 @@
 
     <!-- Credits Balance (if authenticated) -->
     @auth
+    @php
+        $controlBooking = null;
+        $controlState = null;
+        $controlStartsAt = null;
+        $controlEndsAt = null;
+        $controlCountdown = null;
+        $controlRemaining = null;
+
+        $bookingTimezone = config('app.booking_timezone', config('app.timezone', 'UTC'));
+        $nowInTimezone = now($bookingTimezone);
+        $nowUtc = $nowInTimezone->copy()->setTimezone('UTC');
+        $todayStartUtc = $nowInTimezone->copy()->startOfDay()->setTimezone('UTC');
+        $todayEndUtc = $nowInTimezone->copy()->endOfDay()->setTimezone('UTC');
+
+        $candidateBooking = \App\Models\EquipmentBooking::query()
+            ->where('user_id', auth()->id())
+            ->whereIn('status', ['confirmed'])
+            ->where('end_datetime', '>=', $nowUtc)
+            ->where(function ($query) use ($todayStartUtc, $todayEndUtc) {
+                $query->whereBetween('start_datetime', [$todayStartUtc, $todayEndUtc])
+                      ->orWhere(function ($overlap) use ($todayStartUtc) {
+                          $overlap->where('start_datetime', '<', $todayStartUtc)
+                                  ->where('end_datetime', '>', $todayStartUtc);
+                      });
+            })
+            ->with(['equipment:id,name'])
+            ->orderBy('start_datetime')
+            ->first();
+
+        if ($candidateBooking) {
+            $reference = $nowInTimezone->copy();
+            $state = $candidateBooking->getAccessState($reference);
+
+            if (in_array($state, ['active', 'upcoming'], true)) {
+                $controlBooking = $candidateBooking;
+                $controlState = $state;
+                $controlStartsAt = $controlBooking->start_datetime->copy()->setTimezone($bookingTimezone)->locale(app()->getLocale());
+                $controlEndsAt = $controlBooking->end_datetime->copy()->setTimezone($bookingTimezone)->locale(app()->getLocale());
+                $controlCountdown = $state === 'upcoming' ? $controlBooking->secondsUntilStart($reference) : null;
+                $controlRemaining = $state === 'active' ? $controlBooking->secondsUntilEnd($reference) : null;
+            }
+        }
+    @endphp
     <div class="px-4 mb-4">
         <div class="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg p-3">
             <div class="flex items-center justify-between">
@@ -34,6 +77,60 @@
         </div>
     </div>
     @endauth
+
+    @if($controlBooking)
+        @php
+            $isActiveControl = $controlState === 'active';
+            $controlPanelClasses = $isActiveControl
+                ? 'bg-green-500/15 border border-green-500/30'
+                : 'bg-purple-500/15 border border-purple-500/30';
+            $badgeClasses = $isActiveControl
+                ? 'bg-green-500/30 text-green-100'
+                : 'bg-purple-500/30 text-purple-100';
+            $timerLabel = $isActiveControl ? __('Temps restant') : __('Début dans');
+            $timerSeconds = $isActiveControl ? $controlRemaining : $controlCountdown;
+            $timerInitial = null;
+            if ($timerSeconds !== null) {
+                $safeSeconds = max(0, (int) $timerSeconds);
+                $hours = str_pad((string) intdiv($safeSeconds, 3600), 2, '0', STR_PAD_LEFT);
+                $minutes = str_pad((string) intdiv($safeSeconds % 3600, 60), 2, '0', STR_PAD_LEFT);
+                $secondsPart = str_pad((string) ($safeSeconds % 60), 2, '0', STR_PAD_LEFT);
+                $timerInitial = "{$hours}:{$minutes}:{$secondsPart}";
+            }
+        @endphp
+        <div class="px-4 mb-4">
+            <div class="rounded-xl {{ $controlPanelClasses }} p-4 text-sm text-white/80">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="space-y-1">
+                        <p class="text-xs uppercase tracking-wide text-white/50">Contrôle du matériel</p>
+                        <p class="text-base font-semibold text-white">{{ $controlBooking->equipment->name }}</p>
+                        <p class="text-xs text-white/60">
+                            {{ $controlStartsAt->isoFormat('dddd D MMM HH:mm') }} – {{ $controlEndsAt->isoFormat('HH:mm') }}
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $badgeClasses }}">
+                            {{ $isActiveControl ? 'En cours' : 'À venir' }}
+                        </span>
+                        @if($timerInitial)
+                            <div class="mt-2 text-[0.65rem] uppercase tracking-wide text-white/50">{{ $timerLabel }}</div>
+                            <div class="text-lg font-semibold text-white"
+                                 data-countdown="{{ $timerSeconds }}"
+                                 data-countdown-state="{{ $controlState }}"
+                                 data-countdown-refresh="{{ $controlState === 'upcoming' ? 'true' : 'false' }}">
+                                {{ $timerInitial }}
+                            </div>
+                        @endif
+                    </div>
+                </div>
+                <a href="{{ route('bookings.access', ['locale' => app()->getLocale(), 'booking' => $controlBooking]) }}"
+                   class="mt-4 inline-flex items-center justify-center w-full rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors
+                          {{ $isActiveControl ? 'bg-green-500/30 hover:bg-green-500/40' : 'bg-purple-500/30 hover:bg-purple-500/40' }}">
+                    {{ $isActiveControl ? 'Accéder au matériel' : 'Préparer l\'accès' }}
+                </a>
+            </div>
+        </div>
+    @endif
 
     <!-- Quick Dashboard Button -->
     @php $onDashboard = request()->is('dashboard') || request()->is('dashboard/*') || request()->is('/'); @endphp
@@ -314,5 +411,64 @@
     border: 1px solid rgba(139, 92, 246, 0.3);
 }
 </style>
+
+@once
+    @push('scripts')
+        <script>
+            (function () {
+                const formatTime = (totalSeconds) => {
+                    const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+                    const hours = String(Math.floor(safeSeconds / 3600)).padStart(2, '0');
+                    const minutes = String(Math.floor((safeSeconds % 3600) / 60)).padStart(2, '0');
+                    const seconds = String(safeSeconds % 60).padStart(2, '0');
+                    return `${hours}:${minutes}:${seconds}`;
+                };
+
+                const initialiseCountdowns = () => {
+                    document.querySelectorAll('[data-countdown]').forEach((el) => {
+                        let remaining = Number.parseInt(el.dataset.countdown, 10);
+                        if (Number.isNaN(remaining)) {
+                            return;
+                        }
+
+                        const shouldRefresh = el.dataset.countdownRefresh === 'true';
+                        const update = () => {
+                            el.textContent = formatTime(remaining);
+                        };
+
+                        update();
+
+                        if (remaining <= 0) {
+                            if (shouldRefresh) {
+                                setTimeout(() => window.location.reload(), 1200);
+                            }
+                            return;
+                        }
+
+                        const interval = window.setInterval(() => {
+                            remaining -= 1;
+                            if (remaining <= 0) {
+                                window.clearInterval(interval);
+                                remaining = 0;
+                                update();
+                                if (shouldRefresh) {
+                                    setTimeout(() => window.location.reload(), 1200);
+                                }
+                            } else {
+                                update();
+                            }
+                        }, 1000);
+                    });
+                };
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initialiseCountdowns, { once: true });
+                } else {
+                    initialiseCountdowns();
+                }
+            })();
+        </script>
+    @endpush
+@endonce
 </document_content>
 </document>

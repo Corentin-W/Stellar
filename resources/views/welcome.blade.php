@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stellar - Explorez l'Univers</title>
+    <title>Stellar - Découvrez l'Univers en Direct</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <style>
@@ -15,13 +15,18 @@
 
         :root {
             --primary: #6366f1;
-            --secondary: #a855f7;
-            --accent: #ec4899;
-            --gold: #fbbf24;
-            --text-light: rgba(255, 255, 255, 0.95);
-            --text-muted: rgba(255, 255, 255, 0.7);
-            --glass: rgba(255, 255, 255, 0.08);
-            --glass-border: rgba(255, 255, 255, 0.15);
+            --primary-soft: rgba(99, 102, 241, 0.18);
+            --accent: #f472b6;
+            --sky: #38bdf8;
+            --deep: rgba(8, 11, 32, 0.85);
+            --glass: rgba(17, 20, 45, 0.35);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --text: rgba(255, 255, 255, 0.92);
+            --text-soft: rgba(255, 255, 255, 0.68);
+            --shadow: 0 30px 80px rgba(8, 11, 32, 0.45);
+            --radius-lg: 28px;
+            --radius-md: 20px;
+            --max-width: 1240px;
         }
 
         html {
@@ -29,552 +34,732 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
-            background: #000;
-            color: white;
-            overflow-x: hidden;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+            background: #050611;
+            color: var(--text);
+            min-height: 100vh;
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
+            position: relative;
+            overflow-x: hidden;
         }
 
-        /* BACKGROUND SYSTEM */
-        .galaxy-bg {
+        a {
+            color: inherit;
+        }
+
+        .bg-image {
             position: fixed;
             inset: 0;
             background: url('/img/welcome/background.jpg') center/cover no-repeat;
             z-index: -10;
         }
 
-        .space-gradient {
+        .bg-overlay {
             position: fixed;
             inset: 0;
             background:
-                radial-gradient(ellipse at center bottom, transparent 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.7) 80%, #000 100%),
-                radial-gradient(circle at 20% 80%, rgba(99,102,241,0.08) 0%, transparent 40%),
-                radial-gradient(circle at 80% 20%, rgba(168,85,247,0.06) 0%, transparent 40%);
+                radial-gradient(ellipse at 120% 10%, rgba(99, 102, 241, 0.35), transparent 60%),
+                radial-gradient(ellipse at -10% 40%, rgba(168, 85, 247, 0.35), transparent 60%),
+                linear-gradient(180deg, rgba(4, 6, 18, 0.85), rgba(4, 6, 18, 0.94));
             z-index: -9;
         }
 
-        /* ANIMATED PARTICLES - TAILLES VARIÉES */
-        .particles {
+        #stars {
             position: fixed;
             inset: 0;
             pointer-events: none;
             z-index: -8;
         }
 
-        .particle {
-            position: absolute;
-            background: white;
-            border-radius: 50%;
-            opacity: 0;
-            animation: float 15s infinite linear;
-        }
-
-        .particle.small {
-            width: 1px;
-            height: 1px;
-        }
-
-        .particle.medium {
-            width: 2px;
-            height: 2px;
-            box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
-        }
-
-        .particle.large {
-            width: 3px;
-            height: 3px;
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
-        }
-
-        .particle.xlarge {
-            width: 4px;
-            height: 4px;
-            box-shadow: 0 0 12px rgba(255, 255, 255, 1);
-        }
-
-        @keyframes float {
-            0% {
-                transform: translateY(100vh) translateX(0) scale(0);
-                opacity: 0;
-            }
-            10% {
-                opacity: 0.8;
-            }
-            90% {
-                opacity: 0.8;
-            }
-            100% {
-                transform: translateY(-10vh) translateX(50px) scale(1);
-                opacity: 0;
-            }
-        }
-
-        /* BADGE BIENTOT DISPONIBLE */
-        .status-badge {
+        nav {
             position: fixed;
-            top: 2rem;
-            right: 2rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.8rem 2rem;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 50px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 1px;
-            backdrop-filter: blur(10px);
-            z-index: 100;
-            animation: badgeFloat 4s ease-in-out infinite;
-            overflow: hidden;
-        }
-
-        .status-badge::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: translateX(-100%);
-            animation: shimmer 3s infinite;
-        }
-
-        @keyframes shimmer {
-            100% { transform: translateX(100%); }
-        }
-
-        @keyframes badgeFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-
-        /* HERO SECTION */
-        .hero {
-            height: 100vh;
+            top: 0;
+            left: 0;
+            right: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            text-align: center;
+            padding: 1.4rem 3rem;
+            z-index: 100;
+            transition: background 0.4s ease, box-shadow 0.4s ease, padding 0.4s ease;
+        }
+
+        nav.scrolled {
+            background: rgba(7, 8, 22, 0.85);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 12px 40px rgba(5, 6, 17, 0.35);
+            padding: 1rem 3rem;
+        }
+
+        .nav-container {
+            width: 100%;
+            max-width: var(--max-width);
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .brand {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+        }
+
+        .nav-links {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            font-size: 0.92rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             position: relative;
-            overflow: hidden;
+            padding-bottom: 0.4rem;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        .btn-nav {
+            padding: 0.75rem 1.6rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(13, 15, 33, 0.5);
+            color: var(--text);
+            font-size: 0.86rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-weight: 600;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+        }
+
+        .btn-nav:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.15);
+            color: #050611;
+            box-shadow: 0 18px 38px rgba(15, 23, 42, 0.35);
+        }
+
+        main {
+            width: 100%;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 8rem 2.5rem 5rem;
+        }
+
+        section {
+            margin-bottom: 5.5rem;
+        }
+
+        .hero {
+            min-height: 95vh;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            align-items: center;
         }
 
         .hero-content {
-            max-width: 1000px;
-            padding: 0 2rem;
-            transform: translateY(50px);
-            opacity: 0;
-            animation: heroReveal 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards;
+            grid-column: 1 / span 7;
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
         }
 
-        @keyframes heroReveal {
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.6rem 1.5rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            font-size: 0.8rem;
         }
 
         .hero-title {
-            font-size: clamp(4rem, 15vw, 12rem);
-            font-weight: 900;
-            letter-spacing: -0.05em;
-            margin-bottom: 2rem;
-            background: linear-gradient(135deg,
-                #ffffff 0%,
-                var(--primary) 25%,
-                var(--secondary) 50%,
-                var(--gold) 75%,
-                #ffffff 100%
-            );
+            font-size: clamp(3.5rem, 6vw, 5rem);
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #ffffff 0%, var(--sky) 40%, var(--accent) 65%, #ffffff 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-size: 300% 300%;
-            animation: gradientFlow 6s ease-in-out infinite;
-            position: relative;
+            background-size: 220% 220%;
+            animation: titleGlow 16s ease infinite;
         }
 
-        @keyframes gradientFlow {
+        @keyframes titleGlow {
             0%, 100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
         }
 
-        .hero-subtitle {
-            font-size: 1.8rem;
-            color: var(--text-light);
-            margin-bottom: 1.5rem;
-            font-weight: 300;
-            letter-spacing: 1px;
-            animation: slideUp 1s ease-out 0.8s both;
-        }
-
-        .hero-description {
-            font-size: 1.3rem;
-            color: var(--text-muted);
-            max-width: 750px;
-            margin: 0 auto 3rem;
-            line-height: 1.8;
-            animation: slideUp 1s ease-out 1s both;
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateY(30px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+        .hero-text {
+            font-size: 1.1rem;
+            color: var(--text-soft);
+            max-width: 540px;
         }
 
         .hero-actions {
             display: flex;
-            gap: 2rem;
-            justify-content: center;
             flex-wrap: wrap;
-            animation: slideUp 1s ease-out 1.2s both;
+            gap: 1rem;
         }
 
         .btn-primary {
-            padding: 1.5rem 4rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            text-decoration: none;
-            border-radius: 60px;
-            font-weight: 700;
-            font-size: 1.3rem;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            padding: 1rem 2.6rem;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 0.9rem;
             display: inline-flex;
             align-items: center;
-            gap: 1rem;
-            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+            gap: 0.7rem;
+            box-shadow: 0 24px 60px rgba(99, 102, 241, 0.35);
+            cursor: pointer;
+            transition: transform 0.35s ease, box-shadow 0.35s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 32px 70px rgba(244, 114, 182, 0.38);
+        }
+
+        .btn-ghost {
+            padding: 1rem 1.6rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(15, 17, 43, 0.45);
+            color: var(--text);
+            letter-spacing: 0.08em;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.7rem;
+            transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .btn-ghost:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.3);
+        }
+
+        .hero-visual {
+            grid-column: 8 / span 5;
+            position: relative;
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .metric-card {
+            padding: 1.2rem 1.5rem;
+            border-radius: var(--radius-md);
+            background: rgba(11, 13, 32, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 22px 60px rgba(8, 11, 32, 0.45);
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            width: min(340px, 100%);
+        }
+
+        .metric-title {
+            font-size: 0.8rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.58);
+        }
+
+        .metric-value {
+            font-size: 2.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, var(--sky));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metric-desc {
+            color: var(--text-soft);
+            font-size: 0.95rem;
+        }
+
+        .hero-scroll {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.9rem;
+            margin-top: 2rem;
+            color: rgba(255, 255, 255, 0.58);
+            font-size: 0.85rem;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+        }
+
+        .scroll-indicator {
+            width: 1px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.18);
             position: relative;
             overflow: hidden;
         }
 
-        .btn-primary::before {
+        .scroll-indicator::after {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.5));
+            animation: scrollHint 2.4s ease infinite;
+        }
+
+        @keyframes scrollHint {
+            0% { transform: translateY(0); opacity: 0; }
+            30% { opacity: 1; }
+            60% { transform: translateY(48px); opacity: 0; }
+            100% { opacity: 0; }
+        }
+
+        .section-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2.4rem;
+        }
+
+        .section-heading h2 {
+            font-size: clamp(2.2rem, 4vw, 3.1rem);
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .section-heading p {
+            max-width: 420px;
+            color: var(--text-soft);
+            font-size: 1rem;
+        }
+
+        .live-section {
+            display: grid;
+            gap: 3rem;
+            grid-template-columns: repeat(12, 1fr);
+            align-items: center;
+        }
+
+        .live-copy {
+            grid-column: 1 / span 5;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .live-copy span {
+            font-size: 0.85rem;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.58);
+        }
+
+        .live-copy h3 {
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        .live-copy p {
+            color: var(--text-soft);
+            font-size: 1rem;
+        }
+
+        .live-feed {
+            grid-column: 6 / span 7;
+            position: relative;
+            border-radius: var(--radius-lg);
+            padding: 1.8rem;
+            background: rgba(11, 13, 32, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 40px 100px rgba(8, 11, 32, 0.55);
+        }
+
+        .live-feed::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, var(--secondary), var(--gold));
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), transparent);
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-8px) scale(1.05);
-            box-shadow: 0 40px 80px rgba(99, 102, 241, 0.4);
-        }
-
-        .btn-primary:hover::before {
+        .live-feed:hover::before {
             opacity: 1;
         }
 
-        .btn-primary span {
-            position: relative;
-            z-index: 1;
+        .live-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.6rem 1.4rem;
+            border-radius: 999px;
+            background: rgba(17, 20, 45, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            margin-bottom: 1rem;
         }
 
-        .btn-secondary {
-            padding: 1.5rem 4rem;
-            background: var(--glass);
-            color: white;
-            text-decoration: none;
-            border-radius: 60px;
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 14px rgba(34, 197, 94, 0.8);
+            animation: pulseDot 1.6s ease infinite;
+        }
+
+        .feed-frame {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            border-radius: 22px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(2, 6, 20, 0.9);
+        }
+
+        .feed-frame iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            background: transparent;
+        }
+
+        .feed-note {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.65);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.6rem;
+        }
+
+        .feature-card {
+            padding: 1.8rem;
+            border-radius: var(--radius-md);
+            background: rgba(11, 13, 32, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 16px 40px rgba(8, 11, 32, 0.4);
+            display: grid;
+            gap: 1rem;
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            font-size: 1.8rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+        }
+
+        .feature-card p {
+            font-size: 0.98rem;
+            color: var(--text-soft);
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2.8rem;
+            display: grid;
+            gap: 2.5rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 1rem;
+            top: 0.4rem;
+            bottom: 0.4rem;
+            width: 1px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent);
+        }
+
+        .timeline-step {
+            position: relative;
+            padding: 1.8rem 2rem;
+            border-radius: var(--radius-md);
+            background: rgba(11, 13, 32, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 20px 40px rgba(8, 11, 32, 0.35);
+        }
+
+        .timeline-step::before {
+            content: attr(data-step);
+            position: absolute;
+            left: -2.8rem;
+            top: 1.8rem;
+            width: 2.4rem;
+            height: 2.4rem;
+            border-radius: 50%;
+            background: rgba(9, 12, 32, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            display: grid;
+            place-items: center;
             font-weight: 600;
-            font-size: 1.2rem;
-            border: 1px solid var(--glass-border);
-            backdrop-filter: blur(10px);
-            transition: all 0.4s ease;
+            letter-spacing: 0.08em;
+            font-size: 0.85rem;
         }
 
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(255, 255, 255, 0.1);
+        .timeline-step h4 {
+            font-size: 1.25rem;
+            margin-bottom: 0.6rem;
         }
 
-        @keyframes bounceFloat {
-            0%, 20%, 50%, 80%, 100% {
-                transform: translateX(-50%) translateY(0);
-            }
-            40% {
-                transform: translateX(-50%) translateY(-15px);
-            }
-            60% {
-                transform: translateX(-50%) translateY(-8px);
-            }
+        .timeline-step p {
+            color: var(--text-soft);
+            font-size: 0.98rem;
         }
 
-        /* FEATURES SECTION */
-        .section {
-            padding: 120px 5%;
-            max-width: 1400px;
-            margin: 0 auto;
+        .equipment-section {
+            display: grid;
+            gap: 3rem;
+        }
+
+        .equipment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.6rem;
+        }
+
+        .equipment-card {
             position: relative;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: rgba(10, 12, 32, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 24px 60px rgba(7, 9, 25, 0.45);
+            display: grid;
+            grid-template-rows: 220px auto;
+            transition: transform 0.45s ease, box-shadow 0.45s ease;
         }
 
-        .section-header {
-            text-align: center;
-            margin-bottom: 6rem;
+        .equipment-card:hover {
+            transform: translateY(-12px);
+            box-shadow: 0 40px 90px rgba(99, 102, 241, 0.28);
+        }
+
+        .equipment-media {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .equipment-media img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.6s ease;
+        }
+
+        .equipment-card:hover .equipment-media img {
+            transform: scale(1.05);
+        }
+
+        .equipment-info {
+            padding: 1.5rem;
+            display: grid;
+            gap: 0.85rem;
+        }
+
+        .equipment-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.85rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.58);
+        }
+
+        .equipment-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .equipment-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
+        .equipment-details span {
+            padding: 0.3rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.8rem;
+            letter-spacing: 0.06em;
+        }
+
+        .equipment-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .cta-section {
+            margin: 5rem 0 6rem;
+            padding: clamp(2rem, 6vw, 4rem);
+            border-radius: var(--radius-lg);
+            background: rgba(9, 10, 28, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 40px 120px rgba(7, 9, 25, 0.6);
+            display: grid;
+            gap: 1.6rem;
+            justify-items: start;
+        }
+
+        .cta-section h3 {
+            font-size: clamp(2.2rem, 4vw, 2.8rem);
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        .cta-section p {
+            max-width: 520px;
+            color: var(--text-soft);
+        }
+
+        footer {
+            padding: 3rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            align-items: center;
+            font-size: 0.85rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        footer nav {
+            position: static;
+            background: none;
+            backdrop-filter: none;
+            box-shadow: none;
+            padding: 0;
+        }
+
+        footer nav a {
+            font-size: 0.82rem;
+            margin: 0 0.8rem;
+            letter-spacing: 0.14em;
+        }
+
+        footer nav a::after {
+            display: none;
+        }
+
+        /* ANIMATION UTILS */
+        [data-animate] {
             opacity: 0;
-            transform: translateY(50px);
-            transition: all 1s ease;
+            transform: translateY(40px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
         }
 
-        .section-header.visible {
+        [data-animate].is-visible {
             opacity: 1;
             transform: translateY(0);
         }
 
-        .section-badge {
-            display: inline-block;
-            padding: 0.8rem 2rem;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 30px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-bottom: 2rem;
-            backdrop-filter: blur(10px);
+        [data-animate="fade-left"] {
+            transform: translateX(-50px);
         }
 
-        .section-title {
-            font-size: clamp(3rem, 8vw, 5rem);
-            font-weight: 800;
-            margin-bottom: 2rem;
-            background: linear-gradient(135deg, #fff 0%, var(--primary) 50%, var(--secondary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        [data-animate="fade-left"].is-visible {
+            transform: translateX(0);
         }
 
-        .section-description {
-            font-size: 1.4rem;
-            color: var(--text-muted);
-            max-width: 750px;
-            margin: 0 auto;
-            line-height: 1.8;
+        [data-animate="fade-right"] {
+            transform: translateX(50px);
         }
 
-        /* FEATURES GRID */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-            gap: 3rem;
-            margin-top: 6rem;
+        [data-animate="fade-right"].is-visible {
+            transform: translateX(0);
         }
 
-        .feature-card {
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 30px;
-            padding: 4rem 3rem;
-            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            position: relative;
-            overflow: hidden;
-            opacity: 0;
-            transform: translateY(80px) rotateX(10deg);
+        [data-animate="zoom-in"] {
+            transform: scale(0.92);
         }
 
-        .feature-card.visible {
-            opacity: 1;
-            transform: translateY(0) rotateX(0deg);
+        [data-animate="zoom-in"].is-visible {
+            transform: scale(1);
         }
 
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg,
-                rgba(99, 102, 241, 0.1) 0%,
-                rgba(168, 85, 247, 0.05) 50%,
-                rgba(236, 72, 153, 0.1) 100%
-            );
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-25px) rotateX(5deg) scale(1.02);
-            box-shadow: 0 40px 80px rgba(99, 102, 241, 0.2);
-        }
-
-        .feature-card:hover::before {
-            opacity: 1;
-        }
-
-        .feature-icon {
-            width: 100px;
-            height: 100px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 3rem;
-            font-size: 3rem;
-            animation: iconFloat 6s ease-in-out infinite;
-            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
-        }
-
-        @keyframes iconFloat {
-            0%, 100% {
-                transform: translateY(0) rotate(0deg);
-                box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
-            }
-            50% {
-                transform: translateY(-10px) rotate(5deg);
-                box-shadow: 0 30px 60px rgba(99, 102, 241, 0.4);
-            }
-        }
-
-        .feature-title {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: white;
-        }
-
-        .feature-description {
-            color: var(--text-muted);
-            line-height: 1.8;
-            font-size: 1.2rem;
-        }
-
-        /* EQUIPMENT SHOWCASE */
-        .equipment-section {
-            padding: 120px 5%;
-            max-width: 1400px;
-            margin: 0 auto;
-            position: relative;
-        }
-        .equipment-header {
-            text-align: center;
-            margin-bottom: 4rem;
-        }
-        .equipment-badge {
-            display: inline-block;
-            padding: 0.8rem 2rem;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 30px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            backdrop-filter: blur(10px);
-        }
-        .equipment-title {
-            font-size: clamp(3rem, 8vw, 4.5rem);
-            font-weight: 800;
-            margin: 1.2rem 0 1rem;
-            background: linear-gradient(135deg, #fff 0%, var(--primary) 50%, var(--secondary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .equipment-subtitle {
-            font-size: 1.25rem;
-            color: var(--text-muted);
-        }
-        .equipment-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 380px));
-            justify-content: center;
-            gap: 2.4rem;
-            margin-top: 3rem;
-        }
-        .equipment-card {
-            position: relative;
-            border-radius: 28px;
-            background: radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.02) 100%);
-            border: 1px solid var(--glass-border);
-            overflow: hidden;
-            backdrop-filter: blur(20px);
-            transform: translateY(40px) scale(0.98);
-            opacity: 0;
-            transition: transform .9s cubic-bezier(.2,.7,.2,1), opacity .9s ease, box-shadow .5s ease;
-        }
-        .equipment-card.visible { opacity: 1; transform: translateY(0) scale(1); }
-        .equipment-card:hover { box-shadow: 0 50px 120px rgba(99,102,241,.25), inset 0 0 0 1px rgba(255,255,255,.06); }
-        .equip-glare { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(60% 60% at 20% 0%, rgba(255,255,255,.18), transparent 60%); mix-blend-mode: screen; }
-        .equipment-media { position: relative; aspect-ratio: 3/4; overflow: hidden; background: #0a0a0a; }
-        .equipment-media img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; filter: saturate(1.05) contrast(1.03); transform: none; transition: transform .8s ease; }
-        .equipment-card:hover .equipment-media img { transform: scale(1.06); }
-
-        /* Top actions & status pill */
-        .equip-top { position: absolute; top: 14px; left: 14px; right: 14px; display: flex; justify-content: space-between; align-items: center; z-index: 2; }
-        .equip-pill {
-          display: inline-flex; align-items: center; gap: .5rem; padding: .35rem .75rem; border-radius: 999px;
-          background: rgba(255,255,255,.9); color: #0b0b0b; font-weight: 700; font-size: .9rem; box-shadow: 0 4px 10px rgba(0,0,0,.15);
-        }
-        .equip-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
-        .equip-actions { display: inline-flex; gap: .6rem; }
-        .equip-btn { width: 38px; height: 38px; border-radius: 999px; display: grid; place-items: center; background: rgba(255,255,255,.85); border: 1px solid rgba(255,255,255,.6); box-shadow: 0 6px 16px rgba(0,0,0,.12); }
-
-        /* Bottom blurred overlay */
-        .equip-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 1.2rem 1.4rem 1.4rem; color: #fff; z-index: 1; }
-        .equip-overlay::before { content: ""; position: absolute; left: -20px; right: -20px; bottom: 0; height: 52%; background:
-          linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.30) 30%, rgba(0,0,0,.55) 65%, rgba(0,0,0,.70) 100%);
-          -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); z-index: -1; border-bottom-left-radius: 28px; border-bottom-right-radius: 28px; }
-        .equip-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; }
-        .equip-title { font-size: 1.25rem; font-weight: 800; }
-        .equip-sub { font-size: .95rem; color: rgba(255,255,255,.8); margin-top: .15rem; }
-        .equip-price-hero { font-weight: 900; font-size: 1.6rem; letter-spacing: .2px; }
-        .equip-icons { display: flex; gap: 1.2rem; align-items: center; margin-top: .9rem; opacity: .95; }
-        .equip-icons span { display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; }
-        .equip-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; padding-top: 1rem; margin-top: 1rem; border-top: 1px solid rgba(255,255,255,.15); font-size: .95rem; }
-        .equip-metric { opacity: .95; }
-        .equip-metric .k { display: block; color: rgba(255,255,255,.7); font-size: .85rem; }
-        .equip-metric .v { display: block; font-weight: 800; font-size: 1.05rem; }
-        .equip-status {
-            position: absolute; top: 16px; left: 16px;
-            padding: .45rem .85rem; border-radius: 999px;
-            font-size: .85rem; font-weight: 700; letter-spacing: .4px;
-            background: var(--glass); border: 1px solid var(--glass-border);
-            backdrop-filter: blur(12px);
-        }
-        .equip-status.available { color: #10b981; border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.12); }
-        .equip-status.reserved { color: #3b82f6; border-color: rgba(59,130,246,.35); background: rgba(59,130,246,.12); }
-        .equip-status.maintenance { color: #f59e0b; border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.12); }
-        .equip-status.unavailable { color: #ef4444; border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.12); }
-        .equipment-info { padding: 1.4rem 1.6rem 1.6rem; display: grid; gap: .9rem; }
-        .equipment-name { font-size: 1.4rem; font-weight: 800; letter-spacing: .2px; }
-        .equipment-meta { display: flex; align-items: center; gap: .75rem; color: var(--text-muted); font-size: .95rem; }
-        .chip { display: inline-flex; align-items: center; gap: .4rem; padding: .4rem .7rem; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid var(--glass-border); }
-        .chip svg { width: 16px; height: 16px; opacity: .9; }
-        .equip-specs { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .2rem; }
-        .equip-spec { padding: .45rem .7rem; border-radius: 10px; font-size: .9rem; color: var(--text-light); background: rgba(255,255,255,.05); border: 1px solid var(--glass-border); }
-        .equip-footer { display: flex; justify-content: space-between; align-items: center; margin-top: .6rem; }
-        .equip-price { font-weight: 800; font-size: 1.05rem; }
-        .equip-cta { display: inline-flex; align-items: center; gap: .6rem; padding: .7rem 1rem; border-radius: 14px; text-decoration: none; font-weight: 700; border: 1px solid var(--glass-border); background: linear-gradient(135deg, rgba(99,102,241,.25), rgba(168,85,247,.2)); transition: transform .25s ease, box-shadow .3s ease; }
-        .equip-cta:hover { transform: translateY(-3px); box-shadow: 0 20px 50px rgba(99,102,241,.25); }
-        .equip-cta svg { width: 18px; height: 18px; }
-
-        @media (max-width: 768px) {
-            .equipment-section { padding: 80px 5%; }
-            .equipment-title { font-size: 2.2rem; }
-            .equipment-grid { grid-template-columns: 1fr; }
-            .equipment-card { border-radius: 24px; }
-            .equip-overlay::before { height: 58%; }
-        }
-
-        /* WAITING LIST MODAL */
+        /* MODAL */
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(3, 4, 12, 0.92);
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 10000;
-            backdrop-filter: blur(10px);
+            z-index: 200;
             opacity: 0;
-            transition: all 0.5s ease;
+            transition: opacity 0.35s ease;
         }
 
         .modal-overlay.active {
@@ -583,414 +768,402 @@
         }
 
         .modal {
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 30px;
-            padding: 2.5rem;
-            max-width: 480px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            backdrop-filter: blur(30px);
+            width: min(520px, 90vw);
+            background: rgba(7, 8, 24, 0.9);
+            border-radius: var(--radius-lg);
+            padding: clamp(2rem, 5vw, 3rem);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 40px 120px rgba(5, 7, 20, 0.65);
             position: relative;
-            transform: scale(0.8) translateY(100px);
-            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-
-        .modal-overlay.active .modal {
-            transform: scale(1) translateY(0);
         }
 
         .modal-close {
             position: absolute;
-            top: 2rem;
-            right: 2.5rem;
-            background: none;
+            top: 1.2rem;
+            right: 1.2rem;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
             border: none;
-            font-size: 2.5rem;
-            color: var(--text-light);
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            font-size: 1.4rem;
+            display: grid;
+            place-items: center;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: transform 0.3s ease;
         }
 
         .modal-close:hover {
-            transform: rotate(90deg);
-            color: var(--accent);
+            transform: scale(1.06);
         }
 
-        .modal-title {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-align: center;
+        .modal h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
         }
 
-        .modal-subtitle {
-            color: var(--text-muted);
-            margin-bottom: 2rem;
-            font-size: 1rem;
-            line-height: 1.6;
-            text-align: center;
+        .modal p {
+            color: var(--text-soft);
+            margin-bottom: 1.6rem;
+            font-size: 0.98rem;
         }
 
-        .form-group {
-            margin-bottom: 1.5rem;
+        .form-grid {
+            display: grid;
+            gap: 1rem;
         }
 
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text-light);
-            font-size: 1rem;
+        label {
+            font-size: 0.85rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.68);
         }
 
-        .form-input, .form-select {
+        input, select {
             width: 100%;
-            padding: 1rem;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--glass-border);
+            padding: 0.9rem 1rem;
             border-radius: 12px;
-            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(10, 12, 32, 0.75);
+            color: var(--text);
             font-size: 1rem;
-            transition: all 0.3s ease;
+            transition: border 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .form-input:focus, .form-select:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        .form-input::placeholder {
-            color: var(--text-muted);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
         }
 
         .submit-btn {
-            width: 100%;
-            padding: 1.2rem 2rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
+            margin-top: 0.6rem;
+            padding: 0.95rem 2.2rem;
+            border-radius: 999px;
             border: none;
-            border-radius: 15px;
-            font-weight: 700;
-            font-size: 1.1rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
             cursor: pointer;
-            transition: all 0.4s ease;
-            position: relative;
-            overflow: hidden;
-            margin-top: 0.5rem;
-        }
-
-        .submit-btn::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, var(--secondary), var(--gold));
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: transform 0.35s ease, box-shadow 0.35s ease;
+            box-shadow: 0 24px 52px rgba(99, 102, 241, 0.35);
         }
 
         .submit-btn:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 30px 60px rgba(99, 102, 241, 0.4);
-        }
-
-        .submit-btn:hover::before {
-            opacity: 1;
-        }
-
-        .submit-btn span {
-            position: relative;
-            z-index: 1;
+            transform: translateY(-4px);
         }
 
         .submit-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+            opacity: 0.5;
             transform: none;
+            cursor: not-allowed;
+            box-shadow: none;
         }
 
-        .success-message, .info-message {
-            border-radius: 20px;
-            padding: 2rem;
-            margin-top: 2rem;
-            text-align: center;
-            display: none;
-            animation: messageSlide 0.6s ease;
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
-
-        .success-message {
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #10b981;
-        }
-
-        .info-message {
-            background: rgba(59, 130, 246, 0.15);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            color: #3b82f6;
-        }
-
-        .success-message.show, .info-message.show {
-            display: block;
-        }
-
-        @keyframes messageSlide {
-            from {
-                transform: translateY(30px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        /* TOAST NOTIFICATIONS */
         .toast {
             position: fixed;
-            top: 2rem;
+            top: 1.6rem;
             left: 50%;
-            transform: translateX(-50%) translateY(-100px);
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 1rem 2rem;
-            backdrop-filter: blur(20px);
-            z-index: 15000;
+            transform: translateX(-50%) translateY(-80px);
+            padding: 0.85rem 1.6rem;
+            border-radius: 999px;
+            background: rgba(9, 10, 28, 0.9);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(18px);
+            z-index: 300;
             opacity: 0;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 500;
-            max-width: 400px;
-            text-align: center;
+            transition: transform 0.35s ease, opacity 0.35s ease;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 0.8rem;
         }
 
         .toast.show {
-            opacity: 1;
             transform: translateX(-50%) translateY(0);
-        }
-
-        .toast.success {
-            border-color: rgba(16, 185, 129, 0.3);
-            background: rgba(16, 185, 129, 0.1);
-            color: #10b981;
-        }
-
-        .toast.info {
-            border-color: rgba(59, 130, 246, 0.3);
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
+            opacity: 1;
         }
 
         /* RESPONSIVE */
-        @media (max-width: 768px) {
-            .hero-actions {
-                flex-direction: column;
-                align-items: center;
-                gap: 1.5rem;
+        @media (max-width: 1080px) {
+            nav, nav.scrolled {
+                padding: 1rem 1.6rem;
             }
-            .btn-primary, .btn-secondary {
-                width: 100%;
-                max-width: 300px;
-                padding: 1.2rem 2rem;
-                font-size: 1.1rem;
+
+            .nav-links {
+                display: none;
             }
-            .features-grid {
+
+            .hero {
                 grid-template-columns: 1fr;
-                gap: 2rem;
+                gap: 3rem;
+                margin-top: 4rem;
             }
-            .section {
-                padding: 80px 5%;
+
+            .hero-content {
+                grid-column: 1 / -1;
             }
-            .modal {
-                padding: 3rem 2rem;
-                margin: 1rem;
-                -webkit-backdrop-filter: none !important;
-                backdrop-filter: none !important;
-                background: rgba(255, 255, 255, 0.04);
+
+            .hero-visual {
+                grid-column: 1 / -1;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
             }
-            .modal-overlay,
-            .toast {
-                -webkit-backdrop-filter: none !important;
-                backdrop-filter: none !important;
+
+            .live-section {
+                grid-template-columns: 1fr;
             }
-            .hero-title {
-                font-size: 3.5rem;
-            }
-            .feature-card {
-                padding: 3rem 2rem;
-            }
-            .status-badge {
-                top: 1rem;
-                right: 1rem;
-                padding: 0.6rem 1.5rem;
-                font-size: 0.8rem;
+
+            .live-copy, .live-feed {
+                grid-column: 1 / -1;
             }
         }
 
-        /* PERFORMANCE OPTIMIZATIONS */
+        @media (max-width: 768px) {
+            main {
+                padding: 7rem 1.5rem 4rem;
+            }
+
+            section {
+                margin-bottom: 4rem;
+            }
+
+            .section-heading {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .btn-primary, .btn-ghost {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .timeline {
+                padding-left: 1.6rem;
+            }
+
+            .timeline-step::before {
+                left: -2.2rem;
+            }
+
+            .equipment-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            }
+
+            .cta-section {
+                justify-items: stretch;
+            }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
                 animation-duration: 0.01ms !important;
                 animation-iteration-count: 1 !important;
                 transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
             }
         }
     </style>
 </head>
 <body>
-    <!-- BACKGROUND LAYERS -->
-    <div class="galaxy-bg"></div>
-    <div class="space-gradient"></div>
-    <div class="particles" id="particles"></div>
+    <div class="bg-image"></div>
+    <div class="bg-overlay"></div>
+    <div id="stars"></div>
 
-    <!-- TOAST CONTAINER -->
-    <div id="toastContainer"></div>
+    <nav id="mainNav">
+        <div class="nav-container">
+            <div class="brand" data-animate="fade-left">STELLAR OBSERVATORY</div>
+            <ul class="nav-links">
+                <li><a href="#home">Accueil</a></li>
+                <li><a href="#experience">Expérience</a></li>
+                <li><a href="#equipments">Équipements</a></li>
+                <li><a href="#rejoindre">Accès Anticipé</a></li>
+            </ul>
+            <button class="btn-nav" onclick="openWaitingList()">Waiting List</button>
+        </div>
+    </nav>
 
-    <!-- BADGE BIENTOT DISPONIBLE -->
-    <div class="status-badge">
-        <span>🚀</span>
-        <span>Bientôt Disponible</span>
-    </div>
-
-    <!-- HERO SECTION -->
-    <section class="hero" id="home">
-        <div class="hero-content">
-            <h1 class="hero-title">STELLAR</h1>
-
-            <p class="hero-subtitle">Explorez l'Univers Comme Jamais Auparavant</p>
-
-            <p class="hero-description">
-                Accédez aux meilleurs télescopes professionnels du monde depuis chez vous.
-                Découvrez les merveilles du cosmos avec notre plateforme révolutionnaire qui rend
-                l'astronomie accessible à tous, partout dans le monde.
-            </p>
-
-            <div class="hero-actions">
-                <a href="#" class="btn-primary" onclick="openWaitingList()">
-                    <span>⭐ Rejoindre la Waiting List</span>
-                </a>
-                <a href="#features" class="btn-secondary">Découvrir Plus</a>
+    <main>
+        <section class="hero" id="home">
+            <div class="hero-content" data-animate="fade-left">
+                <div class="hero-badge">Nouvelle ère de l'observation</div>
+                <h1 class="hero-title">Le cosmos, en direct, à portée de main.</h1>
+                <p class="hero-text">
+                    Stellar ouvre les portes des observatoires professionnels au grand public. Orientez les télescopes,
+                    capturez des images signatures et partagez-les avec votre communauté sans quitter votre salon.
+                </p>
+                <div class="hero-actions">
+                    <button class="btn-primary" onclick="openWaitingList()">Réserver mon accès</button>
+                    <a href="#experience" class="btn-ghost">Découvrir l'expérience</a>
+                </div>
+                <div class="hero-scroll">
+                    <div class="scroll-indicator"></div>
+                    Faites défiler
+                </div>
             </div>
-        </div>
 
+            <div class="hero-visual" data-animate="fade-right">
+                <div class="metric-card">
+                    <span class="metric-title">Observatoires partenaires</span>
+                    <span class="metric-value">12</span>
+                    <span class="metric-desc">Implantés sur trois continents pour suivre le ciel sans interruption.</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-title">Sessions immersives</span>
+                    <span class="metric-value">2.3K</span>
+                    <span class="metric-desc">Utilisateurs déjà conquis lors de nos sessions pilotes.</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-title">Qualité d'image</span>
+                    <span class="metric-value">8K</span>
+                    <span class="metric-desc">Caméras scientifiques refroidies pour des détails stellaires époustouflants.</span>
+                </div>
+            </div>
+        </section>
 
-    </section>
-
-    <!-- FEATURES SECTION -->
-    <section class="section" id="features">
-        <div class="section-header">
-            <div class="section-badge">Technologies Avancées</div>
-            <h2 class="section-title">Une Révolution Astronomique</h2>
-            <p class="section-description">
-                Découvrez une nouvelle façon d'explorer l'univers grâce à nos technologies
-                de pointe et notre plateforme intuitive conçue pour tous les passionnés d'astronomie.
-            </p>
-        </div>
-
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">🔭</div>
-                <h3 class="feature-title">Télescopes Professionnels</h3>
-                <p class="feature-description">
-                    Accédez à une flotte de télescopes de classe mondiale situés dans les meilleurs
-                    observatoires de la planète, avec des instruments d'une précision exceptionnelle.
+        <section id="experience" data-animate="fade-up">
+            <div class="section-heading">
+                <h2>Vivez le ciel, comme si vous y étiez</h2>
+                <p>
+                    De la mise au point au suivi d'objet, Stellar vous accompagne pas à pas. Les flux en direct, la réalité
+                    augmentée et les recommandations scientifiques transforment votre expérience d'observation.
                 </p>
             </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">🎮</div>
-                <h3 class="feature-title">Contrôle à Distance</h3>
-                <p class="feature-description">
-                    Pilotez les télescopes en temps réel depuis chez vous avec notre
-                    interface de contrôle intuitive et responsive, conçue pour une expérience immersive.
+            <div class="live-section">
+                <div class="live-copy" data-animate="fade-left">
+                    <span>Flux en direct</span>
+                    <h3>Contrôlez, observez, apprenez</h3>
+                    <p>
+                        Accédez en un clic à la caméra embarquée sur notre télescope de démonstration. Un aperçu de ce que vous
+                        vivrez très bientôt directement depuis votre interface Stellar.
+                    </p>
+                    <p>
+                        Activez le plein écran pour une immersion totale. Si le flux reste grisé, votre navigateur bloque peut-être
+                        le contenu mixte : autorisez-le ou ouvrez le flux dans un onglet dédié.
+                    </p>
+                    <a class="btn-ghost" href="http://185.228.120.120:23003/public.php" target="_blank" rel="noreferrer">
+                        Ouvrir le flux dans un nouvel onglet
+                    </a>
+                </div>
+
+                <div class="live-feed" data-animate="fade-right">
+                    <div class="live-status">
+                        <span class="live-dot"></span>
+                        Flux direct
+                    </div>
+                    <div class="feed-frame">
+                        <iframe
+                            src="http://185.228.120.120:23003/public.php"
+                            title="Flux en direct du télescope Stellar"
+                            allowfullscreen
+                            allow="autoplay; fullscreen; picture-in-picture"
+                            loading="lazy"
+                            referrerpolicy="no-referrer"
+                        ></iframe>
+                    </div>
+                    <div class="feed-note">
+                        <span>⚠️</span>
+                        Autorisez le contenu non sécurisé si nécessaire pour afficher l'image en direct.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section data-animate="fade-up">
+            <div class="section-heading">
+                <h2>Une plateforme taillée pour les explorateurs</h2>
+                <p>
+                    Chaque fonctionnalité a été pensée avec nos astronomes partenaires pour vous offrir un pilotage de classe professionnelle en quelques clics.
                 </p>
             </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">📸</div>
-                <h3 class="feature-title">Images Ultra HD</h3>
-                <p class="feature-description">
-                    Capturez des images époustouflantes en ultra haute résolution
-                    des merveilles de l'univers et constituez votre propre galerie cosmique.
+            <div class="feature-grid">
+                <article class="feature-card" data-animate="zoom-in">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Guidage assisté par IA</h3>
+                    <p>Identifiez les objets les plus spectaculaires visibles depuis votre observatoire et centrez-les automatiquement.</p>
+                </article>
+
+                <article class="feature-card" data-animate="zoom-in">
+                    <div class="feature-icon">🛰️</div>
+                    <h3>Remote Control Premium</h3>
+                    <p>Accédez aux commandes fines des télescopes : pointage, suivi, filtres, capture, stack en live.</p>
+                </article>
+
+                <article class="feature-card" data-animate="zoom-in">
+                    <div class="feature-icon">📡</div>
+                    <h3>Visuel + données</h3>
+                    <p>Combinez le flux vidéo à haute fréquence avec les métriques physiques pour comprendre ce que vous observez.</p>
+                </article>
+
+                <article class="feature-card" data-animate="zoom-in">
+                    <div class="feature-icon">📚</div>
+                    <h3>Ateliers immersifs</h3>
+                    <p>Rejoignez des sessions live animées par nos astrophysiciens pour apprendre à maîtriser l'instrumentation.</p>
+                </article>
+            </div>
+        </section>
+
+        <section data-animate="fade-up">
+            <div class="section-heading">
+                <h2>Votre aventure en trois temps</h2>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-step" data-step="01" data-animate="fade-left">
+                    <h4>Inscription & onboarding</h4>
+                    <p>Choisissez votre profil, vos objectifs d'observation et votre créneau de prise en main.</p>
+                </div>
+                <div class="timeline-step" data-step="02" data-animate="fade-left">
+                    <h4>Session guidée</h4>
+                    <p>Un expert Stellar vous accompagne pour calibrer l'instrument et maîtriser vos premiers clichés.</p>
+                </div>
+                <div class="timeline-step" data-step="03" data-animate="fade-left">
+                    <h4>Autonomie totale</h4>
+                    <p>Prenez les commandes, explorez nos scénarios d'observation et partagez vos découvertes.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="equipments" data-animate="fade-up" class="equipment-section">
+            <div class="section-heading">
+                <h2>Un parc d'instruments d'exception</h2>
+                <p>
+                    Des optiques à large ouverture, des montures ultra-stables, des capteurs refroidis. Une sélection pointue
+                    validée par nos astronomes partenaires.
                 </p>
             </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">🌌</div>
-                <h3 class="feature-title">Ciel Pur</h3>
-                <p class="feature-description">
-                    Nos observatoires sont situés dans des zones sans pollution lumineuse
-                    pour une qualité d'observation optimale et des conditions d'imagerie parfaites.
-                </p>
-            </div>
+            <div class="equipment-grid">
+                @php($list = isset($featuredEquipment) && count($featuredEquipment) ? $featuredEquipment : (isset($equipment) ? $equipment : []))
 
-            <div class="feature-card">
-                <div class="feature-icon">👨‍🔬</div>
-                <h3 class="feature-title">Assistance Expert</h3>
-                <p class="feature-description">
-                    Bénéficiez de l'accompagnement de nos astronomes professionnels
-                    pour optimiser vos observations et découvrir les secrets de l'univers.
-                </p>
-            </div>
-
-
-        </div>
-                    <br>
-        <br>
-          <div class="hero-actions">
-                <a href="#" class="btn-primary" onclick="openWaitingList()">
-                    <span>⭐ Rejoindre la Waiting List</span>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- EQUIPMENT SHOWCASE -->
-    <section class="equipment-section" id="equipment">
-        <div class="equipment-header section-header visible">
-            <div class="equipment-badge">Notre Matériel</div>
-            <h2 class="equipment-title">Un Parc d'Observation d'Exception</h2>
-            <p class="equipment-subtitle">Du setup complet prêt à l'emploi aux caméras de dernière génération – découvrez l'excellence sélectionnée par nos astronomes.</p>
-        </div>
-
-        <div class="equipment-grid">
-            @php($list = isset($featuredEquipment) && count($featuredEquipment) ? $featuredEquipment : (isset($equipment) ? $equipment : []))
-
-            @forelse($list as $eq)
-                <article class="equipment-card">
-                    <div class="equip-glare"></div>
-                    <div class="equipment-media">
-                        <img src="{{ $eq->getMainImage() }}" alt="{{ $eq->name }}" loading="lazy">
-                        <div class="equip-top">
-                            <div class="equip-pill">
-                                <span class="equip-dot" style="background: {{ $eq->status === 'available' ? '#10b981' : ($eq->status === 'reserved' ? '#3b82f6' : ($eq->status === 'maintenance' ? '#f59e0b' : '#ef4444')) }};"></span>
-                                <span>{{ $eq->statusLabel }}</span>
-                            </div>
-                            <div class="equip-actions">
-                                <button class="equip-btn" title="Partager" aria-label="Partager">🔗</button>
-                                <button class="equip-btn" title="Favori" aria-label="Favori">♡</button>
-                            </div>
+                @forelse($list as $eq)
+                    <article class="equipment-card" data-animate="zoom-in">
+                        <div class="equipment-media">
+                            <img src="{{ $eq->getMainImage() }}" alt="{{ $eq->name }}" loading="lazy">
                         </div>
-                        <div class="equip-overlay">
-                            <div class="equip-row">
-                                <div>
-                                    <div class="equip-title">{{ $eq->name }}</div>
-                                    <div class="equip-sub">{{ $eq->location ?: $eq->getTypeLabel() }}</div>
-                                </div>
-                                <div class="equip-price-hero">{{ $eq->price_per_hour_credits }} crédits</div>
+                        <div class="equipment-info">
+                            <div class="equipment-meta">
+                                <span>{{ $eq->location ?: $eq->getTypeLabel() }}</span>
+                                <span>•</span>
+                                <span>{{ strtoupper($eq->statusLabel) }}</span>
                             </div>
-                            <div class="equip-icons">
+                            <div class="equipment-name">{{ $eq->name }}</div>
+                            <div class="equipment-details">
                                 <span>🔭 {{ $eq->getTypeLabel() }}</span>
                                 @if($eq->specifications && isset($eq->specifications['aperture']))
                                     <span>🌀 {{ $eq->specifications['aperture'] }}</span>
@@ -999,148 +1172,85 @@
                                     <span>📏 {{ $eq->specifications['focal_length'] }}</span>
                                 @endif
                             </div>
-                            @php($specs = method_exists($eq, 'getMainSpecs') ? array_slice($eq->getMainSpecs(), 0, 3, true) : [])
-                            @if(!empty($specs))
-                                <div class="equip-metrics">
-                                    @foreach($specs as $k => $v)
-                                        <div class="equip-metric">
-                                            <span class="k">{{ is_string($k) ? $k : 'Spéc.' }}</span>
-                                            <span class="v">{{ $v }}</span>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </article>
-            @empty
-                <!-- Placeholders si aucune donnée n'est fournie -->
-                <article class="equipment-card visible">
-                    <div class="equip-glare"></div>
-                    <div class="equipment-media">
-                        <img src="/img/welcome/sample-telescope.jpg" alt="Télescope Exemple" loading="lazy">
-                        <div class="equip-top">
-                            <div class="equip-pill"><span class="equip-dot"></span><span>Disponible</span></div>
-                            <div class="equip-actions"><button class="equip-btn">🔗</button><button class="equip-btn">♡</button></div>
-                        </div>
-                        <div class="equip-overlay">
-                            <div class="equip-row">
-                                <div>
-                                    <div class="equip-title">Takahashi TOA-150B • Setup Pro</div>
-                                    <div class="equip-sub">Atacama, Chili</div>
-                                </div>
-                                <div class="equip-price-hero">120 crédits</div>
-                            </div>
-                            <div class="equip-icons">
-                                <span>🔭 Télescope</span>
-                                <span>🌀 150mm</span>
-                                <span>📏 1100mm</span>
-                            </div>
-                            <div class="equip-metrics">
-                                <div class="equip-metric"><span class="k">Monture</span><span class="v">10Micron GM2000</span></div>
-                                <div class="equip-metric"><span class="k">Caméra</span><span class="v">ASI6400MM Pro</span></div>
-                                <div class="equip-metric"><span class="k">Filtres</span><span class="v">Chroma LRGB + SHO</span></div>
+                            <div class="equipment-footer">
+                                <span>{{ $eq->price_per_hour_credits }} crédits / h</span>
+                                <span>Réservable bientôt</span>
                             </div>
                         </div>
-                    </div>
-                </article>
-                <article class="equipment-card visible">
-                    <div class="equip-glare"></div>
-                    <div class="equipment-media">
-                        <img src="/img/welcome/sample-camera.jpg" alt="Caméra Exemple" loading="lazy">
-                        <div class="equip-top">
-                            <div class="equip-pill"><span class="equip-dot" style="background:#3b82f6"></span><span>Réservé</span></div>
-                            <div class="equip-actions"><button class="equip-btn">🔗</button><button class="equip-btn">♡</button></div>
+                    </article>
+                @empty
+                    <article class="equipment-card" data-animate="zoom-in">
+                        <div class="equipment-media">
+                            <img src="https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?auto=format&fit=crop&w=800&q=80" alt="Télescope" loading="lazy">
                         </div>
-                        <div class="equip-overlay">
-                            <div class="equip-row">
-                                <div>
-                                    <div class="equip-title">ZWO ASI6200MM Pro</div>
-                                    <div class="equip-sub">La Palma, ESP</div>
-                                </div>
-                                <div class="equip-price-hero">40 crédits</div>
+                        <div class="equipment-info">
+                            <div class="equipment-meta">
+                                <span>Désert d'Atacama</span>
+                                <span>•</span>
+                                <span>Disponible</span>
                             </div>
-                            <div class="equip-icons">
-                                <span>📸 Caméra</span>
-                                <span>🧊 -35°C</span>
-                                <span>🧮 16‑bit</span>
+                            <div class="equipment-name">Télescope Ritchey-Chrétien 20"</div>
+                            <div class="equipment-details">
+                                <span>🔭 Optique RC</span>
+                                <span>🌀 500 mm</span>
+                                <span>📏 f/8</span>
                             </div>
-                            <div class="equip-metrics">
-                                <div class="equip-metric"><span class="k">Capteur</span><span class="v">Full‑Frame Mono</span></div>
-                                <div class="equip-metric"><span class="k">ADC</span><span class="v">16‑bit</span></div>
-                                <div class="equip-metric"><span class="k">Refroidie</span><span class="v">-35°C</span></div>
+                            <div class="equipment-footer">
+                                <span>65 crédits / h</span>
+                                <span>Réservable bientôt</span>
                             </div>
                         </div>
-                    </div>
-                </article>
-                <article class="equipment-card visible">
-                    <div class="equip-glare"></div>
-                    <div class="equipment-media">
-                        <img src="/img/welcome/sample-mount.jpg" alt="Monture Exemple" loading="lazy">
-                        <div class="equip-top">
-                            <div class="equip-pill"><span class="equip-dot" style="background:#f59e0b"></span><span>Maintenance</span></div>
-                            <div class="equip-actions"><button class="equip-btn">🔗</button><button class="equip-btn">♡</button></div>
-                        </div>
-                        <div class="equip-overlay">
-                            <div class="equip-row">
-                                <div>
-                                    <div class="equip-title">10Micron GM2000 HPS</div>
-                                    <div class="equip-sub">NamibRand, NAM</div>
-                                </div>
-                                <div class="equip-price-hero">55 crédits</div>
-                            </div>
-                            <div class="equip-icons">
-                                <span>🗼 Monture</span>
-                                <span>🎯 < 1" RMS</span>
-                                <span>🧰 50 kg</span>
-                            </div>
-                            <div class="equip-metrics">
-                                <div class="equip-metric"><span class="k">Pointage</span><span class="v">Absolu</span></div>
-                                <div class="equip-metric"><span class="k">Précision</span><span class="v">< 1" RMS</span></div>
-                                <div class="equip-metric"><span class="k">Charge</span><span class="v">50 kg</span></div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-            @endforelse
-        </div>
+                    </article>
+                @endforelse
+            </div>
+        </section>
 
-       
-    </section>
+        <section id="rejoindre" class="cta-section" data-animate="fade-up">
+            <h3>Rejoignez la liste d'attente et vivez les premières observations grand public</h3>
+            <p>
+                Places limitées. Les membres de la waiting list recevront un accès VIP, une tarification préférentielle et des
+                invitations à nos soirées d'observation privées.
+            </p>
+            <button class="btn-primary" onclick="openWaitingList()">Je m'inscris</button>
+        </section>
+    </main>
+
+    <footer>
+        <div>© {{ date('Y') }} Stellar. Tous droits réservés.</div>
+        <nav>
+            <a href="#home">Accueil</a>
+            <a href="#experience">Expérience</a>
+            <a href="#equipments">Équipements</a>
+            <a href="#rejoindre">Waiting List</a>
+        </nav>
+        <div>Explorons l'univers ensemble.</div>
+    </footer>
 
     <!-- WAITING LIST MODAL -->
     <div class="modal-overlay" id="waitingListModal">
         <div class="modal">
-            <button class="modal-close" onclick="closeWaitingList()">&times;</button>
-
-            <h2 class="modal-title">🚀 Rejoignez l'Aventure</h2>
-            <p class="modal-subtitle">
-                Soyez parmi les premiers à explorer l'univers avec Stellar.
-                Recevez un accès anticipé, des tarifs préférentiels et des contenus exclusifs.
+            <button class="modal-close" onclick="closeWaitingList()">×</button>
+            <h2>Réservez votre accès privilégié</h2>
+            <p>
+                Inscrivez-vous pour être averti(e) dès l'ouverture des premières sessions. Vous recevrez nos actualités, des
+                invitations exclusives et des offres réservées aux premiers arrivés.
             </p>
-
-            <form id="waitingListForm">
-                <div class="form-group">
-                    <label class="form-label" for="firstName">Prénom</label>
-                    <input type="text" id="firstName" name="firstName" class="form-input"
-                           placeholder="Votre prénom" required>
+            <form id="waitingListForm" class="form-grid">
+                <div>
+                    <label for="firstName">Prénom</label>
+                    <input type="text" id="firstName" name="firstName" placeholder="Votre prénom" required>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="lastName">Nom</label>
-                    <input type="text" id="lastName" name="lastName" class="form-input"
-                           placeholder="Votre nom" required>
+                <div>
+                    <label for="lastName">Nom</label>
+                    <input type="text" id="lastName" name="lastName" placeholder="Votre nom" required>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="email">Email</label>
-                    <input type="email" id="email" name="email" class="form-input"
-                           placeholder="votre@email.com" required>
+                <div>
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="vous@example.com" required>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="interest">Niveau d'intérêt</label>
-                    <select id="interest" name="interest" class="form-select" required>
+                <div>
+                    <label for="interest">Votre profil</label>
+                    <select id="interest" name="interest" required>
                         <option value="">Sélectionnez votre niveau</option>
                         <option value="debutant">Débutant curieux</option>
                         <option value="amateur">Amateur passionné</option>
@@ -1148,91 +1258,83 @@
                         <option value="professionnel">Professionnel</option>
                     </select>
                 </div>
-
-                <button type="submit" class="submit-btn" id="submitBtn">
-                    <span>🌟 Rejoindre la Waiting List</span>
-                </button>
-
-                <div class="success-message" id="successMessage">
-                    ✅ Parfait ! Vous êtes maintenant sur la waiting list.
-                    Un email de confirmation vous a été envoyé.
-                </div>
-
-                <div class="info-message" id="infoMessage">
-                    ℹ️ Vous êtes déjà inscrit sur notre waiting list !
-                </div>
+                <button type="submit" class="submit-btn" id="submitBtn">Valider mon inscription</button>
             </form>
-
-
+        </div>
     </div>
 
+    <div id="toastContainer"></div>
+
     <script>
-        // PARTICLES ANIMATION AVEC TAILLES VARIÉES
-        function createParticles() {
-            const container = document.getElementById('particles');
-            container.innerHTML = ''; // Clear existing particles
-            const particleCount = window.innerWidth < 768 ? 20 : 30;
+        const starsContainer = document.getElementById('stars');
 
-            const sizes = ['small', 'medium', 'large', 'xlarge'];
-            const sizeDistribution = [0.5, 0.3, 0.15, 0.05]; // Probabilités: 50% small, 30% medium, 15% large, 5% xlarge
-
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-
-                // Sélection de la taille selon la distribution
-                const random = Math.random();
-                let cumulativeProbability = 0;
-                let selectedSize = 'small';
-
-                for (let j = 0; j < sizes.length; j++) {
-                    cumulativeProbability += sizeDistribution[j];
-                    if (random <= cumulativeProbability) {
-                        selectedSize = sizes[j];
-                        break;
-                    }
-                }
-
-                particle.classList.add(selectedSize);
-
-                // Position et timing
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.top = '100vh'; // Start from bottom
-
-                // Délai et durée aléatoires (plus grandes particules = plus lentes)
-                const baseDelay = Math.random() * 20;
-                const baseDuration = selectedSize === 'xlarge' ? 20 :
-                                   selectedSize === 'large' ? 18 :
-                                   selectedSize === 'medium' ? 16 : 15;
-
-                particle.style.animationDelay = baseDelay + 's';
-                particle.style.animationDuration = (baseDuration + Math.random() * 5) + 's';
-
-                // Opacité variable selon la taille
-                const baseOpacity = selectedSize === 'xlarge' ? 0.9 :
-                                   selectedSize === 'large' ? 0.7 :
-                                   selectedSize === 'medium' ? 0.5 : 0.3;
-                particle.style.opacity = baseOpacity + Math.random() * 0.2;
-
-                container.appendChild(particle);
+        function createStars() {
+            const total = window.innerWidth < 768 ? 60 : 110;
+            starsContainer.innerHTML = '';
+            for (let i = 0; i < total; i++) {
+                const star = document.createElement('span');
+                const size = Math.random() * 2 + 0.6;
+                star.style.position = 'absolute';
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.borderRadius = '50%';
+                star.style.background = `rgba(255,255,255,${Math.random() * 0.7 + 0.2})`;
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.boxShadow = `0 0 ${Math.random() * 8 + 3}px rgba(255,255,255,0.7)`;
+                star.style.animation = `twinkle ${8 + Math.random() * 6}s ease-in-out infinite`;
+                star.style.animationDelay = (-Math.random() * 8) + 's';
+                starsContainer.appendChild(star);
             }
         }
 
-        // INTERSECTION OBSERVER FOR ANIMATIONS
+        const styles = document.createElement('style');
+        styles.innerHTML = `
+            @keyframes twinkle {
+                0%, 100% { opacity: 0.4; transform: scale(1); }
+                50% { opacity: 1; transform: scale(1.6); }
+            }
+        `;
+        document.head.appendChild(styles);
+
+        createStars();
+        window.addEventListener('resize', () => {
+            clearTimeout(window.__starTimer);
+            window.__starTimer = setTimeout(createStars, 400);
+        });
+
         const observerOptions = {
-            threshold: 0.2,
-            rootMargin: '-50px 0px -50px 0px'
+            threshold: 0.25,
+            rootMargin: '0px 0px -80px 0px'
         };
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
+        const animateObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
+                    entry.target.classList.add('is-visible');
+                    animateObserver.unobserve(entry.target);
                 }
             });
         }, observerOptions);
 
-        // MODAL FUNCTIONS
+        document.querySelectorAll('[data-animate]').forEach(el => {
+            animateObserver.observe(el);
+        });
+
+        const mainNav = document.getElementById('mainNav');
+        const heroSection = document.getElementById('home');
+
+        function handleNav() {
+            const offset = heroSection ? heroSection.offsetHeight - 120 : 120;
+            if (window.scrollY > offset) {
+                mainNav.classList.add('scrolled');
+            } else {
+                mainNav.classList.remove('scrolled');
+            }
+        }
+
+        window.addEventListener('scroll', handleNav);
+
         function openWaitingList() {
             document.getElementById('waitingListModal').classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -1243,56 +1345,41 @@
             document.body.style.overflow = '';
         }
 
-        function scrollToFeatures() {
-            document.getElementById('features').scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-
-        // TOAST SYSTEM - SIMPLE
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toastContainer');
-
-            // Remove existing toast
-            const existingToast = container.querySelector('.toast');
-            if (existingToast) {
-                existingToast.remove();
+        document.getElementById('waitingListModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeWaitingList();
             }
+        });
 
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeWaitingList();
+            }
+        });
+
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = message;
-
+            toast.className = 'toast';
+            toast.textContent = message;
             container.appendChild(toast);
 
-            // Show toast
-            setTimeout(() => toast.classList.add('show'), 100);
+            requestAnimationFrame(() => toast.classList.add('show'));
 
-            // Hide and remove toast
             setTimeout(() => {
                 toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 400);
-            }, 4000);
+                setTimeout(() => toast.remove(), 350);
+            }, 3800);
         }
 
-        // FORM SUBMISSION AVEC TOASTS SIMPLES
         document.getElementById('waitingListForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const submitBtn = document.getElementById('submitBtn');
-            const successMessage = document.getElementById('successMessage');
-            const infoMessage = document.getElementById('infoMessage');
-
-            // Reset messages
-            successMessage.classList.remove('show');
-            infoMessage.classList.remove('show');
-
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span>⏳ Inscription en cours...</span>';
+            submitBtn.textContent = 'Inscription en cours...';
 
             const formData = new FormData(e.target);
-            const data = {
+            const payload = {
                 firstName: formData.get('firstName'),
                 lastName: formData.get('lastName'),
                 email: formData.get('email'),
@@ -1307,113 +1394,35 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(payload)
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
-                    // Succès - nouvelle inscription
-                    showToast('✅ Parfait ! Vous êtes maintenant sur la waiting list.', 'success');
+                    showToast('✅ Bienvenue dans la constellation Stellar !');
                     e.target.reset();
-                    setTimeout(() => closeWaitingList(), 1500);
-
+                    setTimeout(closeWaitingList, 1200);
                 } else if (response.status === 409) {
-                    // Utilisateur déjà inscrit - CORRIGÉ
-                    console.log('User already registered:', result); // Debug
-                    showToast(`ℹ️ ${result.message}`, 'info');
-                    setTimeout(() => closeWaitingList(), 2500);
-
+                    showToast(`ℹ️ ${result.message}`);
+                    setTimeout(closeWaitingList, 1800);
                 } else if (response.status === 422) {
-                    // Erreurs de validation
                     const errors = result.errors;
                     if (errors && errors.email) {
-                        showToast(`❌ ${errors.email[0]}`, 'info');
+                        showToast(`❌ ${errors.email[0]}`);
                     } else {
-                        showToast('❌ Veuillez vérifier vos informations.', 'info');
+                        showToast('❌ Vérifiez vos informations.');
                     }
-
                 } else {
-                    // Autres erreurs
-                    showToast(`❌ ${result.message || 'Une erreur est survenue.'}`, 'info');
+                    showToast(`❌ ${result.message || 'Une erreur est survenue.'}`);
                 }
-
             } catch (error) {
-                console.error('Network or parsing error:', error);
-                showToast('❌ Erreur de connexion. Veuillez réessayer.', 'info');
+                console.error(error);
+                showToast('❌ Impossible de contacter le serveur.');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<span>🌟 Rejoindre la Waiting List</span>';
+                submitBtn.textContent = 'Valider mon inscription';
             }
-        });
-
-        // CLOSE MODAL ON OVERLAY CLICK
-        document.getElementById('waitingListModal').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) {
-                closeWaitingList();
-            }
-        });
-
-        // ESCAPE KEY TO CLOSE MODAL
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeWaitingList();
-            }
-        });
-
-        // SMOOTH SCROLLING FOR ANCHORS
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // INITIALIZE ON LOAD
-        document.addEventListener('DOMContentLoaded', () => {
-            // Create particles with varied sizes
-            createParticles();
-
-            // Observe elements for animations
-            document.querySelectorAll('.section-header, .feature-card, .equipment-card').forEach(el => {
-                observer.observe(el);
-            });
-
-            // Add stagger animation to feature cards
-            const featureCards = document.querySelectorAll('.feature-card');
-            featureCards.forEach((card, index) => {
-                card.style.transitionDelay = `${index * 0.15}s`;
-            });
-        });
-
-        // PERFORMANCE: Pause animations when page not visible
-        document.addEventListener('visibilitychange', () => {
-            const particles = document.querySelectorAll('.particle');
-            particles.forEach(particle => {
-                if (document.hidden) {
-                    particle.style.animationPlayState = 'paused';
-                } else {
-                    particle.style.animationPlayState = 'running';
-                }
-            });
-        });
-
-        // RESIZE HANDLER FOR PARTICLES
-        let resizeTimer;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                // Recreate particles on significant resize
-                const container = document.getElementById('particles');
-                container.innerHTML = '';
-                createParticles();
-            }, 500);
         });
     </script>
 </body>
