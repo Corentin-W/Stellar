@@ -261,6 +261,7 @@ class BookingController extends Controller
             'secondsToEnd' => $booking->secondsUntilEnd($reference),
             'timezoneLabel' => $timezone,
             'controlRoutes' => $controlRoutes,
+            'targetPlan' => $booking->target_plan,
         ]);
     }
 

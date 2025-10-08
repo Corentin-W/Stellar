@@ -41,7 +41,7 @@ class BookingControlController extends BookingController
             'state' => $state,
             'seconds_to_start' => $secondsToStart,
             'seconds_to_end' => $secondsToEnd,
-            'target_name' => optional($booking->equipment)->name,
+            'target_name' => $booking->target_name ?? optional($booking->equipment)->name,
         ]);
 
         return response()->json([
@@ -138,7 +138,7 @@ class BookingControlController extends BookingController
         $preview = $voyager->getCameraPreview([
             'set_guid' => $booking->voyager_set_guid ?? null,
             'target_guid' => $booking->voyager_target_guid ?? null,
-            'target_name' => optional($booking->equipment)->name,
+            'target_name' => $booking->target_name ?? optional($booking->equipment)->name,
             'state' => $state,
         ]);
 

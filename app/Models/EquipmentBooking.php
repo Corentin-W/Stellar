@@ -24,6 +24,11 @@ class EquipmentBooking extends Model
         'rejection_reason',
         'voyager_set_guid',
         'voyager_target_guid',
+        'target_name',
+        'target_ra',
+        'target_dec',
+        'target_pa',
+        'target_plan',
     ];
 
     protected $casts = [
@@ -35,6 +40,10 @@ class EquipmentBooking extends Model
         'credits_refunded' => 'integer',
         'voyager_set_guid' => 'string',
         'voyager_target_guid' => 'string',
+        'target_ra' => 'float',
+        'target_dec' => 'float',
+        'target_pa' => 'float',
+        'target_plan' => 'array',
     ];
 
     // Relations
@@ -165,5 +174,10 @@ class EquipmentBooking extends Model
         }
 
         return 'finished';
+    }
+
+    public function hasTargetPlan(): bool
+    {
+        return !empty($this->target_name) && !empty($this->target_plan);
     }
 }

@@ -51,6 +51,76 @@
             </div>
         </div>
 
+        @if(!empty($targetPlan))
+            <div class="dashboard-card p-6 border border-white/10 bg-white/5">
+                <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div class="flex items-start gap-4">
+                        @if(!empty($targetPlan['thumbnail']))
+                            <img src="{{ $targetPlan['thumbnail'] }}" alt="Cible sélectionnée"
+                                 class="h-20 w-20 rounded-lg object-cover border border-white/10">
+                        @endif
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-white/50">Cible préparée</p>
+                            <h2 class="text-2xl font-semibold text-white">{{ $targetPlan['name'] ?? $booking->target_name }}</h2>
+                            <p class="text-sm text-white/60">
+                                {{ $targetPlan['type'] ?? 'Cible' }} @if(!empty($targetPlan['constellation']))• {{ $targetPlan['constellation'] }} @endif
+                            </p>
+                            @if(!empty($targetPlan['recommended_duration']['hours']))
+                                <p class="text-xs text-white/50 mt-1">
+                                    Durée recommandée : {{ $targetPlan['recommended_duration']['hours'] }} h
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                    <a href="{{ route('bookings.prepare', ['locale' => $locale, 'booking' => $booking]) }}"
+                       class="inline-flex items-center gap-2 rounded-lg bg-purple-500/25 px-4 py-2 text-xs font-semibold text-white hover:bg-purple-500/35">
+                        Ajuster la préparation
+                    </a>
+                </div>
+
+                <div class="mt-4 grid gap-4 md:grid-cols-2">
+                    <div class="rounded-lg border border-white/10 bg-black/20 p-4">
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-white/60 mb-2">Plan de filtres</h3>
+                        <ul class="space-y-1 text-sm text-white/70">
+                            @foreach($targetPlan['recommended_filters'] ?? [] as $filter)
+                                <li class="flex justify-between">
+                                    <span>{{ $filter['filter'] ?? '—' }}</span>
+                                    <span>{{ $filter['frames'] ?? '?' }} x {{ $filter['exposure'] ?? '?' }}s</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    @if(!empty($targetPlan['visibility']['samples']))
+                        <div class="rounded-lg border border-white/10 bg-black/20 p-4">
+                            <h3 class="text-xs font-semibold uppercase tracking-wide text-white/60 mb-2">Fenêtre de visibilité</h3>
+                            <p class="text-white/70 text-sm mb-3">
+                                Altitude max : {{ $targetPlan['visibility']['peak_altitude'] ?? '—' }}°
+                            </p>
+                            <ul class="space-y-1 text-xs text-white/50">
+                                @foreach($targetPlan['visibility']['samples'] ?? [] as $sample)
+                                    <li>
+                                        {{ \Carbon\Carbon::parse($sample['time'])->setTimezone($timezoneLabel)->format('H:i') }}
+                                        — {{ $sample['altitude'] }}°
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
+        @if(empty($targetPlan))
+            <div class="rounded-xl border border-yellow-500/30 bg-yellow-500/15 px-4 py-3 text-sm text-yellow-200 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <strong>Plan de session absent.</strong> Sélectionnez une cible pour préparer l'observation.
+                </div>
+                <a href="{{ route('bookings.prepare', ['locale' => $locale, 'booking' => $booking]) }}"
+                   class="inline-flex items-center gap-2 rounded-lg bg-yellow-500/20 px-4 py-2 text-xs font-semibold text-yellow-100 hover:bg-yellow-500/30">
+                    Préparer ma session
+                </a>
+            </div>
+        @endif
+
         @if($state === 'pending')
             <div class="dashboard-card p-6 border border-yellow-500/40 bg-yellow-500/10 text-yellow-200">
                 <h2 class="text-2xl font-semibold mb-2">⏳ Réservation en attente</h2>

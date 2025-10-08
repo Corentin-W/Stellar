@@ -135,6 +135,17 @@
                             $endLabel = $booking->end_datetime->copy()->locale(app()->getLocale())->isoFormat('ddd D MMM HH:mm');
                         @endphp
 
+                        @php
+                            $hasPlan = $booking->hasTargetPlan();
+                        @endphp
+
+                        @if(in_array($booking->status, ['confirmed', 'pending']))
+                        <a href="{{ route('bookings.prepare', ['locale' => app()->getLocale(), 'booking' => $booking]) }}"
+                           class="px-4 py-2 rounded-lg bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 transition-colors text-sm font-medium text-center">
+                            {{ $hasPlan ? 'Modifier la préparation' : 'Préparer ma session' }}
+                        </a>
+                        @endif
+
                         @if($booking->canBeCancelled())
                         <button onclick="openCancelModal(this)"
                                 data-cancel-action="{{ route('bookings.cancel', ['locale' => app()->getLocale(), 'booking' => $booking]) }}"

@@ -10,6 +10,7 @@ use App\Http\Controllers\CreditController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingControlController;
+use App\Http\Controllers\BookingPreparationController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\WaitingListController;
@@ -451,6 +452,9 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
             Route::post('/{booking}/control/abort', [BookingControlController::class, 'abort'])->name('control.abort');
             Route::post('/{booking}/control/toggle', [BookingControlController::class, 'toggle'])->name('control.toggle');
             Route::get('/{booking}/control/preview', [BookingControlController::class, 'preview'])->name('control.preview');
+            Route::get('/{booking}/prepare', [BookingPreparationController::class, 'show'])->name('prepare');
+            Route::post('/{booking}/prepare', [BookingPreparationController::class, 'store'])->name('prepare.store');
+            Route::delete('/{booking}/prepare', [BookingPreparationController::class, 'destroy'])->name('prepare.destroy');
             Route::get('/{booking}/cancel', function ($locale = null, $booking = null) {
                 $targetLocale = $locale ?? app()->getLocale();
 
