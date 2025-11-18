@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔭 Voyager Proxy - Interface de Test</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🔭 Voyager Proxy - Interface de Test</h1>
+            <div class="connection-status">
+                <span id="apiStatus" class="status-badge disconnected">API: Déconnecté</span>
+                <span id="wsStatus" class="status-badge disconnected">WebSocket: Déconnecté</span>
+                <span id="voyagerStatus" class="status-badge disconnected">Voyager: Déconnecté</span>
+            </div>
+        </header>
+
+        <!-- Configuration -->
+        <section class="config-section">
+            <h2>⚙️ Configuration</h2>
+            <div class="config-form">
+                <div class="form-group">
+                    <label>URL du Proxy</label>
+                    <input type="text" id="proxyUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="text" id="apiKey" placeholder="Votre API Key (si configurée)">
+                </div>
+                <div class="form-actions">
+                    <button onclick="testConnection()" class="btn btn-primary">🔌 Tester Connexion</button>
+                    <button onclick="connectWebSocket()" class="btn btn-secondary">🔌 Connecter WebSocket</button>
+                    <button onclick="disconnectWebSocket()" class="btn btn-danger">❌ Déconnecter WebSocket</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Tests -->
+        <section class="api-section">
+            <h2>📡 Tests API REST</h2>
+            <div class="section-help">
+                <strong>À quoi ça sert :</strong> L'API REST permet à Laravel de communiquer avec le proxy via HTTP.
+                C'est l'interface principale pour envoyer des commandes et récupérer l'état du système.
+            </div>
+            <div class="api-grid">
+                <div class="api-card">
+                    <h3>Health Check</h3>
+                    <div class="command-help">
+                        <strong>But :</strong> Vérifier que le proxy fonctionne<br>
+                        <strong>Utilisation :</strong> Monitoring, tests de santé<br>
+                        <strong>Résultat :</strong> Status OK + uptime + version
+                    </div>
+                    <button onclick="apiHealthCheck()" class="btn btn-sm">Test</button>
+                    <pre id="result-health" class="result"></pre>
+                </div>
+                <div class="api-card">
+                    <h3>Connection Status</h3>
+                    <div class="command-help">
+                        <strong>But :</strong> Vérifier la connexion Voyager<br>
+                        <strong>Utilisation :</strong> Savoir si Voyager est joignable<br>
+                        <strong>Résultat :</strong> connected: true/false + timestamp
+                    </div>
+                    <button onclick="apiConnectionStatus()" class="btn btn-sm">Test</button>
+                    <pre id="result-connection" class="result"></pre>
+                </div>
+                <div class="api-card">
+                    <h3>Dashboard State</h3>
+                    <div class="command-help">
+                        <strong>But :</strong> Récupérer l'état complet de l'observatoire<br>
+                        <strong>Utilisation :</strong> Afficher température, position, status équipements<br>
+                        <strong>Résultat :</strong> ControlData complet (caméra, monture, focuser, etc.)
+                    </div>
+                    <button onclick="apiDashboardState()" class="btn btn-sm">Test</button>
+                    <pre id="result-dashboard" class="result"></pre>
+                </div>
+                <div class="api-card">
+                    <h3>Enable Dashboard Mode</h3>
+                    <div class="command-help">
+                        <strong>But :</strong> Activer les mises à jour automatiques Voyager<br>
+                        <strong>Utilisation :</strong> À appeler au début de chaque session utilisateur<br>
+                        <strong>Effet :</strong> Voyager envoie ControlData toutes les 2 secondes
+                    </div>
+                    <button onclick="apiEnableDashboard()" class="btn btn-sm">Activer</button>
+                    <pre id="result-enable-dashboard" class="result"></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Control Commands -->
+        <section class="control-section">
+            <h2>🎮 Commandes de Contrôle</h2>
+            <div class="section-help">
+                <strong>À quoi ça sert :</strong> Ces commandes permettent de piloter directement les équipements de l'observatoire.
+                Elles envoient des ordres JSON-RPC à Voyager via le proxy. Résultat attendu : RemoteActionResult avec code de succès/erreur.
+            </div>
+            <div class="control-grid">
+                <div class="control-card">
+                    <h3>⛔ Abort Session</h3>
+                    <div class="command-help">
+                        <strong>But :</strong> Arrêter IMMÉDIATEMENT toute action en cours<br>
+                        <strong>Quand :</strong> L'utilisateur clique "Stop" pendant une exposition, mouvement, autofocus...<br>
+                        <strong>Effet :</strong> Stop exposition caméra, arrêt mouvement monture, abandon autofocus, etc.<br>
+                        <strong>Résultat attendu :</strong> Signal 503 (Action Stopped) via WebSocket
+                    </div>
+                    <button onclick="cmdAbort()" class="btn btn-danger">Arrêter</button>
+                    <pre id="result-abort" class="result"></pre>
+                </div>
+                <div class="control-card">
+                    <h3>🎯 Toggle Target</h3>
+                    <div class="command-help">
+                        <strong>But :</strong> Activer/Désactiver une cible dans la séquence RoboTarget<br>
+                        <strong>Quand :</strong> L'utilisateur veut mettre en pause ou reprendre une cible automatisée<br>
+                        <strong>Paramètre :</strong> GUID de la cible (récupéré via GET /robotarget/targets)<br>
+                        <strong>Effet :</strong> La cible devient active (sera photographiée) ou inactive (ignorée)<br>
+                        <strong>Résultat attendu :</strong> RemoteActionResult avec succès
+                    </div>
+                    <div class="form-inline">
+                        <input type="text" id="targetGuid" placeholder="Target GUID" class="input-sm">
+                        <label><input type="checkbox" id="activateTarget"> Activer</label>
+                    </div>
+                    <button onclick="cmdToggleTarget()" class="btn btn-primary">Toggle</button>
+                    <pre id="result-toggle" class="result"></pre>
+                </div>
+                <div class="control-card">
+                    <h3>📸 Take Shot</h3>
+                    <div class="command-help">
+                        <strong>But :</strong> Prendre une photo avec la caméra<br>
+                        <strong>Quand :</strong> L'utilisateur demande une exposition manuelle<br>
+                        <strong>Paramètres :</strong><br>
+                        - Exposure : durée en secondes (ex: 1, 5, 60, 300)<br>
+                        - Binning : 1 (qualité max) ou 2/3/4 (fichiers plus légers)<br>
+                        - Filter : 0 (luminance) ou 1-7 selon la roue à filtres<br>
+                        <strong>Effet :</strong> Déclenche exposition → événements shotRunning (progression) → newFITReady (terminé)<br>
+                        <strong>Résultat attendu :</strong> RemoteActionResult + shotRunning + newFITReady
+                    </div>
+                    <div class="form-inline">
+                        <input type="number" id="exposure" placeholder="Expo (s)" class="input-sm" value="1">
+                        <input type="number" id="binning" placeholder="Bin" class="input-sm" value="1">
+                        <input type="number" id="filter" placeholder="Filtre" class="input-sm" value="0">
+                    </div>
+                    <button onclick="cmdTakeShot()" class="btn btn-primary">Prendre Photo</button>
+                    <pre id="result-shot" class="result"></pre>
+                </div>
+                <div class="control-card">
+                    <h3>🔭 Telescope</h3>
+                    <div class="command-help">
+                        <strong>Park :</strong> Remettre la monture en position de repos (sécurité)<br>
+                        <strong>Unpark :</strong> Sortir du mode parking (permet mouvement)<br>
+                        <strong>Start Tracking :</strong> Activer suivi sidéral (compenser rotation Terre)<br>
+                        <strong>Stop Tracking :</strong> Arrêter le suivi (monture fixe)<br>
+                        <strong>Quand :</strong> Avant/après session, pour sécuriser ou activer le télescope<br>
+                        <strong>Résultat attendu :</strong> RemoteActionResult avec code 200 (OK)
+                    </div>
+                    <button onclick="cmdPark()" class="btn btn-sm">Park</button>
+                    <button onclick="cmdUnpark()" class="btn btn-sm">Unpark</button>
+                    <button onclick="cmdStartTracking()" class="btn btn-sm">Start Tracking</button>
+                    <button onclick="cmdStopTracking()" class="btn btn-sm">Stop Tracking</button>
+                    <pre id="result-telescope" class="result"></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Real-time Dashboard -->
+        <section class="dashboard-section">
+            <h2>📊 Dashboard Temps Réel (WebSocket)</h2>
+            <div class="dashboard-grid">
+                <!-- Voyager Status -->
+                <div class="dashboard-card">
+                    <h3>Voyager</h3>
+                    <div class="stat">
+                        <span class="label">Statut:</span>
+                        <span id="voy-status" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Setup:</span>
+                        <span id="voy-setup" class="value">-</span>
+                    </div>
+                </div>
+
+                <!-- Camera -->
+                <div class="dashboard-card">
+                    <h3>📷 Caméra</h3>
+                    <div class="stat">
+                        <span class="label">Connectée:</span>
+                        <span id="cam-conn" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Température:</span>
+                        <span id="cam-temp" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Consigne:</span>
+                        <span id="cam-setpoint" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Puissance:</span>
+                        <span id="cam-power" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Cooling:</span>
+                        <span id="cam-cooling" class="value">-</span>
+                    </div>
+                </div>
+
+                <!-- Mount -->
+                <div class="dashboard-card">
+                    <h3>🔭 Monture</h3>
+                    <div class="stat">
+                        <span class="label">Connectée:</span>
+                        <span id="mnt-conn" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Parkée:</span>
+                        <span id="mnt-park" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">RA:</span>
+                        <span id="mnt-ra" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">DEC:</span>
+                        <span id="mnt-dec" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Tracking:</span>
+                        <span id="mnt-track" class="value">-</span>
+                    </div>
+                </div>
+
+                <!-- Focuser -->
+                <div class="dashboard-card">
+                    <h3>🎯 Focuser</h3>
+                    <div class="stat">
+                        <span class="label">Connecté:</span>
+                        <span id="foc-conn" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Position:</span>
+                        <span id="foc-pos" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Température:</span>
+                        <span id="foc-temp" class="value">-</span>
+                    </div>
+                </div>
+
+                <!-- Sequence -->
+                <div class="dashboard-card">
+                    <h3>📋 Séquence</h3>
+                    <div class="stat">
+                        <span class="label">Nom:</span>
+                        <span id="seq-name" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Restant:</span>
+                        <span id="seq-remain" class="value">-</span>
+                    </div>
+                </div>
+
+                <!-- Guiding -->
+                <div class="dashboard-card">
+                    <h3>🎯 Guidage</h3>
+                    <div class="stat">
+                        <span class="label">Statut:</span>
+                        <span id="guide-status" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">RMS X:</span>
+                        <span id="guide-x" class="value">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">RMS Y:</span>
+                        <span id="guide-y" class="value">-</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- WebSocket Events Console -->
+        <section class="events-section">
+            <h2>📡 Événements WebSocket</h2>
+            <div class="events-controls">
+                <button onclick="clearEvents()" class="btn btn-sm">🗑️ Effacer</button>
+                <label>
+                    <input type="checkbox" id="autoScroll" checked> Auto-scroll
+                </label>
+                <label>
+                    <input type="checkbox" id="showControlData"> Afficher ControlData (verbose)
+                </label>
+            </div>
+            <div id="events" class="events-console"></div>
+        </section>
+
+        <!-- Logs Console -->
+        <section class="logs-section">
+            <h2>📝 Logs</h2>
+            <div class="logs-controls">
+                <button onclick="clearLogs()" class="btn btn-sm">🗑️ Effacer</button>
+            </div>
+            <div id="logs" class="logs-console"></div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+import { v4 as uuidv4 } from 'uuid';
+import logger from '../utils/logger.js';
+
+class Commands {
+  constructor(connection) {
+    this.connection = connection;
+    this.pendingCommands = new Map();
+  }
+
+  async send(method, params = {}) {
+    const uid = uuidv4();
+    const id = Date.now();
+
+    const command = {
+      method,
+      params: {
+        UID: uid,
+        ...params,
+      },
+      id,
+    };
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.pendingCommands.delete(uid);
+        reject(new Error(`Command timeout: ${method}`));
+      }, 30000); // 30 seconds timeout
+
+      this.pendingCommands.set(uid, { resolve, reject, timeout, method });
+
+      // Listen for RemoteActionResult
+      const listener = (result) => {
+        if (result.UID === uid || result.parsed?.uid === uid) {
+          const pending = this.pendingCommands.get(uid);
+          if (pending) {
+            clearTimeout(pending.timeout);
+            this.pendingCommands.delete(uid);
+
+            const status = result.parsed?.statusCode || result.ActionResultInt;
+
+            if (status === 4 || status === 10) {
+              // OK or OK_PARTIAL
+              resolve(result);
+            } else if (status === 5) {
+              // ERROR
+              reject(new Error(result.parsed?.reason || result.Motivo || 'Command failed'));
+            } else {
+              resolve(result); // Return intermediate states
+            }
+          }
+        }
+      };
+
+      this.connection.once('remoteActionResult', listener);
+
+      try {
+        this.connection.send(command);
+        logger.info(`Command sent: ${method} (UID: ${uid})`);
+      } catch (error) {
+        clearTimeout(timeout);
+        this.pendingCommands.delete(uid);
+        this.connection.removeListener('remoteActionResult', listener);
+        reject(error);
+      }
+    });
+  }
+
+  // RoboTarget Commands
+
+  async addSet(data) {
+    return this.send('RoboTargetAddSet', {
+      Set: JSON.stringify(data),
+    });
+  }
+
+  async updateSet(data) {
+    return this.send('RoboTargetUpdateSet', {
+      Set: JSON.stringify(data),
+    });
+  }
+
+  async deleteSet(guid) {
+    return this.send('RoboTargetDeleteSet', {
+      GuidSet: guid,
+    });
+  }
+
+  async addTarget(data) {
+    return this.send('RoboTargetAddTarget', {
+      Target: JSON.stringify(data),
+    });
+  }
+
+  async updateTarget(data) {
+    return this.send('RoboTargetUpdateTarget', {
+      Target: JSON.stringify(data),
+    });
+  }
+
+  async deleteTarget(guid) {
+    return this.send('RoboTargetDeleteTarget', {
+      GuidTarget: guid,
+    });
+  }
+
+  async activateTarget(guid) {
+    return this.send('RoboTargetSetTargetStatus', {
+      GuidTarget: guid,
+      Status: 0, // Active
+    });
+  }
+
+  async deactivateTarget(guid) {
+    return this.send('RoboTargetSetTargetStatus', {
+      GuidTarget: guid,
+      Status: 1, // Inactive
+    });
+  }
+
+  async addShot(data) {
+    return this.send('RoboTargetAddShot', {
+      Shot: JSON.stringify(data),
+    });
+  }
+
+  async updateShot(data) {
+    return this.send('RoboTargetUpdateShot', {
+      Shot: JSON.stringify(data),
+    });
+  }
+
+  async deleteShot(guid) {
+    return this.send('RoboTargetDeleteShot', {
+      GuidShot: guid,
+    });
+  }
+
+  async listSets() {
+    return this.send('RoboTargetListSets');
+  }
+
+  async listTargetsForSet(setGuid) {
+    return this.send('RoboTargetListTargets', {
+      GuidSet: setGuid,
+    });
+  }
+
+  // Control Commands
+
+  async abort() {
+    return this.send('RemoteAbortAction');
+  }
+
+  async setDashboardMode(enabled = true) {
+    return this.send('RemoteSetDashboardMode', {
+      Val: enabled,
+    });
+  }
+
+  async takeShot(exposure, binning = 1, filter = 0) {
+    return this.send('RemoteTakeShot', {
+      Expo: exposure,
+      Bin: binning,
+      FilterIndex: filter,
+    });
+  }
+
+  async autofocus() {
+    return this.send('RemoteAutoFocus');
+  }
+
+  async platesolve() {
+    return this.send('RemotePlateSolve');
+  }
+
+  async park() {
+    return this.send('RemotePark');
+  }
+
+  async unpark() {
+    return this.send('RemoteUnpark');
+  }
+
+  async startTracking() {
+    return this.send('RemoteSetTracking', { Val: true });
+  }
+
+  async stopTracking() {
+    return this.send('RemoteSetTracking', { Val: false });
+  }
+
+  async coolCamera(temperature) {
+    return this.send('RemoteCoolCamera', {
+      Temp: temperature,
+      On: true,
+    });
+  }
+
+  async warmCamera() {
+    return this.send('RemoteCoolCamera', {
+      On: false,
+    });
+  }
+}
+
+export default Commands;
