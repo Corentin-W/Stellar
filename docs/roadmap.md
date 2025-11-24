@@ -1,6 +1,6 @@
 # 🚀 STELLAR - Roadmap du Projet
 
-> Dernière mise à jour : 18 novembre 2024
+> Dernière mise à jour : 24 novembre 2024
 
 ## 📊 Vue d'ensemble
 
@@ -9,7 +9,7 @@
 ### Progression globale
 
 ```
-████████████████░░░░  75% - Projet en phase avancée
+██████████████████░░  80% - Projet en phase avancée
 ```
 
 ---
@@ -156,7 +156,7 @@
 
 ---
 
-## 🔄 Phase 5 : Intégration Voyager - EN COURS
+## ✅ Phase 5 : Intégration Voyager - TERMINÉ
 
 ### Documentation
 - [x] Documentation Voyager Event Methods
@@ -164,14 +164,32 @@
 - [x] PDF VoyagerAS
 - [x] PDF Voyager RoboTarget Reserved API
 
-### À implémenter
-- [ ] Service de connexion Voyager
-- [ ] Contrôles télescope depuis l'interface
-- [ ] Récupération du statut en temps réel
-- [ ] Gestion des événements Voyager
-- [ ] Interface de pilotage dans la page d'accès
-- [ ] Logs des commandes envoyées
-- [ ] Gestion des erreurs de connexion
+### Proxy Node.js (voyager-proxy/)
+- [x] Connexion TCP/IP persistante (port 5950)
+- [x] Authentification Base64
+- [x] Heartbeat automatique avec reconnexion
+- [x] Event handlers (ControlData, NewJPGReady, ShotRunning, etc.)
+- [x] API REST complète (dashboard, control, RoboTarget)
+- [x] WebSocket temps réel (Socket.IO)
+- [x] Sécurité (API Key, CORS, rate limiting)
+- [x] Interface de test (test-ui/)
+
+### Intégration Laravel
+- [x] VoyagerService avec fallback mock
+- [x] BookingControlController (status, abort, toggle, preview)
+- [x] Configuration services.php
+- [x] Header API Key dans requêtes HTTP
+
+### Interface utilisateur
+- [x] Composant Alpine.js bookingControlPanel
+- [x] Page d'accès avec contrôles temps réel
+- [x] Polling automatique (15s)
+- [x] Notifications et indicateurs d'état
+
+### À configurer pour production
+- [ ] IP du serveur Voyager
+- [ ] Credentials d'authentification
+- [ ] Déploiement sur serveur cloud
 
 ---
 
@@ -426,10 +444,10 @@
 
 ## 🎯 Priorités court terme (Next Sprint)
 
-1. **Finaliser intégration Voyager** (Phase 5)
-   - Service de connexion
-   - Interface de pilotage basique
-   - Récupération statut télescope
+1. **Configurer connexion Voyager réel** (Phase 5 - finalisation)
+   - Obtenir IP du serveur Voyager
+   - Configurer authentification
+   - Tester connexion en conditions réelles
 
 2. **Catalogue public** (Phase 6 - partie 1)
    - Page d'index publique

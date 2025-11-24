@@ -10,11 +10,13 @@ use Illuminate\Support\Facades\Log;
 class VoyagerService
 {
     private string $baseUrl;
+    private ?string $apiKey;
     private int $timeout;
 
     public function __construct(?string $baseUrl = null, ?int $timeout = null)
     {
         $this->baseUrl = rtrim($baseUrl ?? config('services.voyager.proxy_url', ''), '/');
+        $this->apiKey = config('services.voyager.proxy_api_key');
         $this->timeout = $timeout ?? 20;
     }
 
@@ -292,14 +294,16 @@ SVG;
         try {
             $url = $this->baseUrl . $uri;
 
+            $http = Http::timeout($this->timeout)->acceptJson();
+
+            if ($this->apiKey) {
+                $http = $http->withHeaders(['X-API-Key' => $this->apiKey]);
+            }
+
             if ($method === 'get') {
-                $response = Http::timeout($this->timeout)
-                    ->acceptJson()
-                    ->get($url, $payload);
+                $response = $http->get($url, $payload);
             } else {
-                $response = Http::timeout($this->timeout)
-                    ->acceptJson()
-                    ->post($url, $payload);
+                $response = $http->post($url, $payload);
             }
 
             return [

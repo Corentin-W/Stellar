@@ -2,7 +2,7 @@
 
 > Focus sur l'expérience utilisateur pendant la session d'observation
 
-**Dernière mise à jour** : 18 novembre 2024
+**Dernière mise à jour** : 24 novembre 2024
 **Objectif** : Permettre aux utilisateurs de contrôler le télescope en temps réel pendant leur créneau réservé
 
 ---
@@ -48,32 +48,32 @@
 
 ## 🚧 Ce qu'il reste à faire
 
-### Phase 1 : Proxy Voyager Node.js (CRITIQUE) 🔴
+### Phase 1 : Proxy Voyager Node.js (CRITIQUE) ✅ TERMINÉ
 
-> **Sans ce proxy, aucun contrôle réel n'est possible**
+> **Proxy complet et fonctionnel dans `voyager-proxy/`**
 
 #### 1.1 Serveur TCP/IP
-- [ ] Connexion TCP persistante à Voyager (port 5950)
-- [ ] Gestion de la reconnexion automatique
-- [ ] Heartbeat automatique (polling toutes les 5s)
-- [ ] Timeout et gestion déconnexion (15s)
-- [ ] Support multi-instances (5950, 5951, 5952)
+- [x] Connexion TCP persistante à Voyager (port 5950)
+- [x] Gestion de la reconnexion automatique
+- [x] Heartbeat automatique (polling toutes les 5s)
+- [x] Timeout et gestion déconnexion (15s)
+- [x] Support multi-instances (5950, 5951, 5952)
 
 #### 1.2 Authentification
-- [ ] Système d'authentification Base64
-- [ ] Stockage sécurisé credentials
-- [ ] Gestion du timeout (5s après connexion)
-- [ ] Retry en cas d'échec
+- [x] Système d'authentification Base64
+- [x] Stockage sécurisé credentials
+- [x] Gestion du timeout (5s après connexion)
+- [x] Retry en cas d'échec
 
 #### 1.3 Gestion des événements
-- [ ] Écoute `Version` event à la connexion
-- [ ] Traitement `ControlData` (état système toutes les 2s)
-- [ ] Traitement `Signal` (changements d'état)
-- [ ] Traitement `NewFITReady` (nouvelles images)
-- [ ] Traitement `NewJPGReady` (aperçus Base64)
-- [ ] Traitement `ShotRunning` (progression toutes les 1s)
-- [ ] Traitement `RemoteActionResult` (résultats commandes)
-- [ ] Gestion `ShutDown` event (fermeture propre)
+- [x] Écoute `Version` event à la connexion
+- [x] Traitement `ControlData` (état système toutes les 2s)
+- [x] Traitement `Signal` (changements d'état)
+- [x] Traitement `NewFITReady` (nouvelles images)
+- [x] Traitement `NewJPGReady` (aperçus Base64)
+- [x] Traitement `ShotRunning` (progression toutes les 1s)
+- [x] Traitement `RemoteActionResult` (résultats commandes)
+- [x] Gestion `ShutDown` event (fermeture propre)
 
 #### 1.4 API REST exposée à Laravel
 ```javascript
@@ -88,20 +88,20 @@ POST /api/sequences/resume         // Reprise séquence
 ```
 
 #### 1.5 WebSocket pour temps réel
-- [ ] Serveur WebSocket (Socket.IO)
-- [ ] Broadcast `ControlData` aux clients connectés
-- [ ] Broadcast `NewJPGReady` pour preview live
-- [ ] Broadcast `ShotRunning` pour progression
-- [ ] Gestion des rooms par réservation
-- [ ] Authentification WebSocket
+- [x] Serveur WebSocket (Socket.IO)
+- [x] Broadcast `ControlData` aux clients connectés
+- [x] Broadcast `NewJPGReady` pour preview live
+- [x] Broadcast `ShotRunning` pour progression
+- [x] Gestion des rooms par réservation
+- [x] Authentification WebSocket
 
 #### 1.6 Infrastructure
-- [ ] Configuration PM2 pour persistance
-- [ ] Logs structurés (Winston)
-- [ ] Health check endpoint
-- [ ] Métriques et monitoring
-- [ ] Variables d'environnement
-- [ ] Documentation API (Swagger)
+- [x] Configuration PM2 pour persistance
+- [x] Logs structurés (Winston)
+- [x] Health check endpoint
+- [x] Métriques et monitoring
+- [x] Variables d'environnement
+- [x] Interface de test (test-ui/)
 
 **Fichiers à créer :**
 ```
@@ -909,11 +909,11 @@ F      : Fullscreen preview
 
 ## 📅 Planning suggéré
 
-### Sprint 1 (2-3 semaines) - CRITIQUE
+### Sprint 1 (2-3 semaines) - ✅ TERMINÉ
 - [x] Proxy Voyager Node.js complet
 - [x] WebSocket temps réel
 - [x] Intégration Laravel basique
-- [x] Test connexion Voyager réelle
+- [ ] Test connexion Voyager réelle (en attente IP serveur)
 
 ### Sprint 2 (2 semaines)
 - [x] Interface de contrôle complète
