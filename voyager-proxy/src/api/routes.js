@@ -10,10 +10,11 @@ router.get('/dashboard/state', async (req, res, next) => {
 
     if (!state.controlData) {
       return res.json({
+        success: false,
         connected: state.isConnected,
         authenticated: state.isAuthenticated,
         message: 'No control data available yet. Enable Dashboard mode first.',
-        state: null,
+        data: null,
       });
     }
 

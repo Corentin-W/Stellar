@@ -495,4 +495,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     });
 
+    // Test Voyager Connection
+    Route::get('/voyager-test', function () {
+        return view('admin.voyager-test');
+    })->name('voyager-test');
+
 });

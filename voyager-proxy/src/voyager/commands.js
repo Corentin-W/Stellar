@@ -152,9 +152,23 @@ class Commands {
   }
 
   async setDashboardMode(enabled = true) {
-    return this.send('RemoteSetDashboardMode', {
-      Val: enabled,
-    });
+    // RemoteSetDashboardMode doesn't return RemoteActionResult
+    // Just send the command directly
+    const uid = uuidv4();
+    const command = {
+      method: 'RemoteSetDashboardMode',
+      params: {
+        UID: uid,
+        IsOn: enabled,
+      },
+      id: Date.now(),
+    };
+
+    logger.info(`Setting Dashboard Mode: ${enabled}`);
+    this.connection.send(command);
+
+    // Return immediately without waiting for response
+    return Promise.resolve({ success: true, uid });
   }
 
   async takeShot(exposure, binning = 1, filter = 0) {

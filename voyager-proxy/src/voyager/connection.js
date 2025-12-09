@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import net from 'net';
+import os from 'os';
 import logger from '../utils/logger.js';
 import EventHandler from './events.js';
 import Authentication from './auth.js';
@@ -163,7 +164,7 @@ class VoyagerConnection extends EventEmitter {
     const polling = {
       Event: 'Polling',
       Timestamp: Date.now() / 1000,
-      Host: require('os').hostname(),
+      Host: os.hostname(),
       Inst: this.config.instance,
     };
 
