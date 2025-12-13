@@ -32,6 +32,8 @@ class CreditController extends Controller
         $user = auth()->user();
         $recommendations = $this->creditService->getRecommendations($user);
 
+
+        
         return view('credits.shop', compact('packages', 'promotions', 'recommendations'));
     }
 
