@@ -16,56 +16,30 @@
         </div>
     </div>
 
-    <!-- Credits Balance (if authenticated) -->
+    <!-- Subscription & Credits Info (if authenticated) -->
     @auth
     @php
-        $controlBooking = null;
-        $controlState = null;
-        $controlStartsAt = null;
-        $controlEndsAt = null;
-        $controlCountdown = null;
-        $controlRemaining = null;
-
-        $bookingTimezone = config('app.booking_timezone', config('app.timezone', 'UTC'));
-        $nowInTimezone = now($bookingTimezone);
-        $nowUtc = $nowInTimezone->copy()->setTimezone('UTC');
-        $todayStartUtc = $nowInTimezone->copy()->startOfDay()->setTimezone('UTC');
-        $todayEndUtc = $nowInTimezone->copy()->endOfDay()->setTimezone('UTC');
-
-        $candidateBooking = \App\Models\EquipmentBooking::query()
-            ->where('user_id', auth()->id())
-            ->whereIn('status', ['confirmed'])
-            ->where('end_datetime', '>=', $nowUtc)
-            ->where(function ($query) use ($todayStartUtc, $todayEndUtc) {
-                $query->whereBetween('start_datetime', [$todayStartUtc, $todayEndUtc])
-                      ->orWhere(function ($overlap) use ($todayStartUtc) {
-                          $overlap->where('start_datetime', '<', $todayStartUtc)
-                                  ->where('end_datetime', '>', $todayStartUtc);
-                      });
-            })
-            ->with(['equipment:id,name'])
-            ->orderBy('start_datetime')
-            ->first();
-
-        if ($candidateBooking) {
-            $reference = $nowInTimezone->copy();
-            $state = $candidateBooking->getAccessState($reference);
-
-            if (in_array($state, ['active', 'upcoming'], true)) {
-                $controlBooking = $candidateBooking;
-                $controlState = $state;
-                $controlStartsAt = $controlBooking->start_datetime->copy()->setTimezone($bookingTimezone)->locale(app()->getLocale());
-                $controlEndsAt = $controlBooking->end_datetime->copy()->setTimezone($bookingTimezone)->locale(app()->getLocale());
-                $controlCountdown = $state === 'upcoming' ? $controlBooking->secondsUntilStart($reference) : null;
-                $controlRemaining = $state === 'active' ? $controlBooking->secondsUntilEnd($reference) : null;
-            }
-        }
+        $userSubscription = auth()->user()->subscription;
+        $creditsBalance = auth()->user()->credits_balance ?? 0;
     @endphp
-    <div class="px-4 mb-4">
+    <div class="px-4 mb-4 space-y-3">
+        <!-- Subscription Card -->
+        @if($userSubscription && $userSubscription->isActive())
+        <div class="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg p-3">
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-white/60 text-xs font-medium">Mon Abonnement</div>
+                <div class="text-xl">{{ $userSubscription->getPlanBadge() }}</div>
+            </div>
+            <div class="text-white font-bold text-lg">{{ $userSubscription->getPlanName() }}</div>
+            <div class="text-white/70 text-xs mt-1">{{ $userSubscription->credits_per_month }} crédits/mois</div>
+        </div>
+        @endif
+
+        <!-- Credits Balance -->
         <div class="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg p-3">
             <div class="flex items-center justify-between">
                 <div>
-                    <div class="text-white font-semibold">{{ number_format(auth()->user()->credits_balance ?? 0) }}</div>
+                    <div class="text-white font-semibold text-lg">{{ number_format($creditsBalance) }}</div>
                     <div class="text-white/60 text-xs">Crédits disponibles</div>
                 </div>
                 <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
@@ -78,59 +52,6 @@
     </div>
     @endauth
 
-    @if($controlBooking)
-        @php
-            $isActiveControl = $controlState === 'active';
-            $controlPanelClasses = $isActiveControl
-                ? 'bg-green-500/15 border border-green-500/30'
-                : 'bg-purple-500/15 border border-purple-500/30';
-            $badgeClasses = $isActiveControl
-                ? 'bg-green-500/30 text-green-100'
-                : 'bg-purple-500/30 text-purple-100';
-            $timerLabel = $isActiveControl ? __('Temps restant') : __('Début dans');
-            $timerSeconds = $isActiveControl ? $controlRemaining : $controlCountdown;
-            $timerInitial = null;
-            if ($timerSeconds !== null) {
-                $safeSeconds = max(0, (int) $timerSeconds);
-                $hours = str_pad((string) intdiv($safeSeconds, 3600), 2, '0', STR_PAD_LEFT);
-                $minutes = str_pad((string) intdiv($safeSeconds % 3600, 60), 2, '0', STR_PAD_LEFT);
-                $secondsPart = str_pad((string) ($safeSeconds % 60), 2, '0', STR_PAD_LEFT);
-                $timerInitial = "{$hours}:{$minutes}:{$secondsPart}";
-            }
-        @endphp
-        <div class="px-4 mb-4">
-            <div class="rounded-xl {{ $controlPanelClasses }} p-4 text-sm text-white/80">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="space-y-1">
-                        <p class="text-xs uppercase tracking-wide text-white/50">Contrôle du matériel</p>
-                        <p class="text-base font-semibold text-white">{{ $controlBooking->equipment->name }}</p>
-                        <p class="text-xs text-white/60">
-                            {{ $controlStartsAt->isoFormat('dddd D MMM HH:mm') }} – {{ $controlEndsAt->isoFormat('HH:mm') }}
-                        </p>
-                    </div>
-                    <div class="text-right">
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $badgeClasses }}">
-                            {{ $isActiveControl ? 'En cours' : 'À venir' }}
-                        </span>
-                        @if($timerInitial)
-                            <div class="mt-2 text-[0.65rem] uppercase tracking-wide text-white/50">{{ $timerLabel }}</div>
-                            <div class="text-lg font-semibold text-white"
-                                 data-countdown="{{ $timerSeconds }}"
-                                 data-countdown-state="{{ $controlState }}"
-                                 data-countdown-refresh="{{ $controlState === 'upcoming' ? 'true' : 'false' }}">
-                                {{ $timerInitial }}
-                            </div>
-                        @endif
-                    </div>
-                </div>
-                <a href="{{ route('bookings.access', ['locale' => app()->getLocale(), 'booking' => $controlBooking]) }}"
-                   class="mt-4 inline-flex items-center justify-center w-full rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors
-                          {{ $isActiveControl ? 'bg-green-500/30 hover:bg-green-500/40' : 'bg-purple-500/30 hover:bg-purple-500/40' }}">
-                    {{ $isActiveControl ? 'Accéder au matériel' : 'Préparer l\'accès' }}
-                </a>
-            </div>
-        </div>
-    @endif
 
     <!-- Quick Dashboard Button -->
     @php $onDashboard = request()->is('dashboard') || request()->is('dashboard/*') || request()->is('/'); @endphp
@@ -181,29 +102,22 @@
             <span class="ml-3 font-medium">{{ __('app.sidebar.dashboard') }}</span>
         </a>
 
-        <a href="{{ route('bookings.calendar') }}"
-        class="sidebar-item {{ request()->is('bookings') || request()->is('bookings/*') ? 'active' : '' }}">
+        <!-- RoboTarget - Système principal -->
+        <a href="{{ route('robotarget.index', ['locale' => app()->getLocale()]) }}"
+           class="sidebar-item {{ request()->is('*/robotarget') || request()->is('*/robotarget/*') || request()->is('robotarget') || request()->is('robotarget/*') ? 'active' : '' }}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
             </svg>
-            <span class="ml-3 font-medium">Réservations</span>
+            <span class="ml-3 font-medium">Mes Targets</span>
         </a>
 
-        <a href="{{ route('credits.shop') }}"
-        class="sidebar-item {{ request()->is('credits/shop') ? 'active' : '' }}">
+        <!-- Mon Abonnement -->
+        <a href="{{ route('subscriptions.manage', ['locale' => app()->getLocale()]) }}"
+           class="sidebar-item {{ request()->is('*/subscriptions/manage') || request()->is('subscriptions/manage') ? 'active' : '' }}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
             </svg>
-            <span class="ml-3 font-medium">Boutique Crédits</span>
-        </a>
-
-        <!-- Historique Crédits -->
-        <a href="{{ route('credits.history') }}"
-        class="sidebar-item {{ request()->is('credits/history') ? 'active' : '' }}">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-            </svg>
-            <span class="ml-3 font-medium">Historique Crédits</span>
+            <span class="ml-3 font-medium">Mon Abonnement</span>
         </a>
 
 
@@ -240,48 +154,25 @@
             <span class="ml-3 font-medium">Panel Admin</span>
         </a>
 
-@if(auth()->user()->admin == 1)
-    <!-- Gestion Réservations Admin -->
-    @php
-    $pendingCount = \App\Models\EquipmentBooking::where('status', 'pending')->count();
-    @endphp
-    <a href="{{ route('admin.bookings.dashboard') }}"
-       class="sidebar-item {{ request()->is('admin/bookings') || request()->is('admin/bookings/*') ? 'active' : '' }}">
-        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-        </svg>
-        <span class="ml-3 font-medium">Gestion Réservations</span>
-        @if($pendingCount > 0)
-            <span class="badge ml-auto bg-yellow-500">
-                {{ $pendingCount }}
-            </span>
-        @endif
-    </a>
-@endif
-
-
-        <!-- Admin Equipment Management -->
-        <a href="{{ route('admin.equipment.index') }}"
-           class="sidebar-item {{ request()->is('admin/equipment') || request()->is('admin/equipment/*') ? 'active' : '' }}">
+        <!-- Gestion Abonnements -->
+        @php
+        $activeSubscriptionsCount = \App\Models\Subscription::where('status', 'active')->count();
+        $trialSubscriptionsCount = \App\Models\Subscription::where('stripe_status', 'trialing')->count();
+        @endphp
+        <a href="{{ route('admin.subscriptions.dashboard') }}"
+           class="sidebar-item {{ request()->is('admin/subscriptions') || request()->is('admin/subscriptions/*') ? 'active' : '' }}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
             </svg>
-            <span class="ml-3 font-medium">Gestion Matériel</span>
-            <span class="badge ml-auto bg-cyan-500">
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
-                    <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-5a1 1 0 10-2 0v5H5V7h5a1 1 0 000-2H5z"/>
-                </svg>
-            </span>
+            <span class="ml-3 font-medium">Gestion Abonnements</span>
+            @if($activeSubscriptionsCount > 0)
+                <span class="badge ml-auto bg-green-500">
+                    {{ $activeSubscriptionsCount }}
+                </span>
+            @endif
         </a>
 
-        <a href="{{ route('admin.credits.dashboard') }}"
-            class="sidebar-item {{ request()->is('admin/credits') || request()->is('admin/credits/*') ? 'active' : '' }}">
-                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                </svg>
-                <span class="ml-3 font-medium">Gestion Crédits</span>
-            </a>
+
 
         <!-- Admin Support Management -->
         @php
@@ -340,7 +231,11 @@
                         <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Admin</span>
                     @endif
                 </p>
-                <p class="text-white/60 text-xs">{{ ucfirst(auth()->user()->subscription_type ?? __('app.sidebar.explorer')) }} • {{ __('app.sidebar.online') }}</p>
+                @php
+                    $userSub = auth()->user()->subscription;
+                    $planName = $userSub && $userSub->isActive() ? $userSub->getPlanName() : 'Sans abonnement';
+                @endphp
+                <p class="text-white/60 text-xs">{{ $planName }} • {{ __('app.sidebar.online') }}</p>
             </div>
         </div>
     </div>
@@ -412,63 +307,5 @@
 }
 </style>
 
-@once
-    @push('scripts')
-        <script>
-            (function () {
-                const formatTime = (totalSeconds) => {
-                    const safeSeconds = Math.max(0, Math.floor(totalSeconds));
-                    const hours = String(Math.floor(safeSeconds / 3600)).padStart(2, '0');
-                    const minutes = String(Math.floor((safeSeconds % 3600) / 60)).padStart(2, '0');
-                    const seconds = String(safeSeconds % 60).padStart(2, '0');
-                    return `${hours}:${minutes}:${seconds}`;
-                };
-
-                const initialiseCountdowns = () => {
-                    document.querySelectorAll('[data-countdown]').forEach((el) => {
-                        let remaining = Number.parseInt(el.dataset.countdown, 10);
-                        if (Number.isNaN(remaining)) {
-                            return;
-                        }
-
-                        const shouldRefresh = el.dataset.countdownRefresh === 'true';
-                        const update = () => {
-                            el.textContent = formatTime(remaining);
-                        };
-
-                        update();
-
-                        if (remaining <= 0) {
-                            if (shouldRefresh) {
-                                setTimeout(() => window.location.reload(), 1200);
-                            }
-                            return;
-                        }
-
-                        const interval = window.setInterval(() => {
-                            remaining -= 1;
-                            if (remaining <= 0) {
-                                window.clearInterval(interval);
-                                remaining = 0;
-                                update();
-                                if (shouldRefresh) {
-                                    setTimeout(() => window.location.reload(), 1200);
-                                }
-                            } else {
-                                update();
-                            }
-                        }, 1000);
-                    });
-                };
-
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', initialiseCountdowns, { once: true });
-                } else {
-                    initialiseCountdowns();
-                }
-            })();
-        </script>
-    @endpush
-@endonce
 </document_content>
 </document>

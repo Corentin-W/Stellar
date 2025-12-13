@@ -329,4 +329,60 @@ SVG;
             ];
         }
     }
+
+    /**
+     * RoboTarget - Créer un Set
+     */
+    public function addSet(array $data): array
+    {
+        return $this->performRequest('post', '/api/robotarget/sets', $data);
+    }
+
+    /**
+     * RoboTarget - Lister tous les Sets
+     */
+    public function listSets(): array
+    {
+        return $this->performRequest('get', '/api/robotarget/sets');
+    }
+
+    /**
+     * RoboTarget - Créer une Target
+     */
+    public function addTarget(array $data): array
+    {
+        return $this->performRequest('post', '/api/robotarget/targets', $data);
+    }
+
+    /**
+     * RoboTarget - Lister les Targets d'un Set
+     */
+    public function listTargetsForSet(string $setGuid): array
+    {
+        return $this->performRequest('get', '/api/robotarget/targets', ['setGuid' => $setGuid]);
+    }
+
+    /**
+     * RoboTarget - Créer un Shot
+     */
+    public function addShot(array $data): array
+    {
+        return $this->performRequest('post', '/api/robotarget/shots', $data);
+    }
+
+    /**
+     * RoboTarget - Activer une Target
+     */
+    public function activateTarget(string $guid): array
+    {
+        return $this->performRequest('post', "/api/robotarget/targets/{$guid}/activate");
+    }
+
+    /**
+     * RoboTarget - Désactiver une Target
+     */
+    public function deactivateTarget(string $guid): array
+    {
+        return $this->performRequest('post', "/api/robotarget/targets/{$guid}/deactivate");
+    }
 }

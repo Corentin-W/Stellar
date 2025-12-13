@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Force les bonnes variables pour le diagnostic
+export VOYAGER_HOST=185.228.120.120
+export VOYAGER_PORT=23002
+export VOYAGER_AUTH_ENABLED=true
+export VOYAGER_AUTH_BASE=777539
+export VOYAGER_MAC_KEY=Dherbomez
+export VOYAGER_MAC_WORD1=QRP7KvBJmXyT3sLz
+export VOYAGER_MAC_WORD2=MGH9TaNcLpR2fWeq
+export VOYAGER_MAC_WORD3=ZXY1bUvKcDf8RmNo
+export VOYAGER_MAC_WORD4=PLD4QsVeJh6YaTux
+export VOYAGER_LICENSE_NUMBER=F738-EAF6-3F29-F079-8E1E-DD77-F2BE-4A0D
+
+node diagnose.js

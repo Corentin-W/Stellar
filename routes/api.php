@@ -1,0 +1,55 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\RoboTargetController;
+use App\Http\Controllers\Api\PricingController;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
+
+// Public routes
+Route::get('/subscriptions/plans', [SubscriptionController::class, 'plans']);
+
+// Webhook (pas d'auth)
+Route::post('/webhooks/robotarget/session-complete', [RoboTargetController::class, 'webhookSessionComplete']);
+
+// Protected routes
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Subscriptions
+    Route::prefix('subscriptions')->group(function () {
+        Route::get('/current', [SubscriptionController::class, 'current']);
+        Route::post('/subscribe', [SubscriptionController::class, 'subscribe']);
+        Route::put('/change-plan', [SubscriptionController::class, 'changePlan']);
+        Route::post('/cancel', [SubscriptionController::class, 'cancel']);
+    });
+
+    // Pricing
+    Route::prefix('pricing')->group(function () {
+        Route::post('/estimate', [PricingController::class, 'estimate']);
+        Route::post('/recommend', [PricingController::class, 'recommend']);
+    });
+
+    // RoboTarget
+    Route::prefix('robotarget')->group(function () {
+        // Targets
+        Route::get('/targets', [RoboTargetController::class, 'index']);
+        Route::post('/targets', [RoboTargetController::class, 'store']);
+        Route::get('/targets/{guid}', [RoboTargetController::class, 'show']);
+        Route::post('/targets/{guid}/submit', [RoboTargetController::class, 'submit']);
+        Route::delete('/targets/{guid}/cancel', [RoboTargetController::class, 'cancel']);
+        Route::get('/targets/{guid}/progress', [RoboTargetController::class, 'progress']);
+
+        // Stats
+        Route::get('/stats', [RoboTargetController::class, 'stats']);
+    });
+});

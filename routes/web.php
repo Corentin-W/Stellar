@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\SupportCategoryController;
 use App\Http\Controllers\Admin\SupportTemplateController;
 use App\Http\Controllers\Admin\ProductPromotionController;
+use App\Http\Controllers\RoboTargetTestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +41,25 @@ Route::get('/', function () {
 Route::post('/locale/{newLocale}', [LocaleController::class, 'change'])
     ->where('newLocale', 'fr|en')
     ->name('locale.change');
+
+/*
+|--------------------------------------------------------------------------
+| Routes de test RoboTarget
+|--------------------------------------------------------------------------
+*/
+Route::prefix('test/robotarget')->group(function () {
+    Route::get('/', [RoboTargetTestController::class, 'index'])->name('test.robotarget.index');
+    Route::post('/sets', [RoboTargetTestController::class, 'createSet'])->name('test.robotarget.sets.create');
+    Route::get('/sets', [RoboTargetTestController::class, 'listSets'])->name('test.robotarget.sets.list');
+    Route::post('/targets', [RoboTargetTestController::class, 'createTarget'])->name('test.robotarget.targets.create');
+    Route::get('/targets', [RoboTargetTestController::class, 'listTargets'])->name('test.robotarget.targets.list');
+    Route::post('/shots', [RoboTargetTestController::class, 'createShot'])->name('test.robotarget.shots.create');
+    Route::post('/targets/{guid}/activate', [RoboTargetTestController::class, 'activateTarget'])->name('test.robotarget.targets.activate');
+    Route::post('/targets/{guid}/deactivate', [RoboTargetTestController::class, 'deactivateTarget'])->name('test.robotarget.targets.deactivate');
+
+    // Routes de diagnostic
+    Route::get('/diagnostics', [RoboTargetTestController::class, 'diagnostics'])->name('test.robotarget.diagnostics');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -114,6 +134,27 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
         // Paramètres
         Route::get('/settings', [HomeController::class, 'settings'])->name('settings');
         Route::put('/settings', [HomeController::class, 'updateSettings'])->name('settings.update');
+
+        // ======================
+        // ROUTES SUBSCRIPTIONS
+        // ======================
+
+        Route::prefix('subscriptions')->name('subscriptions.')->group(function () {
+            Route::get('/choose', [\App\Http\Controllers\SubscriptionController::class, 'choose'])->name('choose');
+            Route::post('/subscribe', [\App\Http\Controllers\SubscriptionController::class, 'subscribe'])->name('subscribe');
+            Route::get('/success', [\App\Http\Controllers\SubscriptionController::class, 'success'])->name('success');
+            Route::get('/manage', [\App\Http\Controllers\SubscriptionController::class, 'manage'])->name('manage');
+        });
+
+        // ======================
+        // ROUTES ROBOTARGET
+        // ======================
+
+        Route::prefix('robotarget')->name('robotarget.')->middleware('subscription.required')->group(function () {
+            Route::get('/', [\App\Http\Controllers\RoboTargetController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\RoboTargetController::class, 'create'])->name('create');
+            Route::get('/{guid}', [\App\Http\Controllers\RoboTargetController::class, 'show'])->name('show');
+        });
 
         // ======================
         // ROUTES DE CRÉDITS
@@ -272,46 +313,34 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/switch-back', [App\Http\Controllers\AdminController::class, 'switchBack'])->name('switch-back');
 
     // ======================
-    // ROUTES ADMIN CRÉDITS
+    // ROUTES ADMIN ABONNEMENTS
     // ======================
 
-    // Dashboard crédits
-    Route::get('/credits', [CreditAdminController::class, 'dashboard'])->name('credits.dashboard');
+    Route::prefix('subscriptions')->name('subscriptions.')->group(function () {
+        // Dashboard abonnements
+        Route::get('/', [\App\Http\Controllers\Admin\SubscriptionAdminController::class, 'dashboard'])->name('dashboard');
 
-    // Gestion des packages
-    Route::prefix('credits/packages')->name('credits.packages.')->group(function () {
-        Route::get('/', [CreditAdminController::class, 'packages'])->name('index');
-        Route::get('/create', [CreditAdminController::class, 'createPackage'])->name('create');
-        Route::post('/', [CreditAdminController::class, 'storePackage'])->name('store');
-        Route::get('/{package}/edit', [CreditAdminController::class, 'editPackage'])->name('edit');
-        Route::put('/{package}', [CreditAdminController::class, 'updatePackage'])->name('update');
-        Route::post('/{package}/toggle-status', [CreditAdminController::class, 'togglePackageStatus'])->name('toggle-status');
-        Route::delete('/{package}', [CreditAdminController::class, 'deletePackage'])->name('delete');
+        // Gestion des plans
+        Route::get('/plans', [\App\Http\Controllers\Admin\SubscriptionAdminController::class, 'plans'])->name('plans');
+        Route::put('/plans/{plan}/stripe', [\App\Http\Controllers\Admin\SubscriptionAdminController::class, 'updatePlanStripe'])->name('plans.update-stripe');
+        Route::post('/create-stripe-plans', [\App\Http\Controllers\Admin\SubscriptionAdminController::class, 'createStripePlans'])->name('create-stripe-plans');
+
+        // Synchronisation Stripe
+        Route::post('/sync-stripe', [\App\Http\Controllers\Admin\SubscriptionAdminController::class, 'syncWithStripe'])->name('sync-stripe');
+
+        // Abonnés
+        Route::get('/subscribers', [\App\Http\Controllers\Admin\SubscriptionAdminController::class, 'subscribers'])->name('subscribers');
+        Route::get('/{subscription}', [\App\Http\Controllers\Admin\SubscriptionAdminController::class, 'showSubscription'])->name('show');
+
+        // Actions sur abonnements
+        Route::post('/{subscription}/cancel', [\App\Http\Controllers\Admin\SubscriptionAdminController::class, 'cancelSubscription'])->name('cancel');
+
+        // Ajuster crédits
+        Route::post('/users/{user}/adjust-credits', [\App\Http\Controllers\Admin\SubscriptionAdminController::class, 'adjustCredits'])->name('adjust-credits');
+
+        // Rapports
+        Route::get('/reports', [\App\Http\Controllers\Admin\SubscriptionAdminController::class, 'reports'])->name('reports');
     });
-
-    // Gestion des promotions
-    Route::prefix('credits/promotions')->name('credits.promotions.')->group(function () {
-        Route::get('/', [CreditAdminController::class, 'promotions'])->name('index');
-        Route::get('/create', [CreditAdminController::class, 'createPromotion'])->name('create');
-        Route::post('/', [CreditAdminController::class, 'storePromotion'])->name('store');
-        Route::get('/{promotion}/edit', [CreditAdminController::class, 'editPromotion'])->name('edit');
-        Route::put('/{promotion}', [CreditAdminController::class, 'updatePromotion'])->name('update');
-        Route::post('/{promotion}/toggle-status', [CreditAdminController::class, 'togglePromotionStatus'])->name('toggle-status');
-        Route::delete('/{promotion}', [CreditAdminController::class, 'deletePromotion'])->name('delete');
-    });
-
-    // Gestion des utilisateurs et ajustements
-    Route::prefix('credits/users')->name('credits.users.')->group(function () {
-        Route::get('/', [CreditAdminController::class, 'users'])->name('index');
-        Route::get('/{user}', [CreditAdminController::class, 'userDetails'])->name('details');
-        Route::post('/{user}/adjust-credits', [CreditAdminController::class, 'adjustUserCredits'])->name('adjust-credits');
-    });
-
-    // Rapports et analytics
-    Route::get('/credits/reports', [CreditAdminController::class, 'reports'])->name('credits.reports');
-    Route::get('/credits/export', [CreditAdminController::class, 'exportTransactions'])->name('credits.export');
-    Route::get('/credits/transactions', [CreditAdminController::class, 'transactions'])->name('credits.transactions');
-
 
     // ======================
     // ROUTES ADMIN SUPPORT
@@ -393,9 +422,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 |--------------------------------------------------------------------------
 */
 
-// Webhook Stripe (sans middleware auth - IMPORTANT)
+// Webhook Stripe pour crédits (sans middleware auth - IMPORTANT)
 Route::post('/stripe/webhook', [CreditController::class, 'stripeWebhook'])
      ->name('stripe.webhook');
+
+// Webhook Stripe pour abonnements (sans middleware auth - IMPORTANT)
+Route::post('/stripe/subscription-webhook', [\App\Http\Controllers\SubscriptionController::class, 'webhook'])
+     ->name('stripe.subscription.webhook');
 
 /*
 |--------------------------------------------------------------------------
