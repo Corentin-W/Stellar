@@ -100,8 +100,8 @@ Route::post('/stripe/subscription-webhook', [SubscriptionController::class, 'web
 
 ```bash
 # Clés Stripe (mode test)
-STRIPE_KEY=pk_test_51S95YYLTudkz4vwEgwNKHGQ7jePmNiEh5JYnHc1U44QqFS0m8oXx8SyaIGvYQ5J9PpZKlMLnMeFFb6oiXde5jGIT00fECpjCdJ
-STRIPE_SECRET=sk_test_51S95YYLTudkz4vwEUsoP8LQAccQQcNbVnSIJcP3vImDlvDbkKiE1Rw9GOlUZmyRTF8JoAjCaG0RF0Z3warDZdSUl00m76xLOEE
+STRIPE_KEY=pk_test_51S9S0m8oXx8SyaIGvYQ5J9PpZKlMLnMeFFb6oiXde5jGIT00fECpjCdJ
+STRIPE_SECRET=sk_test_51S95YYLTudk1Rw9GOlUZmyRTF8JoAjCaG0RF0Z3warDZdSUl00m76xLOEE
 STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
