@@ -13,9 +13,15 @@ return new class extends Migration
     {
         Schema::table('subscriptions', function (Blueprint $table) {
             // Ajout des champs pour le modèle RoboTarget
-            $table->enum('plan', ['stardust', 'nebula', 'quasar'])->nullable()->after('user_id');
-            $table->integer('credits_per_month')->default(0)->after('plan');
-            $table->enum('status', ['active', 'inactive', 'trial', 'cancelled'])->default('trial')->after('credits_per_month');
+            if (!Schema::hasColumn('subscriptions', 'plan')) {
+                $table->enum('plan', ['stardust', 'nebula', 'quasar'])->nullable()->after('user_id');
+            }
+            if (!Schema::hasColumn('subscriptions', 'credits_per_month')) {
+                $table->integer('credits_per_month')->default(0)->after('plan');
+            }
+            if (!Schema::hasColumn('subscriptions', 'status')) {
+                $table->enum('status', ['active', 'inactive', 'trial', 'cancelled'])->default('trial')->after('credits_per_month');
+            }
         });
     }
 
