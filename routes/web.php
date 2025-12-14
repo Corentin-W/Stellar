@@ -155,6 +155,7 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
             Route::get('/create', [\App\Http\Controllers\RoboTargetController::class, 'create'])->name('create');
             Route::get('/gallery', [\App\Http\Controllers\RoboTargetController::class, 'gallery'])->name('gallery');
             Route::get('/{guid}', [\App\Http\Controllers\RoboTargetController::class, 'show'])->name('show');
+            Route::get('/{guid}/monitor', [\App\Http\Controllers\RoboTargetController::class, 'monitor'])->name('monitor');
         });
 
         // ======================
@@ -313,6 +314,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/toggle-admin/{user}', [App\Http\Controllers\AdminController::class, 'toggleAdmin'])->name('toggle-admin');
     Route::post('/switch-back', [App\Http\Controllers\AdminController::class, 'switchBack'])->name('switch-back');
 
+    // Documentation Projet
+    Route::get('/documentation', function () {
+        return view('admin.documentation');
+    })->name('documentation');
+
     // ======================
     // ROUTES ADMIN ABONNEMENTS
     // ======================
@@ -341,6 +347,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
         // Rapports
         Route::get('/reports', [\App\Http\Controllers\Admin\SubscriptionAdminController::class, 'reports'])->name('reports');
+    });
+
+    // ======================
+    // ROUTES ADMIN CONFIGURATION DES PLANS
+    // ======================
+
+    Route::prefix('plans')->name('plans.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\PlanSettingsController::class, 'index'])->name('index');
+        Route::get('/{id}/edit', [\App\Http\Controllers\Admin\PlanSettingsController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [\App\Http\Controllers\Admin\PlanSettingsController::class, 'update'])->name('update');
     });
 
     // ======================

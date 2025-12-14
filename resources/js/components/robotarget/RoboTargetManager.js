@@ -407,24 +407,23 @@ export default () => ({
    * Load a template target from catalog
    */
   loadTemplateTarget(template) {
-    // Populate target coordinates
-    this.target.target_name = template.name;
+    console.log('🎯 Loading template:', template.name);
 
     // Format RA coordinates (HH:MM:SS)
     const raHours = String(template.ra_hours).padStart(2, '0');
     const raMinutes = String(template.ra_minutes).padStart(2, '0');
-    const raSeconds = template.ra_seconds.toFixed(1);
-    this.target.ra_j2000 = `${raHours}:${raMinutes}:${raSeconds}`;
+    const raSeconds = String(Math.round(template.ra_seconds)).padStart(2, '0');
+    const formattedRA = `${raHours}:${raMinutes}:${raSeconds}`;
 
     // Format DEC coordinates (+/-DD:MM:SS)
     const decSign = template.dec_degrees >= 0 ? '+' : '-';
     const decDegrees = String(Math.abs(template.dec_degrees)).padStart(2, '0');
     const decMinutes = String(template.dec_minutes).padStart(2, '0');
-    const decSeconds = String(template.dec_seconds).padStart(2, '0');
-    this.target.dec_j2000 = `${decSign}${decDegrees}:${decMinutes}:${decSeconds}`;
+    const decSeconds = String(Math.round(template.dec_seconds)).padStart(2, '0');
+    const formattedDEC = `${decSign}${decDegrees}:${decMinutes}:${decSeconds}`;
 
-    // Load recommended shots
-    this.target.shots = template.recommended_shots.map(shot => ({
+    // Format recommended shots
+    const formattedShots = template.recommended_shots.map(shot => ({
       filter_index: this.getFilterIndexByName(shot.filter_name),
       filter_name: shot.filter_name,
       exposure: shot.exposure,
@@ -434,26 +433,75 @@ export default () => ({
       bin: shot.binning || 1,
     }));
 
-    // Set default constraints based on difficulty
+    // Set constraints based on difficulty
+    let priority = 0;
+    let moonDown = false;
+    let hfdLimit = null;
+
     if (template.difficulty === 'beginner') {
-      this.target.priority = 0;
-      this.target.c_moon_down = false;
-      this.target.c_hfd_mean_limit = null;
+      priority = 0;
+      moonDown = false;
+      hfdLimit = null;
     } else if (template.difficulty === 'intermediate') {
-      this.target.priority = 1;
-      this.target.c_moon_down = false;
-      this.target.c_hfd_mean_limit = null;
+      priority = 1;
+      moonDown = false;
+      hfdLimit = null;
     } else {
-      this.target.priority = 2;
-      this.target.c_moon_down = true;
-      this.target.c_hfd_mean_limit = 2.5;
+      priority = 2;
+      moonDown = true;
+      hfdLimit = 2.5;
     }
 
     // Show success message
     this.successMessage = `Template chargé: ${template.name} • ${template.tips}`;
 
-    // Auto-advance to step 1
+    // STEP 1: Change to step 1 first
     this.currentStep = 1;
+
+    // STEP 2: Wait for Alpine to render the new step, THEN assign values
+    this.$nextTick(() => {
+      console.log('🔄 Step 1 rendered, now assigning values...');
+
+      // Assign properties one by one to preserve reactivity
+      this.target.target_name = template.name;
+      this.target.ra_j2000 = formattedRA;
+      this.target.dec_j2000 = formattedDEC;
+      this.target.priority = priority;
+      this.target.c_moon_down = moonDown;
+      this.target.c_hfd_mean_limit = hfdLimit;
+      this.target.c_alt_min = 30;
+      this.target.shots = formattedShots;
+
+      console.log('✅ Template loaded successfully!');
+      console.log('📝 Target values:', {
+        target_name: this.target.target_name,
+        ra_j2000: this.target.ra_j2000,
+        dec_j2000: this.target.dec_j2000
+      });
+
+      // STEP 3: Force Alpine to update the DOM by triggering input events
+      this.$nextTick(() => {
+        const nameInput = document.querySelector('input[x-model="target.target_name"]');
+        const raInput = document.querySelector('input[x-model="target.ra_j2000"]');
+        const decInput = document.querySelector('input[x-model="target.dec_j2000"]');
+
+        // Manually trigger input events to sync Alpine
+        if (nameInput) {
+          nameInput.value = this.target.target_name;
+          nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (raInput) {
+          raInput.value = this.target.ra_j2000;
+          raInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (decInput) {
+          decInput.value = this.target.dec_j2000;
+          decInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        console.log('🔍 Values synced to DOM and Alpine notified');
+      });
+    });
 
     // Clear success message after 5 seconds
     setTimeout(() => {

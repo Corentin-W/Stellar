@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\RoboTargetService;
 use App\Models\RoboTarget;
+use App\Models\RoboTargetSession;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -334,7 +335,7 @@ class RoboTargetController extends Controller
 
             // Get sessions for this target
             $sessions = $target->sessions()
-                ->where('status', 'completed')
+                ->where('result', RoboTargetSession::RESULT_OK)
                 ->get();
 
             $allShots = [];
@@ -438,8 +439,8 @@ class RoboTargetController extends Controller
             // Get all completed targets with their sessions
             $targets = RoboTarget::where('user_id', $user->id)
                 ->with(['sessions' => function ($query) {
-                    $query->where('status', 'completed')
-                        ->orderBy('started_at', 'desc');
+                    $query->where('result', RoboTargetSession::RESULT_OK)
+                        ->orderBy('session_start', 'desc');
                 }])
                 ->orderBy('created_at', 'desc')
                 ->get();

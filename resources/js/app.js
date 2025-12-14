@@ -1,11 +1,13 @@
 // resources/js/app.js
 import './bootstrap.js';
+import './echo.js'; // Laravel Echo pour WebSocket temps réel
 import Alpine from 'alpinejs';
 
 // Import RoboTarget components
 import RoboTargetManager from './components/robotarget/RoboTargetManager.js';
 import TargetMonitor from './components/robotarget/TargetMonitor.js';
 import PricingCalculator from './components/robotarget/PricingCalculator.js';
+import LiveMonitor from './components/robotarget/LiveMonitor.js';
 
 // Configuration Alpine.js
 window.Alpine = Alpine;
@@ -14,6 +16,7 @@ window.Alpine = Alpine;
 window.RoboTargetManager = RoboTargetManager;
 window.TargetMonitor = TargetMonitor;
 window.PricingCalculator = PricingCalculator;
+window.LiveMonitor = LiveMonitor;
 
 // ============================================
 // STORES GLOBAUX ALPINE.JS

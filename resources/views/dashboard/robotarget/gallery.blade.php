@@ -1,4 +1,4 @@
-@extends('layouts.app-astral')
+@extends('layouts.astral-app')
 
 @section('title', 'Galerie d\'Images')
 

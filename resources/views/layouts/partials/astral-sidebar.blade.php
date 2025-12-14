@@ -163,6 +163,16 @@
             <span class="ml-3 font-medium">Panel Admin</span>
         </a>
 
+        <!-- Documentation Projet -->
+        <a href="{{ route('admin.documentation') }}"
+           class="sidebar-item {{ request()->is('admin/documentation') ? 'active' : '' }}">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+            <span class="ml-3 font-medium">📖 Documentation</span>
+            <span class="ml-auto px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs rounded-full font-semibold">PO</span>
+        </a>
+
         <!-- Gestion Abonnements -->
         @php
         $activeSubscriptionsCount = \App\Models\Subscription::where('status', 'active')->count();
@@ -181,7 +191,14 @@
             @endif
         </a>
 
-
+        <!-- Configuration Plans -->
+        <a href="{{ route('admin.plans.index') }}"
+           class="sidebar-item {{ request()->is('admin/plans') || request()->is('admin/plans/*') ? 'active' : '' }}">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+            </svg>
+            <span class="ml-3 font-medium">Configuration Plans</span>
+        </a>
 
         <!-- Admin Support Management -->
         @php

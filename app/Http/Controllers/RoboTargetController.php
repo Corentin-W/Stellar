@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\RoboTarget;
+use App\Models\RoboTargetSession;
 use App\Services\RoboTargetService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -84,15 +85,47 @@ class RoboTargetController extends Controller
         // Get completed targets with sessions
         $targets = RoboTarget::where('user_id', $user->id)
             ->with(['sessions' => function ($query) {
-                $query->where('status', 'completed')
+                $query->where('result', RoboTargetSession::RESULT_OK)
                     ->where('images_accepted', '>', 0)
-                    ->orderBy('started_at', 'desc');
+                    ->orderBy('session_start', 'desc');
             }])
             ->orderBy('created_at', 'desc')
             ->get();
 
         return view('dashboard.robotarget.gallery', [
             'targets' => $targets,
+            'subscription' => $user->subscription,
+            'creditsBalance' => $user->credits_balance,
+        ]);
+    }
+
+    /**
+     * Display live monitoring page for a target session
+     */
+    public function monitor(Request $request, string $guid): View
+    {
+        $user = $request->user();
+
+        $target = RoboTarget::with(['sessions'])->where('guid', $guid)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        // Get the active session or the most recent one
+        $session = $target->sessions()
+            ->whereNull('result') // Session en cours
+            ->latest('session_start')
+            ->first();
+
+        if (!$session) {
+            // Si pas de session en cours, prendre la dernière
+            $session = $target->sessions()
+                ->latest('session_start')
+                ->firstOrFail();
+        }
+
+        return view('dashboard.robotarget.monitor', [
+            'target' => $target,
+            'session' => $session,
             'subscription' => $user->subscription,
             'creditsBalance' => $user->credits_balance,
         ]);

@@ -84,7 +84,7 @@ class HomeController extends Controller
 
         // Distribution des filtres (shots les plus utilisés)
         $filterDistribution = DB::table('robo_target_shots')
-            ->join('robo_targets', 'robo_target_shots.target_id', '=', 'robo_targets.id')
+            ->join('robo_targets', 'robo_target_shots.robo_target_id', '=', 'robo_targets.id')
             ->where('robo_targets.user_id', $user->id)
             ->select('filter_name', DB::raw('SUM(num) as total_shots'))
             ->groupBy('filter_name')

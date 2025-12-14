@@ -1,4 +1,4 @@
-@extends('layouts.app-astral')
+@extends('layouts.astral-app')
 
 @section('title', 'Dashboard')
 
@@ -182,7 +182,7 @@
                         <span class="px-2 py-1 bg-green-500/20 text-green-400 rounded">En cours</span>
                         <span>{{ $target->created_at->diffForHumans() }}</span>
                     </div>
-                    @if($target->sessions()->where('status', 'in_progress')->exists())
+                    @if($target->sessions()->whereNull('result')->exists())
                     <div class="mt-3">
                         <div class="flex items-center gap-2 text-xs text-blue-400">
                             <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>

@@ -1,4 +1,5 @@
 import logger from '../utils/logger.js';
+import eventRelay from '../api/event-relay.js';
 
 class EventHandler {
   constructor(connection) {
@@ -103,7 +104,7 @@ class EventHandler {
     this.connection.emit('controlData', enriched);
   }
 
-  handleNewJPGReady(message) {
+  async handleNewJPGReady(message) {
     logger.info(`New JPG preview ready: ${message.File}`);
 
     const enriched = {
@@ -126,6 +127,25 @@ class EventHandler {
     };
 
     this.connection.emit('newJPG', enriched);
+
+    // Relay to Laravel API (if this is part of a RoboTarget session)
+    if (message.GuidSession) {
+      try {
+        await eventRelay.imageReady(
+          message.GuidSession,
+          {
+            filename: message.File,
+            thumbnail: message.Base64Data, // Base64 JPG thumbnail
+            filter: message.Filter,
+            exposure: message.Expo,
+            hfd: message.HFD,
+            timestamp: message.TimeInfo || new Date().toISOString()
+          }
+        );
+      } catch (error) {
+        logger.error('Failed to relay image ready event', error);
+      }
+    }
   }
 
   handleNewFITReady(message) {
@@ -208,14 +228,45 @@ class EventHandler {
 
   // RoboTarget Event Handlers
 
-  handleRoboTargetSessionStart(message) {
+  async handleRoboTargetSessionStart(message) {
     logger.info(`RoboTarget Session Started: ${message.GuidTarget}`);
     this.connection.emit('roboTargetSessionStart', message);
+
+    // Relay to Laravel API
+    try {
+      await eventRelay.sessionStarted(
+        message.GuidSession,
+        message.GuidTarget,
+        {
+          target_guid: message.GuidTarget,
+          session_guid: message.GuidSession,
+          timestamp: new Date().toISOString()
+        }
+      );
+    } catch (error) {
+      logger.error('Failed to relay session start event', error);
+    }
   }
 
-  handleRoboTargetSessionComplete(message) {
+  async handleRoboTargetSessionComplete(message) {
     logger.info(`RoboTarget Session Completed: ${message.GuidTarget}`);
     this.connection.emit('roboTargetSessionComplete', message);
+
+    // Relay to Laravel API
+    try {
+      await eventRelay.sessionCompleted(
+        message.GuidSession,
+        {
+          target_guid: message.GuidTarget,
+          result: message.Result,
+          images_captured: message.ImagesCaptured,
+          images_accepted: message.ImagesAccepted,
+          timestamp: new Date().toISOString()
+        }
+      );
+    } catch (error) {
+      logger.error('Failed to relay session complete event', error);
+    }
   }
 
   handleRoboTargetSessionAbort(message) {

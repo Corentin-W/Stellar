@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\RoboTargetController;
 use App\Http\Controllers\Api\PricingController;
+use App\Http\Controllers\Api\VoyagerEventController;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,7 +20,15 @@ use App\Http\Controllers\Api\PricingController;
 // Public routes
 Route::get('/subscriptions/plans', [SubscriptionController::class, 'plans']);
 
-// Webhook (pas d'auth)
+// Webhooks (pas d'auth) - Événements temps réel Voyager
+Route::prefix('voyager/events')->group(function () {
+    Route::post('/session-started', [VoyagerEventController::class, 'sessionStarted']);
+    Route::post('/progress', [VoyagerEventController::class, 'progress']);
+    Route::post('/image-ready', [VoyagerEventController::class, 'imageReady']);
+    Route::post('/session-completed', [VoyagerEventController::class, 'sessionCompleted']);
+});
+
+// Ancien webhook (pas d'auth)
 Route::post('/webhooks/robotarget/session-complete', [RoboTargetController::class, 'webhookSessionComplete']);
 
 // Protected routes
