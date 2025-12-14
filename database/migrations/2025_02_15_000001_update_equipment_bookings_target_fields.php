@@ -8,27 +8,29 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('equipment_bookings', function (Blueprint $table) {
-            if (!Schema::hasColumn('equipment_bookings', 'target_name')) {
-                $table->string('target_name')->nullable()->after('voyager_target_guid');
-            }
+        if (Schema::hasTable('equipment_bookings')) {
+            Schema::table('equipment_bookings', function (Blueprint $table) {
+                if (!Schema::hasColumn('equipment_bookings', 'target_name')) {
+                    $table->string('target_name')->nullable();
+                }
 
-            if (!Schema::hasColumn('equipment_bookings', 'target_ra')) {
-                $table->double('target_ra')->nullable()->after('target_name');
-            }
+                if (!Schema::hasColumn('equipment_bookings', 'target_ra')) {
+                    $table->double('target_ra')->nullable();
+                }
 
-            if (!Schema::hasColumn('equipment_bookings', 'target_dec')) {
-                $table->double('target_dec')->nullable()->after('target_ra');
-            }
+                if (!Schema::hasColumn('equipment_bookings', 'target_dec')) {
+                    $table->double('target_dec')->nullable();
+                }
 
-            if (!Schema::hasColumn('equipment_bookings', 'target_pa')) {
-                $table->double('target_pa')->nullable()->after('target_dec');
-            }
+                if (!Schema::hasColumn('equipment_bookings', 'target_pa')) {
+                    $table->double('target_pa')->nullable();
+                }
 
-            if (!Schema::hasColumn('equipment_bookings', 'target_plan')) {
-                $table->json('target_plan')->nullable()->after('target_pa');
-            }
-        });
+                if (!Schema::hasColumn('equipment_bookings', 'target_plan')) {
+                    $table->json('target_plan')->nullable();
+                }
+            });
+        }
     }
 
     public function down(): void
