@@ -245,6 +245,168 @@ export default (voyagerConnection, io) => {
     }
   });
 
+  /**
+   * GET /api/robotarget/sessions/:sessionGuid/shots
+   * Récupérer la liste des shots complétés pour une session
+   */
+  router.get('/sessions/:sessionGuid/shots', async (req, res) => {
+    try {
+      const { sessionGuid } = req.params;
+
+      const result = await roboTargetCommands.getShotDoneBySessionList(sessionGuid);
+
+      res.json({
+        success: true,
+        shots: result.parsed?.list || { done: [], deleted: [] },
+      });
+
+    } catch (error) {
+      console.error('Error getting session shots:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des shots',
+        error: error.message,
+      });
+    }
+  });
+
+  /**
+   * GET /api/robotarget/sets/:setGuid/shots
+   * Récupérer la liste des shots complétés pour un set
+   */
+  router.get('/sets/:setGuid/shots', async (req, res) => {
+    try {
+      const { setGuid } = req.params;
+
+      const result = await roboTargetCommands.getShotDoneBySetList(setGuid);
+
+      res.json({
+        success: true,
+        shots: result.parsed?.list || { done: [], deleted: [] },
+      });
+
+    } catch (error) {
+      console.error('Error getting set shots:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des shots',
+        error: error.message,
+      });
+    }
+  });
+
+  /**
+   * GET /api/robotarget/shots/:shotGuid/jpg
+   * Télécharger l'image JPG d'un shot
+   */
+  router.get('/shots/:shotGuid/jpg', async (req, res) => {
+    try {
+      const { shotGuid } = req.params;
+
+      const result = await roboTargetCommands.getShotJpg(shotGuid);
+
+      if (!result.parsed?.Base64Data) {
+        return res.status(404).json({
+          success: false,
+          message: 'Image non trouvée ou non disponible',
+        });
+      }
+
+      // Convert base64 to buffer
+      const imageBuffer = Buffer.from(result.parsed.Base64Data, 'base64');
+
+      // Send as image
+      res.set({
+        'Content-Type': 'image/jpeg',
+        'Content-Length': imageBuffer.length,
+        'Content-Disposition': `attachment; filename="shot_${shotGuid}.jpg"`,
+      });
+
+      res.send(imageBuffer);
+
+    } catch (error) {
+      console.error('Error getting shot JPG:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération de l\'image',
+        error: error.message,
+      });
+    }
+  });
+
+  /**
+   * GET /api/robotarget/shots/:shotGuid/metadata
+   * Récupérer uniquement les métadonnées d'un shot (sans l'image)
+   */
+  router.get('/shots/:shotGuid/metadata', async (req, res) => {
+    try {
+      const { shotGuid } = req.params;
+
+      const result = await roboTargetCommands.getShotJpg(shotGuid);
+
+      if (!result.parsed) {
+        return res.status(404).json({
+          success: false,
+          message: 'Métadonnées non trouvées',
+        });
+      }
+
+      // Return metadata without Base64Data to save bandwidth
+      const metadata = {
+        hfd: result.parsed.HFD,
+        starIndex: result.parsed.StarIndex,
+        pixelDimX: result.parsed.PixelDimX,
+        pixelDimY: result.parsed.PixelDimY,
+        min: result.parsed.Min,
+        max: result.parsed.Max,
+        mean: result.parsed.Mean,
+      };
+
+      res.json({
+        success: true,
+        metadata,
+      });
+
+    } catch (error) {
+      console.error('Error getting shot metadata:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des métadonnées',
+        error: error.message,
+      });
+    }
+  });
+
+  /**
+   * GET /api/robotarget/shots/since/:timestamp
+   * Récupérer les shots complétés depuis un timestamp
+   */
+  router.get('/shots/since/:timestamp', async (req, res) => {
+    try {
+      const { timestamp } = req.params;
+      const { targetGuid, setGuid } = req.query;
+
+      const result = await roboTargetCommands.getShotDoneSinceList(
+        parseInt(timestamp),
+        targetGuid || '',
+        setGuid || ''
+      );
+
+      res.json({
+        success: true,
+        shots: result.parsed?.list || { done: [], deleted: [] },
+      });
+
+    } catch (error) {
+      console.error('Error getting shots since timestamp:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des shots',
+        error: error.message,
+      });
+    }
+  });
+
   return router;
 }
 

@@ -73,4 +73,28 @@ class RoboTargetController extends Controller
             'creditsBalance' => $user->credits_balance,
         ]);
     }
+
+    /**
+     * Display the user's image gallery
+     */
+    public function gallery(Request $request): View
+    {
+        $user = $request->user();
+
+        // Get completed targets with sessions
+        $targets = RoboTarget::where('user_id', $user->id)
+            ->with(['sessions' => function ($query) {
+                $query->where('status', 'completed')
+                    ->where('images_accepted', '>', 0)
+                    ->orderBy('started_at', 'desc');
+            }])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('dashboard.robotarget.gallery', [
+            'targets' => $targets,
+            'subscription' => $user->subscription,
+            'creditsBalance' => $user->credits_balance,
+        ]);
+    }
 }

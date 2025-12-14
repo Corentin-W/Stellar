@@ -298,4 +298,190 @@ class RoboTargetController extends Controller
             ], 400);
         }
     }
+
+    /**
+     * Get completed shots for a session
+     */
+    public function getSessionShots(Request $request, string $sessionGuid): JsonResponse
+    {
+        try {
+            $proxyUrl = config('services.voyager.proxy_url');
+            $response = \Http::timeout(30)->get("{$proxyUrl}/api/robotarget/sessions/{$sessionGuid}/shots");
+
+            if (!$response->successful()) {
+                throw new \Exception('Failed to fetch session shots from proxy');
+            }
+
+            return response()->json($response->json());
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching session shots: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get completed shots for a target
+     */
+    public function getTargetShots(Request $request, int $targetId): JsonResponse
+    {
+        try {
+            $target = RoboTarget::where('id', $targetId)
+                ->where('user_id', $request->user()->id)
+                ->firstOrFail();
+
+            // Get sessions for this target
+            $sessions = $target->sessions()
+                ->where('status', 'completed')
+                ->get();
+
+            $allShots = [];
+
+            foreach ($sessions as $session) {
+                if ($session->guid_session) {
+                    $proxyUrl = config('services.voyager.proxy_url');
+                    $response = \Http::timeout(30)->get("{$proxyUrl}/api/robotarget/sessions/{$session->guid_session}/shots");
+
+                    if ($response->successful()) {
+                        $data = $response->json();
+                        if (isset($data['shots']['done'])) {
+                            foreach ($data['shots']['done'] as $shot) {
+                                $shot['session_id'] = $session->id;
+                                $shot['session_started_at'] = $session->started_at;
+                                $allShots[] = $shot;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'target' => [
+                    'id' => $target->id,
+                    'name' => $target->target_name,
+                ],
+                'shots' => $allShots,
+                'total' => count($allShots),
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching target shots: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Download a shot JPG image
+     */
+    public function downloadShotJpg(Request $request, string $shotGuid)
+    {
+        try {
+            $proxyUrl = config('services.voyager.proxy_url');
+            $response = \Http::timeout(60)->get("{$proxyUrl}/api/robotarget/shots/{$shotGuid}/jpg");
+
+            if (!$response->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Image not found or not available',
+                ], 404);
+            }
+
+            // Return the image directly
+            return response($response->body())
+                ->header('Content-Type', 'image/jpeg')
+                ->header('Content-Disposition', "attachment; filename=\"shot_{$shotGuid}.jpg\"");
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error downloading image: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get shot metadata
+     */
+    public function getShotMetadata(Request $request, string $shotGuid): JsonResponse
+    {
+        try {
+            $proxyUrl = config('services.voyager.proxy_url');
+            $response = \Http::timeout(30)->get("{$proxyUrl}/api/robotarget/shots/{$shotGuid}/metadata");
+
+            if (!$response->successful()) {
+                throw new \Exception('Failed to fetch shot metadata from proxy');
+            }
+
+            return response()->json($response->json());
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching shot metadata: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get user's gallery (all images from all completed sessions)
+     */
+    public function getUserGallery(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            // Get all completed targets with their sessions
+            $targets = RoboTarget::where('user_id', $user->id)
+                ->with(['sessions' => function ($query) {
+                    $query->where('status', 'completed')
+                        ->orderBy('started_at', 'desc');
+                }])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $gallery = [];
+
+            foreach ($targets as $target) {
+                foreach ($target->sessions as $session) {
+                    if ($session->guid_session && $session->images_accepted > 0) {
+                        $proxyUrl = config('services.voyager.proxy_url');
+                        $response = \Http::timeout(30)->get("{$proxyUrl}/api/robotarget/sessions/{$session->guid_session}/shots");
+
+                        if ($response->successful()) {
+                            $data = $response->json();
+                            if (isset($data['shots']['done']) && count($data['shots']['done']) > 0) {
+                                $gallery[] = [
+                                    'target_id' => $target->id,
+                                    'target_name' => $target->target_name,
+                                    'session_id' => $session->id,
+                                    'session_started_at' => $session->started_at,
+                                    'session_completed_at' => $session->completed_at,
+                                    'total_duration' => $session->total_duration,
+                                    'images_count' => count($data['shots']['done']),
+                                    'shots' => $data['shots']['done'],
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'gallery' => $gallery,
+                'total_sessions' => count($gallery),
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching gallery: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -198,6 +198,64 @@ class RoboTargetCommands extends Commands {
       GuidTarget: targetGuid,
     });
   }
+
+  /**
+   * Get list of completed shots for a session
+   * @param {string} sessionGuid - Session GUID
+   * @returns {Promise} List of completed shots with metadata
+   */
+  async getShotDoneBySessionList(sessionGuid) {
+    logger.info(`Getting completed shots for session: ${sessionGuid}`);
+
+    return this.send('RoboTargetGetShotDoneBySessionList', {
+      RefGuidSession: sessionGuid,
+    });
+  }
+
+  /**
+   * Get list of completed shots for a set
+   * @param {string} setGuid - Set GUID
+   * @returns {Promise} List of completed shots with metadata
+   */
+  async getShotDoneBySetList(setGuid) {
+    logger.info(`Getting completed shots for set: ${setGuid}`);
+
+    return this.send('RoboTargetGetShotDoneBySetList', {
+      RefGuidSet: setGuid,
+    });
+  }
+
+  /**
+   * Get JPG image for a specific shot
+   * @param {string} shotDoneGuid - Shot Done GUID
+   * @param {string} fitFileName - Optional FIT file name (if not using GUID)
+   * @returns {Promise} Base64 JPG data + metadata (HFD, StarIndex, etc.)
+   */
+  async getShotJpg(shotDoneGuid, fitFileName = '') {
+    logger.info(`Getting JPG for shot: ${shotDoneGuid || fitFileName}`);
+
+    return this.send('RoboTargetGetShotJpg', {
+      RefGuidShotDone: shotDoneGuid || '',
+      FITFileName: fitFileName,
+    });
+  }
+
+  /**
+   * Get list of completed shots since a specific timestamp
+   * @param {number} sinceTimestamp - Unix timestamp (epoch)
+   * @param {string} targetGuid - Optional target GUID filter
+   * @param {string} setGuid - Optional set GUID filter
+   * @returns {Promise} List of completed shots since timestamp
+   */
+  async getShotDoneSinceList(sinceTimestamp, targetGuid = '', setGuid = '') {
+    logger.info(`Getting completed shots since: ${new Date(sinceTimestamp * 1000).toISOString()}`);
+
+    return this.send('RoboTargetGetShotDoneSinceList', {
+      Since: sinceTimestamp,
+      RefGuidTarget: targetGuid,
+      RefGuidSet: setGuid,
+    });
+  }
 }
 
 export default RoboTargetCommands;

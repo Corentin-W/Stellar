@@ -36,11 +36,53 @@ class RoboTargetSession extends Model
     ];
 
     /**
+     * Accessors for backward compatibility
+     */
+    public function getStatusAttribute(): string
+    {
+        // Map result code to status string
+        return match($this->result) {
+            self::RESULT_OK => 'completed',
+            self::RESULT_ABORTED => 'aborted',
+            self::RESULT_ERROR => 'error',
+            default => 'pending'
+        };
+    }
+
+    public function getStartedAtAttribute()
+    {
+        return $this->session_start;
+    }
+
+    public function getCompletedAtAttribute()
+    {
+        return $this->session_end;
+    }
+
+    public function getTotalDurationAttribute(): ?int
+    {
+        return $this->getDuration();
+    }
+
+    public function getGuidSessionAttribute()
+    {
+        return $this->session_guid;
+    }
+
+    /**
      * Relations
      */
     public function roboTarget(): BelongsTo
     {
         return $this->belongsTo(RoboTarget::class);
+    }
+
+    /**
+     * Alias for roboTarget relation (for convenience)
+     */
+    public function target(): BelongsTo
+    {
+        return $this->roboTarget();
     }
 
     /**

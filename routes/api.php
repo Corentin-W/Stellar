@@ -49,6 +49,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/targets/{guid}/cancel', [RoboTargetController::class, 'cancel']);
         Route::get('/targets/{guid}/progress', [RoboTargetController::class, 'progress']);
 
+        // Gallery & Images
+        Route::get('/gallery', [RoboTargetController::class, 'getUserGallery']);
+        Route::get('/targets/{targetId}/shots', [RoboTargetController::class, 'getTargetShots']);
+        Route::get('/sessions/{sessionGuid}/shots', [RoboTargetController::class, 'getSessionShots']);
+        Route::get('/shots/{shotGuid}/jpg', [RoboTargetController::class, 'downloadShotJpg']);
+        Route::get('/shots/{shotGuid}/metadata', [RoboTargetController::class, 'getShotMetadata']);
+
         // Stats
         Route::get('/stats', [RoboTargetController::class, 'stats']);
     });

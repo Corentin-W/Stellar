@@ -153,6 +153,7 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
         Route::prefix('robotarget')->name('robotarget.')->middleware('subscription.required')->group(function () {
             Route::get('/', [\App\Http\Controllers\RoboTargetController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\RoboTargetController::class, 'create'])->name('create');
+            Route::get('/gallery', [\App\Http\Controllers\RoboTargetController::class, 'gallery'])->name('gallery');
             Route::get('/{guid}', [\App\Http\Controllers\RoboTargetController::class, 'show'])->name('show');
         });
 
