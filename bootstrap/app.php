@@ -15,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'locale' => \App\Http\Middleware\LocaleMiddleware::class,
+            'subscription.required' => \App\Http\Middleware\RequireActiveSubscription::class,
+            'feature.access' => \App\Http\Middleware\CheckFeatureAccess::class,
         ]);
 
         // Appliquer le middleware de locale à toutes les routes web

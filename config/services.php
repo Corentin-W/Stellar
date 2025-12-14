@@ -50,6 +50,12 @@ return [
         'redirect' => env('APP_URL') . '/auth/facebook/callback',
     ],
 
+    // Voyager Proxy
+    'voyager_proxy' => [
+        'url' => env('VOYAGER_PROXY_URL', 'http://localhost:3000'),
+        'webhook_secret' => env('VOYAGER_WEBHOOK_SECRET'),
+    ],
+
     'twitter' => [
         'client_id' => env('TWITTER_CLIENT_ID'),
         'client_secret' => env('TWITTER_CLIENT_SECRET'),

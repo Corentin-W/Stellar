@@ -9,23 +9,7 @@
 
     <div class="relative z-10 max-w-7xl mx-auto px-6 py-8">
 
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-white">Gestion des Packages</h1>
-                <p class="text-white/60 mt-2">Créez et gérez les packages de crédits</p>
-            </div>
-            <div class="flex items-center gap-4">
-                <a href="{{ route('admin.credits.dashboard') }}"
-                   class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors">
-                    ← Retour au dashboard
-                </a>
-                <a href="{{ route('admin.credits.packages.create') }}"
-                   class="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all">
-                    + Nouveau Package
-                </a>
-            </div>
-        </div>
+      
 
         <!-- Statistiques rapides -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

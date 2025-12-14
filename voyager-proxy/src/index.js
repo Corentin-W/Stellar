@@ -6,6 +6,7 @@ import VoyagerConnection from './voyager/connection.js';
 import ApiServer from './api/server.js';
 import WebSocketServer from './websocket/server.js';
 import MetricsCollector from './utils/metrics.js';
+import RoboTargetEventHandler from './voyager/robotarget/events.js';
 
 class VoyagerProxy {
   constructor() {
@@ -13,6 +14,7 @@ class VoyagerProxy {
     this.apiServer = null;
     this.wsServer = null;
     this.metricsCollector = null;
+    this.roboTargetEventHandler = null;
     this.isShuttingDown = false;
   }
 
@@ -38,6 +40,14 @@ class VoyagerProxy {
           enabled: process.env.VOYAGER_AUTH_ENABLED === 'true',
           username: process.env.VOYAGER_USERNAME,
           password: process.env.VOYAGER_PASSWORD,
+          // MAC authentication parameters
+          authBase: process.env.VOYAGER_AUTH_BASE,
+          macKey: process.env.VOYAGER_MAC_KEY,
+          macWord1: process.env.VOYAGER_MAC_WORD1,
+          macWord2: process.env.VOYAGER_MAC_WORD2,
+          macWord3: process.env.VOYAGER_MAC_WORD3,
+          macWord4: process.env.VOYAGER_MAC_WORD4,
+          licenseNumber: process.env.VOYAGER_LICENSE_NUMBER,
         },
         heartbeat: {
           interval: parseInt(process.env.HEARTBEAT_INTERVAL || 5000),
@@ -61,6 +71,15 @@ class VoyagerProxy {
       );
       this.wsServer.start();
       logger.info('🔌 WebSocket server started');
+
+      // Initialize RoboTarget Event Handler
+      this.roboTargetEventHandler = new RoboTargetEventHandler(
+        this.voyagerConnection,
+        process.env.LARAVEL_API_URL,
+        process.env.VOYAGER_WEBHOOK_SECRET
+      );
+      this.roboTargetEventHandler.register();
+      logger.info('🎯 RoboTarget event handler registered');
 
       // Setup event forwarding to WebSocket
       this.setupEventForwarding();
@@ -135,6 +154,49 @@ class VoyagerProxy {
     this.voyagerConnection.on('connectionStateChange', (state) => {
       this.wsServer.broadcast('connectionState', state);
       logger.info(`Connection state: ${state.status}`);
+    });
+
+    // RoboTarget Events
+    this.voyagerConnection.on('roboTargetSessionStart', (data) => {
+      this.wsServer.broadcast('roboTargetSessionStart', data);
+      if (this.metricsCollector) {
+        this.metricsCollector.recordEvent('roboTargetSessionStart');
+      }
+    });
+
+    this.voyagerConnection.on('roboTargetSessionComplete', (data) => {
+      this.wsServer.broadcast('roboTargetSessionComplete', data);
+      if (this.metricsCollector) {
+        this.metricsCollector.recordEvent('roboTargetSessionComplete');
+      }
+    });
+
+    this.voyagerConnection.on('roboTargetSessionAbort', (data) => {
+      this.wsServer.broadcast('roboTargetSessionAbort', data);
+      if (this.metricsCollector) {
+        this.metricsCollector.recordEvent('roboTargetSessionAbort');
+      }
+    });
+
+    this.voyagerConnection.on('roboTargetProgress', (data) => {
+      this.wsServer.broadcast('roboTargetProgress', data);
+      if (this.metricsCollector) {
+        this.metricsCollector.recordEvent('roboTargetProgress');
+      }
+    });
+
+    this.voyagerConnection.on('roboTargetShotComplete', (data) => {
+      this.wsServer.broadcast('roboTargetShotComplete', data);
+      if (this.metricsCollector) {
+        this.metricsCollector.recordEvent('roboTargetShotComplete');
+      }
+    });
+
+    this.voyagerConnection.on('roboTargetError', (data) => {
+      this.wsServer.broadcast('roboTargetError', data);
+      if (this.metricsCollector) {
+        this.metricsCollector.recordEvent('roboTargetError');
+      }
     });
   }
 

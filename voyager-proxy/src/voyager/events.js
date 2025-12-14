@@ -206,6 +206,38 @@ class EventHandler {
     }, 1000);
   }
 
+  // RoboTarget Event Handlers
+
+  handleRoboTargetSessionStart(message) {
+    logger.info(`RoboTarget Session Started: ${message.GuidTarget}`);
+    this.connection.emit('roboTargetSessionStart', message);
+  }
+
+  handleRoboTargetSessionComplete(message) {
+    logger.info(`RoboTarget Session Completed: ${message.GuidTarget}`);
+    this.connection.emit('roboTargetSessionComplete', message);
+  }
+
+  handleRoboTargetSessionAbort(message) {
+    logger.warn(`RoboTarget Session Aborted: ${message.GuidTarget}`);
+    this.connection.emit('roboTargetSessionAbort', message);
+  }
+
+  handleRoboTargetProgress(message) {
+    logger.debug(`RoboTarget Progress: ${message.Progress}%`);
+    this.connection.emit('roboTargetProgress', message);
+  }
+
+  handleRoboTargetShotComplete(message) {
+    logger.debug(`RoboTarget Shot Complete`);
+    this.connection.emit('roboTargetShotComplete', message);
+  }
+
+  handleRoboTargetError(message) {
+    logger.error(`RoboTarget Error: ${message.ErrorMessage || 'Unknown error'}`);
+    this.connection.emit('roboTargetError', message);
+  }
+
   // Helper methods
   parseVoyagerStatus(status) {
     const statuses = {

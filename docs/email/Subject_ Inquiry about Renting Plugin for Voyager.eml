@@ -1,0 +1,308 @@
+Delivered-To: corentin.waucampt@gmail.com
+Received: by 2002:a05:6504:502f:b0:2c1:1934:fb36 with SMTP id t15csp2098152ltc;
+        Sun, 28 Sep 2025 23:55:33 -0700 (PDT)
+X-Received: by 2002:a17:907:86ab:b0:b04:9854:981f with SMTP id a640c23a62f3a-b34bc96d5femr1744893966b.43.1759128933151;
+        Sun, 28 Sep 2025 23:55:33 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1759128933; cv=none;
+        d=google.com; s=arc-20240605;
+        b=TC1ITncF+HZt5gMaUezXQVTsvI4qkWw7+DWesb/5Mgub4L+iF1D0NaU0Hl5eeBBo13
+         +oYNQMIBRurvMhLNq15HVfK8vlKERA1gRlSd4DaPKUGv5zmBlB2WY7CGJymFfjOuL6AN
+         MvWrXBrW5LXAeuYEcPZ83xeTYJulcROK/nZXKb1P00kDX/J02oVIxrAEox50ZzffzR5T
+         HwRPPKIqB6I987pgzKVyVlV8LOLJvBA6oG0XzHclSWJT+FXVRFg9LBCh1bzUj2H5n7Ad
+         N98fsTkbuHK0sKUZYsncLd5Qi8F/EY0Xs99dE04w5LSbxsyhF7xLbBlneLFk9XsEFW7c
+         PHvg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:references:message-id:subject:date:mime-version:from
+         :content-transfer-encoding:dkim-signature;
+        bh=ZzqQFe3Ln4zXMTgdA+QLS7kzfNnAR1krAG7n1/ZFDxw=;
+        fh=P73dW2gi0F1iund2xUUUWhh4X1DT5PoDntWteXANlUs=;
+        b=Bk9qNOEfTWCp1D+jt6eSylwzIrwBxAQCnLHT+yWvOnqeN7rThbUuFaFlCUnUnvbqYw
+         wRelmVS/hza+Cs5XSZqMkN7GehHkMqImJk1VWOKTByWPVwkcvwGQwYPKFLE96riAPbMs
+         BMFWiPww2c4hGWLuPi+tmtmo6Va/MbhdalwdTom6iYKLHm6UcXjg/fD0ZeMkV71kPv9J
+         jypSGoEfHBEUysm2/UfQuy+rjWC2kxhcnwvZ5g8e9XNaW2ABAv9TsT+dxyOkj/3Qx7Wh
+         LWMiy7ZnH6Yr33BdFOoRknqdt5YVIsZAG0WFb/GmI7cDmP3mi0AiieksmIuZdIPEfgbu
+         RkWQ==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b=jP3wlV8d;
+       spf=pass (google.com: domain of dherbomez75@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=dherbomez75@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com;
+       dara=pass header.i=@gmail.com
+Return-Path: <dherbomez75@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id a640c23a62f3a-b3cf8b46b32sor49445666b.7.2025.09.28.23.55.33
+        for <corentin.waucampt@gmail.com>
+        (Google Transport Security);
+        Sun, 28 Sep 2025 23:55:33 -0700 (PDT)
+Received-SPF: pass (google.com: domain of dherbomez75@gmail.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b=jP3wlV8d;
+       spf=pass (google.com: domain of dherbomez75@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=dherbomez75@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com;
+       dara=pass header.i=@gmail.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1759128932; x=1759733732; dara=google.com;
+        h=to:references:message-id:subject:date:mime-version:from
+         :content-transfer-encoding:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=ZzqQFe3Ln4zXMTgdA+QLS7kzfNnAR1krAG7n1/ZFDxw=;
+        b=jP3wlV8dfxGOUhipsbOnPlXUxLUZOBMDr12UZtw8HjFgfEWRSSAGcwEcNVywKZSbtY
+         7l48koGwSRVbg4+GbwMsiW2EsRsVnngO9iCRl+/RrhTHzk6qywYTZruYTI8AScc0Mfs1
+         us7UNQF+rO2j2QzOOBNU12AVXTEB6Lsjeur4ILxiMbLGt98e/e73X9Mde4NwZZT8Oz+e
+         /XGB4lFDLxkjEZAR6Oh/0CAAZLdFzdaufk072ICgR/zXZQ+S5lsSTZ+K3u5dUIxCc+z1
+         gHgval0lJJ4MXC6hBDW2/ZMedYBk7tTgXtqAW5vMqtSRJLl8mazqUF4adrj3sKIEuQ2n
+         ZGOg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1759128932; x=1759733732;
+        h=to:references:message-id:subject:date:mime-version:from
+         :content-transfer-encoding:x-gm-message-state:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=ZzqQFe3Ln4zXMTgdA+QLS7kzfNnAR1krAG7n1/ZFDxw=;
+        b=KaZByzRf1UsjeIPAJZOgggSyPlqhgzdObtWcGcVfZTbpovjwsNNIFsZs2jrRevQo80
+         nYTp0XsW6pCRyY6m6dOdEWEBPN58+0awDlEvmv88y27xMouGIdcYYGL/jVr5HM6ldgkd
+         T12KZflbC3gHZTJrjGVirvRACcFna7LgO5BezONbVrBXzl6zXc/pEAbWc+/CvSGQOfkN
+         MyPF8jJu8ruz+6sEKrW3PR3tWns3BHcg9Gs+i6EHifPkbwAe8OuC2bjkeU2MdkGKpAuM
+         nHp/N3jMcl+VVrys34SzYJOm1mc78oi6IcBHMkcRJMqUtZ0rBbR6J2THx1xr3VIlSAr2
+         H9Fg==
+X-Gm-Message-State: AOJu0YwC+3hvS2NOAMt8S3kjwpMuIeHDiD3Fz3Dvmmce2SPhaXe4yXis
+	8sbyrSfJt93lpS/tlGo2IhlMdz/mTTY+PznZP+aglwRklQUHuRZ8rk4geb3AT8MhVwE=
+X-Gm-Gg: ASbGncvxbfOS2Mv7JWcHkYFXFuCNaBjAiOsfi75Z7gw3iuJ3v4fxJSw0dlfxvFU4M6h
+	dR21NWi/zNj9SQxVRB1nznclToVGiJt7zuH081nlgWZGuqOCDGcW62sYLuNNya07rCQLZijZewg
+	lWyYxx70d9F/UPF5ELN9qEuvZiO6m0BqxxzdsPo3Yd8lnbGFO7qchqirJrkBGX4SiUW5yhx1cGw
+	PGGKYo4xaRtIKWW09WtDlUacWPxami09PJtHmD+js/LORYp1W0OCHWshhlO/JNdvftEvI+Hw7EQ
+	PpEm3WyZH58AIcJhcKAfX2uRdn6aduueA0RegjaREulSQuCjUhYBKFKLRiAd/lu3dbialFLbnbm
+	bJ7S6PztSlRAtIEGvzZHkGR4StEDLG9uE0SSbedPKVrVg+UPdy+QuP6Coin2vTybl4atfmyeZ
+X-Google-Smtp-Source: AGHT+IGKwjppbbgweri5axMmDfOCDbxkIpk2D6wr8vtGBJbDe6/K9hl6H/Oyf7eW+irjuYVBFULMYw==
+X-Received: by 2002:a17:907:3e8d:b0:b34:103b:4846 with SMTP id a640c23a62f3a-b34b8d96456mr1877784166b.25.1759128931972;
+        Sun, 28 Sep 2025 23:55:31 -0700 (PDT)
+Return-Path: <dherbomez75@gmail.com>
+Received: from smtpclient.apple (62-2-252-102.static.cablecom.ch. [62.2.252.102])
+        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-b353efb8903sm855718166b.33.2025.09.28.23.55.30
+        for <corentin.waucampt@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sun, 28 Sep 2025 23:55:31 -0700 (PDT)
+Content-Type: multipart/alternative; boundary=Apple-Mail-5BAB34B5-49E8-43C9-8122-8A5A80BD1172
+Content-Transfer-Encoding: 7bit
+From: Mikael & Julie Dherbomez <dherbomez75@gmail.com>
+Mime-Version: 1.0 (1.0)
+Date: Mon, 29 Sep 2025 08:55:20 +0200
+Subject: Fwd: Subject: Inquiry about Renting Plugin for Voyager
+Message-Id: <7A88DA93-7914-46B1-8740-35E5F27F6B63@gmail.com>
+References: <CAJTVs0GxwGv4v5S3C+0ibqPArjyQ5dfRJuT6vFo4LxwO4CNprQ@mail.gmail.com>
+To: corentin.waucampt@gmail.com
+X-Mailer: iPhone Mail (22G100)
+
+
+--Apple-Mail-5BAB34B5-49E8-43C9-8122-8A5A80BD1172
+Content-Type: text/html;
+	charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><head><meta http-equiv=3D"content-type" content=3D"text/html; charset=3D=
+utf-8"></head><body dir=3D"auto"><br id=3D"lineBreakAtBeginningOfSignature">=
+<div dir=3D"ltr">Envoy=C3=A9 de mon iPhone</div><div dir=3D"ltr"><br>D=C3=A9=
+but du message transf=C3=A9r=C3=A9&nbsp;:<br><br></div><blockquote type=3D"c=
+ite"><div dir=3D"ltr"><b>De:</b> Leonardo Orazi &lt;voyagerastro@gmail.com&g=
+t;<br><b>Date:</b> 28 septembre 2025 =C3=A0 20:51:08 UTC+2<br><b>=C3=80:</b>=
+ Dherbomez &lt;dherbomez75@gmail.com&gt;<br><b>Objet:</b> <b>Subject: Inquir=
+y about Renting Plugin for Voyager</b><br><br></div></blockquote><blockquote=
+ type=3D"cite"><div dir=3D"ltr">=EF=BB=BF<div dir=3D"ltr"><div>Dear Mikael</=
+div><div><br></div><div>please install the release 2.3.13 of Voyager and let=
+ me know the new serial associated to Voyager</div><div>The one asked is not=
+ more valid</div><div><br></div><div>All the best</div></div><br><div class=3D=
+"gmail_quote gmail_quote_container"><div dir=3D"ltr" class=3D"gmail_attr">On=
+ Sun, Sep 28, 2025 at 8:10=E2=80=AFPM Dherbomez &lt;<a href=3D"mailto:dherbo=
+mez75@gmail.com">dherbomez75@gmail.com</a>&gt; wrote:<br></div><blockquote c=
+lass=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-left:1px solid=
+ rgb(204,204,204);padding-left:1ex"><div dir=3D"ltr"><p style=3D"color:rgb(0=
+,0,0)">Hello Leonardo,</p><p style=3D"color:rgb(0,0,0)">Thank you. Here is t=
+he license number:<br></p><p style=3D"color:rgb(0,0,0)"><b>F738-EAF6-3F29-F0=
+79-8E1E-DD77-F2BE-4A0D</b><br></p><p style=3D"color:rgb(0,0,0)"><b></b></p><=
+p style=3D"color:rgb(0,0,0)">Best regards,<br></p><p style=3D"color:rgb(0,0,=
+0)">Mikael</p></div><br><div class=3D"gmail_quote"><div dir=3D"ltr" class=3D=
+"gmail_attr">Le&nbsp;dim. 28 sept. 2025 =C3=A0&nbsp;16:02, Leonardo Orazi &l=
+t;<a href=3D"mailto:voyagerastro@gmail.com" target=3D"_blank">voyagerastro@g=
+mail.com</a>&gt; a =C3=A9crit&nbsp;:<br></div><blockquote class=3D"gmail_quo=
+te" style=3D"margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204)=
+;padding-left:1ex"><div dir=3D"ltr"><div>Hi Mikael,</div><div><br></div>Than=
+k you for purchasing the Voyager Advanced NDA Renter version license, comple=
+te with dedicated MAC for<br><div>reserved access with NDA to the RoboTarget=
+ API.</div><div><br></div><div>Attached you will find:</div><ul><li>the docu=
+mentation for using the API of the Voyager BASIC version (Application Server=
+)</li><li>the documentation for using the RoboTarget API covered by the NDA o=
+f the Advanced version of Voyager (Application Server)</li><li>a C# example o=
+f a generic client created by one of our users (<a href=3D"https://www.stark=
+eeper.it/voyager/VoyagerAPITest.zip" target=3D"_blank">https://www.starkeepe=
+r.it/voyager/VoyagerAPITest.zip</a>)</li><li>a Python example of a generic c=
+lient created by one of our users (<a href=3D"https://forum.starkeeper.it/t/=
+python-client-forvoyager-application-server/4045" target=3D"_blank">https://=
+forum.starkeeper.it/t/python-client-forvoyager-application-server/4045</a>)<=
+/li></ul>This is your dedicated MAC Key, covered by the NDA and not to be di=
+stributed and to be used to access the<br><div>RoboTarget API under the NDA:=
+</div><div><br></div>MAC Key =3D Dherbomez<br>MAC 1 =3D QRP7KvBJmXyT3sLz<br>=
+MAC 2 =3D MGH9TaNcLpR2fWeq<br>MAC 3 =3D ZXY1bUvKcDf8RmNo<div>MAC 4 =3D PLD4Q=
+sVeJh6YaTux</div><div><br></div>This is the minimum (and later) version of V=
+oyager to Install to use your MAC KEY and Advanced RoboTarget API<br>(previo=
+us versions will not work for you):<br><div><a href=3D"https://www.starkeepe=
+r.it/voyager/Voyager_Setup_2.3.13.zip" target=3D"_blank">https://www.starkee=
+per.it/voyager/Voyager_Setup_2.3.13.zip</a>&nbsp; &nbsp;(32 bit)&nbsp;</div>=
+<div><a href=3D"https://www.starkeeper.it/voyager/Voyager_Setup_2.3.13_64bit=
+.zip" target=3D"_blank">https://www.starkeeper.it/voyager/Voyager_Setup_2.3.=
+13_64bit.zip</a>&nbsp; &nbsp;(64bit)</div><div><br></div><span style=3D"back=
+ground-color:rgb(255,255,0)">Please let me know the Voyager serial you want t=
+o use for the NDA License (the only one you have or another one).</span><div=
+><br></div>THE DIVULGATION OF THE API ROBOTARGET DOCUMENTATION AND YOUR MAC I=
+S FORBIDDEN. AS PER<br><div>SIGNED NDA.</div><div><br></div>All the best<br>=
+<br></div><br><div class=3D"gmail_quote"><div dir=3D"ltr" class=3D"gmail_att=
+r">On Sun, Sep 28, 2025 at 2:29=E2=80=AFPM Mikael &amp; Julie Dherbomez &lt;=
+<a href=3D"mailto:dherbomez75@gmail.com" target=3D"_blank">dherbomez75@gmail=
+.com</a>&gt; wrote:<br></div><blockquote class=3D"gmail_quote" style=3D"marg=
+in:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);padding-left:1ex=
+"><div dir=3D"auto"><p style=3D"margin:0px 0px 12px;font-style:normal;font-v=
+ariant-caps:normal;font-size:19px;line-height:normal;font-family:&quot;Times=
+ New Roman&quot;;font-size-adjust:none;font-kerning:auto;font-variant-altern=
+ates:normal;font-variant-ligatures:normal;font-variant-numeric:normal;font-v=
+ariant-east-asian:normal;font-feature-settings:normal"><span style=3D"font-k=
+erning:none">Hi Leonardo,</span></p>
+<p style=3D"margin:0px 0px 12px;font-style:normal;font-variant-caps:normal;f=
+ont-size:12px;line-height:normal;font-family:&quot;Times New Roman&quot;;fon=
+t-size-adjust:none;font-kerning:auto;font-variant-alternates:normal;font-var=
+iant-ligatures:normal;font-variant-numeric:normal;font-variant-east-asian:no=
+rmal;font-feature-settings:normal;min-height:13.8px"><span style=3D"font-siz=
+e:19px">Thank you for your message. I confirm that I have signed the NDA doc=
+uments as requested and I am sending them back to you in PDF format.</span><=
+span style=3D"font-kerning:none"></span></p>
+<p style=3D"margin:0px 0px 12px;font-style:normal;font-variant-caps:normal;f=
+ont-size:12px;line-height:normal;font-family:&quot;Times New Roman&quot;;fon=
+t-size-adjust:none;font-kerning:auto;font-variant-alternates:normal;font-var=
+iant-ligatures:normal;font-variant-numeric:normal;font-variant-east-asian:no=
+rmal;font-feature-settings:normal;min-height:13.8px"><span style=3D"font-siz=
+e:19px">Please let me know once you have received everything so we can proce=
+ed with the next steps.</span><span style=3D"font-kerning:none"></span></p>
+<p style=3D"margin:0px 0px 12px;font-style:normal;font-variant-caps:normal;f=
+ont-size:12px;line-height:normal;font-family:&quot;Times New Roman&quot;;fon=
+t-size-adjust:none;font-kerning:auto;font-variant-alternates:normal;font-var=
+iant-ligatures:normal;font-variant-numeric:normal;font-variant-east-asian:no=
+rmal;font-feature-settings:normal;min-height:13.8px"><span style=3D"font-siz=
+e:19px"></span></p></div><div dir=3D"auto" role=3D"textbox" aria-label=3D"Co=
+rps du message"><p style=3D"margin:0px 0px 12px;font-style:normal;font-varia=
+nt-caps:normal;font-size:12px;line-height:normal;font-family:&quot;Times New=
+ Roman&quot;;font-size-adjust:none;font-kerning:auto;font-variant-alternates=
+:normal;font-variant-ligatures:normal;font-variant-numeric:normal;font-varia=
+nt-east-asian:normal;font-feature-settings:normal;min-height:13.8px"><span s=
+tyle=3D"font-size:19px"></span></p></div><div dir=3D"auto"><p style=3D"margi=
+n:0px 0px 12px;font-style:normal;font-variant-caps:normal;font-size:12px;lin=
+e-height:normal;font-family:&quot;Times New Roman&quot;;font-size-adjust:non=
+e;font-kerning:auto;font-variant-alternates:normal;font-variant-ligatures:no=
+rmal;font-variant-numeric:normal;font-variant-east-asian:normal;font-feature=
+-settings:normal;min-height:13.8px"><span style=3D"font-size:19px"></span></=
+p><p style=3D"margin:0px 0px 12px;font-style:normal;font-variant-caps:normal=
+;font-size:12px;line-height:normal;font-family:&quot;Times New Roman&quot;;f=
+ont-size-adjust:none;font-kerning:auto;font-variant-alternates:normal;font-v=
+ariant-ligatures:normal;font-variant-numeric:normal;font-variant-east-asian:=
+normal;font-feature-settings:normal;min-height:13.8px"><span style=3D"font-s=
+ize:19px">Best regards,</span><span style=3D"font-kerning:none"></span></p>
+<p style=3D"margin:0px 0px 12px;font-style:normal;font-variant-caps:normal;f=
+ont-size:19px;line-height:normal;font-family:&quot;Times New Roman&quot;;fon=
+t-size-adjust:none;font-kerning:auto;font-variant-alternates:normal;font-var=
+iant-ligatures:normal;font-variant-numeric:normal;font-variant-east-asian:no=
+rmal;font-feature-settings:normal"><span style=3D"font-kerning:none">Mikael<=
+/span></p><div><span style=3D"font-kerning:none"><br></span></div><div dir=3D=
+"ltr">Envoy=C3=A9 de mon iPhone</div><div dir=3D"ltr"><br><blockquote type=3D=
+"cite">Le 27 sept. 2025 =C3=A0 14:46, Leonardo Orazi &lt;<a href=3D"mailto:v=
+oyagerastro@gmail.com" target=3D"_blank">voyagerastro@gmail.com</a>&gt; a =C3=
+=A9crit&nbsp;:<br><br></blockquote></div><blockquote type=3D"cite"><div dir=3D=
+"ltr"><div>Hi Mikael</div><div><br></div><div>Thank you so much. Really appr=
+eciated your decision to go ahead with NDA.</div><div><br></div><div>Attache=
+d the invoice about your purchase.</div><div>Attached also the NDA Agreement=
+ to be signed in PDF&nbsp;format to continue the iter to obtain&nbsp;a Voyag=
+er NDA license.</div><div>Please print it, read it carefully, sign it and in=
+ the 3rd page put the data about the developer if different from you (and at=
+tach a copy of his document) and his signature.</div><div>Scan the signed do=
+cument and send it to us like PDF.</div><div><br></div><div>Send to us also t=
+he serial number of Voyager you will use for final use.</div><div><br></div>=
+<div>After we will receive all, we will continue with the steps as written y=
+esterday:</div><div>
+</div><ul><li>we will send to you the license file with the NDA extension an=
+d all=20
+documentation about the API and a simple example for talking with the=20
+API</li><li>we will send to you the credentials to you reserved to open=20
+the RoboTarget feature for NDA, this will identify you over the world=20
+wide web and prevent anyone else that have the API to gain access to=20
+your system (Voyager use double cryptography&nbsp;4096 bit system with rollu=
+p
+ key change)</li><li>we will send you also by email a suggestion on a=20
+strategy to implement your client with our NDA API based on our=20
+experience with other customers</li><li>we will available for 1 hour remote c=
+all to explain what in point 7 and 8</li></ul><div>Thank you so much</div><d=
+iv><br></div><div>All the best</div></div></blockquote></div></blockquote></=
+div><div><br clear=3D"all"></div><br><span class=3D"gmail_signature_prefix">=
+-- </span><br><div dir=3D"ltr" class=3D"gmail_signature"><div dir=3D"ltr"><d=
+iv style=3D"font-family:Calibri,Helvetica,sans-serif;font-size:12pt;color:rg=
+b(0,0,0)"></div><div style=3D"font-family:Calibri,Helvetica,sans-serif;font-=
+size:12pt;color:rgb(0,0,0)">
+</div><div>------------------------------------------------<br>
+</div>
+<div><span style=3D"font-size:10pt">Leonardo Orazi</span></div>
+<div><span style=3D"font-size:10pt">CEO @ Starkeeper</span></div>
+<div><a href=3D"https://software.starkeeper.it" title=3D"https://software.st=
+arkeeper.it" target=3D"_blank"><span style=3D"font-size:10pt">https://softwa=
+re.starkeeper.it</span></a></div>
+<div><a href=3D"https://forum.starkeeper.it" title=3D"https://forum.starkeep=
+er.it" target=3D"_blank"><span style=3D"font-size:10pt">https://forum.starke=
+eper.it</span></a></div>
+<div><span style=3D"font-size:10pt">Mail: <a href=3D"mailto:voyagerastro@gma=
+il.com" target=3D"_blank">voyagerastro@gmail.com</a></span></div>
+<div><span style=3D"font-size:10pt">Phone &amp; Whatsapp: +393389705572</spa=
+n></div>
+<div><span style=3D"font-size:10pt">Skype: <a href=3D"mailto:pegaso0970@hotm=
+ail.com" target=3D"_blank">pegaso0970@hotmail.com</a></span><br>
+<span>------------------------------------------------</span><br>
+</div>
+<div><img src=3D"https://ci3.googleusercontent.com/mail-sig/AIorK4zHTOwqwWto=
+C7oI9g6ZbZRjtf0Z92b4Drdwpc3kIShNLyfauImz4-HRJPbZc9sH41gY_sDz_G5w5CDZ" data-u=
+nique-identifier=3D""><br></div><div>---------------------------------------=
+---------</div>
+<div><span style=3D"font-size:10pt">Personal Astro WebSite:</span></div>
+<div><a href=3D"http://www.starkeeper.it" target=3D"_blank"><span style=3D"f=
+ont-size:10pt">http://www.starkeeper.it</span></a><br>
+</div>
+<div></div>
+------------------------------------------------</div></div>
+</blockquote></div>
+</blockquote></div><div><br clear=3D"all"></div><br><span class=3D"gmail_sig=
+nature_prefix">-- </span><br><div dir=3D"ltr" class=3D"gmail_signature"><div=
+ dir=3D"ltr"><div style=3D"font-family:Calibri,Helvetica,sans-serif;font-siz=
+e:12pt;color:rgb(0,0,0)"></div><div style=3D"font-family:Calibri,Helvetica,s=
+ans-serif;font-size:12pt;color:rgb(0,0,0)">
+</div><div>------------------------------------------------<br>
+</div>
+<div><span style=3D"font-size:10pt">Leonardo Orazi</span></div>
+<div><span style=3D"font-size:10pt">CEO @ Starkeeper</span></div>
+<div><a href=3D"https://software.starkeeper.it" title=3D"https://software.st=
+arkeeper.it" target=3D"_blank"><span style=3D"font-size:10pt">https://softwa=
+re.starkeeper.it</span></a></div>
+<div><a href=3D"https://forum.starkeeper.it" title=3D"https://forum.starkeep=
+er.it" target=3D"_blank"><span style=3D"font-size:10pt">https://forum.starke=
+eper.it</span></a></div>
+<div><span style=3D"font-size:10pt">Mail: <a href=3D"mailto:voyagerastro@gma=
+il.com" target=3D"_blank">voyagerastro@gmail.com</a></span></div>
+<div><span style=3D"font-size:10pt">Phone &amp; Whatsapp: +393389705572</spa=
+n></div>
+<div><span style=3D"font-size:10pt">Skype: <a href=3D"mailto:pegaso0970@hotm=
+ail.com" target=3D"_blank">pegaso0970@hotmail.com</a></span><br>
+<span>------------------------------------------------</span><br>
+</div>
+<div><img src=3D"https://ci3.googleusercontent.com/mail-sig/AIorK4zHTOwqwWto=
+C7oI9g6ZbZRjtf0Z92b4Drdwpc3kIShNLyfauImz4-HRJPbZc9sH41gY_sDz_G5w5CDZ" data-u=
+nique-identifier=3D""><br></div><div>---------------------------------------=
+---------</div>
+<div><span style=3D"font-size:10pt">Personal Astro WebSite:</span></div>
+<div><a href=3D"http://www.starkeeper.it" target=3D"_blank"><span style=3D"f=
+ont-size:10pt">http://www.starkeeper.it</span></a><br>
+</div>
+<div></div>
+------------------------------------------------</div></div>
+</div></blockquote></body></html>=
+
+--Apple-Mail-5BAB34B5-49E8-43C9-8122-8A5A80BD1172--

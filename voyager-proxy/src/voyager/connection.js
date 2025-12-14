@@ -33,6 +33,10 @@ class VoyagerConnection extends EventEmitter {
         reconnectAttempts: 0,
       },
     };
+
+    // RoboTarget Manager Mode state
+    this.isRoboTargetManagerMode = false;
+    this.sessionKey = null;
   }
 
   async connect() {
@@ -44,17 +48,22 @@ class VoyagerConnection extends EventEmitter {
       this.socket.setKeepAlive(true, 10000);
       this.socket.setTimeout(this.config.heartbeat.timeout);
 
-      this.socket.connect(this.config.port, this.config.host, () => {
+      this.socket.connect(this.config.port, this.config.host, async () => {
         logger.info('TCP connection established');
         this.isConnected = true;
         this.reconnectAttempts = 0;
         this.latestState.connection.status = 'connected';
         this.latestState.connection.connectedAt = new Date().toISOString();
         this.emit('connectionStateChange', this.latestState.connection);
+
+        // CONFORME À LA DOC: NE PAS authentifier avant l'événement Version
+        // L'authentification se fait dans handleMessage() après réception de Version
+        logger.info('⏳ Waiting for Version event (SessionKey capture)...');
       });
 
       this.socket.on('data', async (data) => {
         this.lastDataReceived = Date.now();
+        logger.debug(`📥 Raw data received: ${data.toString().substring(0, 200)}...`);
         this.buffer += data;
 
         // Process complete JSON lines (ending with \r\n)
@@ -63,32 +72,72 @@ class VoyagerConnection extends EventEmitter {
 
         for (const line of lines) {
           if (line.trim()) {
+            logger.debug(`📨 Processing line: ${line.substring(0, 100)}...`);
             try {
               const message = JSON.parse(line);
+              logger.info(`✅ Parsed message - Event: ${message.Event || message.method || 'unknown'}`);
               await this.handleMessage(message);
 
               // Resolve connection promise on Version event
               if (message.Event === 'Version' && !this.isAuthenticated) {
-                logger.info(`Voyager version: ${message.VOYVersion}`);
+                logger.info(`✅ Version event received`);
+                logger.info(`   Voyager version: ${message.VOYVersion}`);
+                logger.info(`   SessionKey (Timestamp): ${message.Timestamp}`);
                 this.latestState.version = message;
+                this.sessionKey = message.Timestamp; // Store SessionKey for RoboTarget
 
-                // Authenticate if required
+                // ÉTAPE 2: Authenticate if required (< 5 seconds)
                 if (this.config.auth.enabled) {
                   try {
+                    logger.info('🔐 STEP 2: Authenticating (< 5 seconds window)...');
                     await this.auth.authenticate();
                     this.isAuthenticated = true;
-                    this.startHeartbeat();
-                    resolve(message);
+                    logger.info('✅ Authentication successful');
                   } catch (error) {
-                    logger.error('Authentication failed:', error);
+                    logger.error('❌ Authentication failed:', error);
                     reject(error);
                     this.disconnect();
+                    return;
                   }
                 } else {
                   this.isAuthenticated = true;
-                  this.startHeartbeat();
-                  resolve(message);
+                  logger.info('⚠️ No authentication required (test mode)');
                 }
+
+                // ÉTAPE 3: Activate Dashboard Mode (required for JPG/ControlData)
+                try {
+                  logger.info('📊 STEP 3: Activating Dashboard Mode...');
+                  await this.commands.send('RemoteSetDashboardMode', {
+                    UID: require('uuid').v4(),
+                    On: true,
+                    Period: 2000, // 2 seconds
+                  });
+                  logger.info('✅ Dashboard Mode activated (JPG/ControlData stream enabled)');
+                } catch (error) {
+                  logger.warn('⚠️ Dashboard Mode activation failed:', error.message);
+                  // Continue anyway
+                }
+
+                // ÉTAPE 4: Activate RoboTarget Manager Mode if MAC Key is configured
+                if (this.config.auth.macKey) {
+                  try {
+                    logger.info('🤖 STEP 4: Activating RoboTarget Manager Mode...');
+                    await this.auth.activateRoboTargetManagerMode(this.sessionKey);
+                    this.isRoboTargetManagerMode = true;
+                    logger.info('✅ RoboTarget Manager Mode ACTIVE - All RoboTarget commands available');
+                  } catch (error) {
+                    logger.error('❌ Failed to activate RoboTarget Manager Mode:', error);
+                    logger.warn('⚠️ RoboTarget commands will NOT work without Manager Mode');
+                    // Don't reject - continue with basic connection
+                  }
+                }
+
+                // ÉTAPE 5: Start Heartbeat (Polling every 5s to prevent 15s timeout)
+                logger.info('💓 STEP 5: Starting Heartbeat...');
+                this.startHeartbeat();
+
+                logger.info('✅ Connection fully established!');
+                resolve(message);
               }
             } catch (error) {
               logger.error('Error parsing message:', error, 'Raw:', line);
@@ -196,20 +245,28 @@ class VoyagerConnection extends EventEmitter {
 
     logger.warn(`Disconnected: ${reason}`);
 
-    // Attempt reconnection
+    // Attempt reconnection with exponential backoff
     if (this.reconnectAttempts < this.config.reconnect.maxAttempts) {
       this.reconnectAttempts++;
       this.latestState.connection.reconnectAttempts = this.reconnectAttempts;
 
+      // Exponential backoff: 5s, 10s, 20s, 40s, ..., max 5min (300s)
+      // Conforme à la doc: docs/doc_voyager/connexion_et_maintien.md
+      const baseDelay = this.config.reconnect.delay || 5000; // 5 seconds base
+      const exponentialDelay = Math.min(
+        baseDelay * Math.pow(2, this.reconnectAttempts - 1),
+        300000 // Max 5 minutes
+      );
+
       logger.info(
-        `Reconnecting in ${this.config.reconnect.delay}ms (attempt ${this.reconnectAttempts}/${this.config.reconnect.maxAttempts})`
+        `Reconnecting in ${exponentialDelay}ms (attempt ${this.reconnectAttempts}/${this.config.reconnect.maxAttempts})`
       );
 
       setTimeout(() => {
         this.connect().catch((error) => {
           logger.error('Reconnection failed:', error);
         });
-      }, this.config.reconnect.delay);
+      }, exponentialDelay);
     } else {
       logger.error('Max reconnection attempts reached');
       this.emit('maxReconnectAttemptsReached');

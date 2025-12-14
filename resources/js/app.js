@@ -2,8 +2,18 @@
 import './bootstrap.js';
 import Alpine from 'alpinejs';
 
+// Import RoboTarget components
+import RoboTargetManager from './components/robotarget/RoboTargetManager.js';
+import TargetMonitor from './components/robotarget/TargetMonitor.js';
+import PricingCalculator from './components/robotarget/PricingCalculator.js';
+
 // Configuration Alpine.js
 window.Alpine = Alpine;
+
+// Make RoboTarget components globally available
+window.RoboTargetManager = RoboTargetManager;
+window.TargetMonitor = TargetMonitor;
+window.PricingCalculator = PricingCalculator;
 
 // ============================================
 // STORES GLOBAUX ALPINE.JS

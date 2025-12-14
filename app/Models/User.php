@@ -301,5 +301,18 @@ public function supportTickets(): HasMany
     return $this->hasMany(SupportTicket::class, 'user_id');
 }
 
+/**
+ * RoboTarget Relations
+ */
+public function subscription(): \Illuminate\Database\Eloquent\Relations\HasOne
+{
+    return $this->hasOne(Subscription::class)->latestOfMany();
+}
+
+public function roboTargets(): HasMany
+{
+    return $this->hasMany(RoboTarget::class);
+}
+
 
 }
