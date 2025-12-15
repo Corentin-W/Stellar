@@ -280,7 +280,23 @@ class RoboTargetController extends Controller
      */
     public function webhookSessionComplete(Request $request): JsonResponse
     {
-        // TODO: Ajouter validation webhook signature
+        // Validate webhook signature
+        $secret = config('services.voyager_proxy.webhook_secret');
+        $receivedSecret = $request->header('X-Webhook-Secret');
+
+        if (!$secret) {
+            \Log::warning('Voyager webhook secret not configured in .env');
+        } elseif ($receivedSecret !== $secret) {
+            \Log::warning('Invalid Voyager webhook signature', [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
 
         $eventData = $request->all();
 
