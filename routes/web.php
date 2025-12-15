@@ -61,6 +61,11 @@ Route::prefix('test/robotarget')->group(function () {
     Route::get('/diagnostics', [RoboTargetTestController::class, 'diagnostics'])->name('test.robotarget.diagnostics');
 });
 
+// Page de test visuelle RoboTarget (accessible sans authentification)
+Route::get('/test/voyager', function () {
+    return view('test.robotarget');
+})->name('test.voyager');
+
 /*
 |--------------------------------------------------------------------------
 | Routes avec préfixe de locale
