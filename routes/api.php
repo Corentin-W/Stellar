@@ -20,6 +20,9 @@ use App\Http\Controllers\Api\VoyagerEventController;
 // Public routes
 Route::get('/subscriptions/plans', [SubscriptionController::class, 'plans']);
 
+// Target Templates (public pour le catalogue)
+Route::get('/target-templates', [App\Http\Controllers\Api\TargetTemplateController::class, 'index']);
+
 // Webhooks (pas d'auth) - Événements temps réel Voyager
 Route::prefix('voyager/events')->group(function () {
     Route::post('/session-started', [VoyagerEventController::class, 'sessionStarted']);

@@ -50,6 +50,82 @@
         </div>
     </div>
 
+    {{-- Popular Targets Section --}}
+    @php
+        $popularTemplates = \App\Models\TargetTemplate::active()
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->limit(6)
+            ->get();
+    @endphp
+    @if($popularTemplates->count() > 0 && $targets->isEmpty())
+    <div class="mb-8">
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                ⭐ Découvrez nos Cibles Populaires
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400">
+                Explorez notre catalogue et créez votre première target en un clic
+            </p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            @foreach($popularTemplates as $template)
+            <a href="{{ route('robotarget.create', ['locale' => app()->getLocale()]) }}"
+               class="group bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+                @if($template->thumbnail_image || $template->preview_image)
+                <div class="relative h-48 bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
+                    <img src="{{ asset('storage/' . ($template->thumbnail_image ?? $template->preview_image)) }}"
+                         alt="{{ $template->name }}"
+                         class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                         loading="lazy">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
+                    <div class="absolute bottom-3 left-3 right-3">
+                        <h3 class="text-white font-bold text-lg mb-1">{{ $template->name }}</h3>
+                        <p class="text-white/80 text-xs">{{ $template->type }} • {{ $template->constellation }}</p>
+                    </div>
+                    <span class="absolute top-3 right-3 px-2 py-1 rounded text-xs font-medium backdrop-blur-sm
+                        {{ $template->difficulty === 'beginner' ? 'bg-green-500/90 text-white' : '' }}
+                        {{ $template->difficulty === 'intermediate' ? 'bg-yellow-500/90 text-white' : '' }}
+                        {{ $template->difficulty === 'advanced' ? 'bg-red-500/90 text-white' : '' }}">
+                        {{ $template->difficulty_label }}
+                    </span>
+                </div>
+                @else
+                <div class="h-48 bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="text-6xl mb-2">🌌</div>
+                        <h3 class="text-gray-900 dark:text-white font-bold">{{ $template->name }}</h3>
+                    </div>
+                </div>
+                @endif
+                <div class="p-4">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                        {{ $template->short_description }}
+                    </p>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="flex items-center gap-1 text-gray-500 dark:text-gray-500">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            {{ $template->estimated_time ?? 'N/A' }}
+                        </span>
+                        <span class="text-blue-600 dark:text-blue-400 font-medium group-hover:underline">
+                            Créer cette target →
+                        </span>
+                    </div>
+                </div>
+            </a>
+            @endforeach
+        </div>
+        <div class="mt-6 text-center">
+            <a href="{{ route('robotarget.create', ['locale' => app()->getLocale()]) }}"
+               class="inline-block bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-medium transition-all shadow-lg hover:shadow-xl">
+                📖 Voir tout le catalogue
+            </a>
+        </div>
+    </div>
+    @endif
+
     {{-- Filters --}}
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
         <form method="GET" action="{{ route('robotarget.index') }}" class="flex gap-4">

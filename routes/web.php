@@ -558,4 +558,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         return view('admin.voyager-test');
     })->name('voyager-test');
 
+    // Target Templates Management
+    Route::resource('target-templates', App\Http\Controllers\Admin\TargetTemplateController::class);
+
 });

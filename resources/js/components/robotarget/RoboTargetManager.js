@@ -70,10 +70,40 @@ export default () => ({
     this.subscription = window.userSubscription || null;
     this.creditsBalance = window.userCredits || 0;
 
+    // Load target templates from API
+    this.loadTargetTemplates();
+
     // Auto-calculate pricing when relevant fields change
     this.$watch('target', () => {
       this.calculatePricing();
     }, { deep: true });
+  },
+
+  // Load target templates from API
+  async loadTargetTemplates() {
+    try {
+      // Get current locale from URL or default to 'fr'
+      const locale = window.location.pathname.split('/')[1] || 'fr';
+      const apiUrl = `/${locale}/api/target-templates`;
+
+      console.log('📡 Loading templates from:', apiUrl);
+      const response = await fetch(apiUrl);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        console.log('✅ Templates loaded:', result.data.length, 'templates');
+        console.log('📸 First template images:', result.data[0]?.preview_image, result.data[0]?.thumbnail_image);
+        this.popularCatalog = result.data;
+      } else {
+        console.warn('⚠️ Failed to load target templates, using fallback');
+        // Fallback to hardcoded templates if API fails
+        this.popularCatalog = popularTargets;
+      }
+    } catch (error) {
+      console.error('❌ Error loading target templates:', error);
+      // Fallback to hardcoded templates
+      this.popularCatalog = popularTargets;
+    }
   },
 
   // Navigation
@@ -507,6 +537,32 @@ export default () => ({
     setTimeout(() => {
       this.successMessage = null;
     }, 5000);
+  },
+
+  /**
+   * Cancel template selection and return to catalog
+   */
+  cancelTemplateSelection() {
+    console.log('🔙 Cancelling template selection, returning to catalog');
+
+    // Reset target data
+    this.target = {
+      target_name: '',
+      ra_j2000: '',
+      dec_j2000: '',
+      priority: 0,
+      c_moon_down: false,
+      c_hfd_mean_limit: null,
+      c_alt_min: 30,
+      shots: [],
+    };
+
+    // Clear messages
+    this.successMessage = null;
+    this.errorMessage = null;
+
+    // Return to step 0 (catalog view)
+    this.currentStep = 0;
   },
 
   /**

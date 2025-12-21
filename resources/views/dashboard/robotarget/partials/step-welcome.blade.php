@@ -10,6 +10,19 @@
         </p>
     </div>
 
+    {{-- Bouton retour au catalogue si une target est sélectionnée --}}
+    <div x-show="creationMode === 'assisted' && target.target_name" x-transition class="mb-6">
+        <button
+            @click="cancelTemplateSelection()"
+            class="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-all"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            <span class="font-medium">Retour au catalogue</span>
+        </button>
+    </div>
+
     {{-- Mode Selection --}}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {{-- Mode Assisté --}}
@@ -130,46 +143,350 @@
             </button>
         </div>
 
-        {{-- Liste des cibles --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-2">
-            <template x-for="target in getFilteredCatalog()" :key="target.id">
-                <button
-                    @click="loadTemplateTarget(target)"
-                    class="text-left bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-all group"
+        {{-- Liste des cibles avec design moderne et spacieux --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
+            <template x-for="(target, index) in getFilteredCatalog()" :key="target.id">
+                <div
+                    x-data="{ isHovered: false }"
+                    @mouseenter="isHovered = true"
+                    @mouseleave="isHovered = false"
+                    class="target-card-wrapper"
+                    :style="{ 'animation-delay': (index * 0.1) + 's' }"
                 >
-                    <div class="flex items-start justify-between mb-2">
-                        <div>
-                            <h4 class="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400" x-text="target.name"></h4>
-                            <p class="text-xs text-gray-500 dark:text-gray-400" x-text="target.type + ' • ' + target.constellation"></p>
+                    <button
+                        @click="loadTemplateTarget(target)"
+                        class="relative w-full text-left group"
+                    >
+                        {{-- Main card with glassmorphism effect --}}
+                        <div class="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50 shadow-lg transition-all duration-500 ease-out"
+                             :class="{ 'shadow-2xl scale-105 -translate-y-2 border-blue-500/50': isHovered }"
+                             style="transform-style: preserve-3d;">
+
+                            {{-- Shimmer effect on hover --}}
+                            <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none overflow-hidden">
+                                <div class="absolute inset-0 shimmer-effect"></div>
+                            </div>
+
+                            {{-- Image container with advanced effects - PLUS GRANDE --}}
+                            <div
+                                x-show="target.thumbnail_image || target.preview_image"
+                                class="relative h-80 bg-gradient-to-br from-gray-900 via-gray-800 to-black overflow-hidden"
+                            >
+                                {{-- Background stars pattern --}}
+                                <div class="absolute inset-0 stars-bg opacity-30"></div>
+
+                                {{-- Main image with parallax-like effect --}}
+                                <img
+                                    :src="target.thumbnail_image || target.preview_image"
+                                    :alt="target.name"
+                                    class="absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out"
+                                    :class="{ 'scale-110 rotate-1': isHovered }"
+                                    loading="lazy"
+                                />
+
+                                {{-- Multi-layer gradient overlays --}}
+                                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-80"></div>
+                                <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                                {{-- Animated glow effect --}}
+                                <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                                    <div class="absolute -top-1/2 -left-1/2 w-full h-full bg-blue-500/20 blur-3xl animate-pulse-slow"></div>
+                                    <div class="absolute -bottom-1/2 -right-1/2 w-full h-full bg-purple-500/20 blur-3xl animate-pulse-slower"></div>
+                                </div>
+
+                                {{-- Content on image --}}
+                                <div class="absolute inset-0 flex flex-col justify-between p-4">
+                                    {{-- Top badges --}}
+                                    <div class="flex justify-between items-start">
+                                        {{-- Difficulty badge with glow --}}
+                                        <span
+                                            class="px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border transition-all duration-300"
+                                            :class="{
+                                                'bg-green-500/90 text-white border-green-400/50 shadow-lg shadow-green-500/50': target.difficulty === 'beginner',
+                                                'bg-yellow-500/90 text-white border-yellow-400/50 shadow-lg shadow-yellow-500/50': target.difficulty === 'intermediate',
+                                                'bg-red-500/90 text-white border-red-400/50 shadow-lg shadow-red-500/50': target.difficulty === 'advanced'
+                                            }"
+                                            x-text="target.difficulty === 'beginner' ? '🌱 Débutant' : target.difficulty === 'intermediate' ? '⭐ Inter.' : '🚀 Avancé'"
+                                        ></span>
+
+                                        {{-- Type badge --}}
+                                        <span class="px-3 py-1.5 rounded-full text-xs font-medium bg-white/20 dark:bg-black/30 text-white backdrop-blur-md border border-white/30"
+                                              x-text="target.type"
+                                        ></span>
+                                    </div>
+
+                                    {{-- Bottom title area with slide-up animation --}}
+                                    <div class="transform transition-all duration-500"
+                                         :class="{ 'translate-y-0': !isHovered, '-translate-y-1': isHovered }">
+                                        <h4 class="text-white font-bold text-lg mb-1 drop-shadow-lg leading-tight"
+                                            x-text="target.name"></h4>
+                                        <p class="text-white/90 text-sm drop-shadow-md flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                            <span x-text="target.constellation"></span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {{-- Scan line effect on hover --}}
+                                <div class="absolute inset-0 overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                                    <div class="scan-line"></div>
+                                </div>
+                            </div>
+
+                            {{-- No image fallback with modern design - PLUS GRAND --}}
+                            <div
+                                x-show="!target.thumbnail_image && !target.preview_image"
+                                class="relative h-80 bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/20 flex items-center justify-center overflow-hidden"
+                            >
+                                <div class="absolute inset-0 stars-bg opacity-20"></div>
+                                <div class="relative text-center z-10">
+                                    <div class="text-7xl mb-3 animate-float">🌌</div>
+                                    <h4 class="text-gray-900 dark:text-white font-bold text-lg" x-text="target.name"></h4>
+                                    <p class="text-gray-600 dark:text-gray-400 text-sm" x-text="target.constellation"></p>
+                                </div>
+                            </div>
+
+                            {{-- Card content with enhanced design - PLUS SPACIEUX ET LISIBLE --}}
+                            <div class="p-6 relative">
+                                {{-- Animated border top --}}
+                                <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+
+                                {{-- Description courte --}}
+                                <div class="mb-4">
+                                    <h5 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">À propos</h5>
+                                    <p class="text-base text-gray-700 dark:text-gray-300 leading-relaxed transition-all duration-300"
+                                       :class="{ 'text-gray-900 dark:text-gray-100': isHovered }"
+                                       x-text="target.description"></p>
+                                </div>
+
+                                {{-- Description complète si disponible --}}
+                                <div x-show="target.full_description" class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed"
+                                       x-text="target.full_description"></p>
+                                </div>
+
+                                {{-- Conseils si disponibles --}}
+                                <div x-show="target.tips" class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-lg">💡</span>
+                                        <div class="flex-1">
+                                            <p class="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Conseil</p>
+                                            <p class="text-sm text-blue-800 dark:text-blue-200" x-text="target.tips"></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Stats row with icons - PLUS GRANDS --}}
+                                <div class="flex items-center justify-between text-sm mb-5">
+                                    <div class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 transition-colors duration-300"
+                                         :class="{ 'text-blue-600 dark:text-blue-400': isHovered }">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <span class="font-medium" x-text="target.estimated_time || 'N/A'"></span>
+                                    </div>
+                                    <div x-show="target.best_months && target.best_months.length > 0"
+                                         class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 transition-colors duration-300"
+                                         :class="{ 'text-purple-600 dark:text-purple-400': isHovered }">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                        <span class="font-medium" x-text="target.best_months.slice(0, 2).join(', ')"></span>
+                                    </div>
+                                </div>
+
+                                {{-- Action button with gradient --}}
+                                <div class="relative overflow-hidden rounded-lg">
+                                    <div class="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                    <div class="relative px-4 py-2.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 group-hover:from-blue-600 group-hover:via-purple-600 group-hover:to-pink-600 transition-all duration-500 flex items-center justify-center gap-2 text-white font-semibold text-sm">
+                                        <svg class="w-4 h-4 transition-transform duration-300"
+                                             :class="{ 'translate-x-1': isHovered }"
+                                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                                        </svg>
+                                        <span>Sélectionner cette cible</span>
+                                        <svg class="w-4 h-4 transition-transform duration-300"
+                                             :class="{ 'translate-x-1': isHovered }"
+                                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <span
-                            class="px-2 py-1 rounded text-xs font-medium"
-                            :class="{
-                                'bg-green-100 text-green-800': target.difficulty === 'beginner',
-                                'bg-yellow-100 text-yellow-800': target.difficulty === 'intermediate',
-                                'bg-red-100 text-red-800': target.difficulty === 'advanced'
-                            }"
-                            x-text="target.difficulty === 'beginner' ? 'Débutant' : target.difficulty === 'intermediate' ? 'Inter.' : 'Avancé'"
-                        ></span>
-                    </div>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2" x-text="target.description"></p>
-                    <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
-                        <span class="flex items-center gap-1">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span x-text="target.estimated_time"></span>
-                        </span>
-                        <span class="flex items-center gap-1">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                            </svg>
-                            <span x-text="target.best_months ? target.best_months.slice(0, 3).join(', ') : ''"></span>
-                        </span>
-                    </div>
-                </button>
+
+                        {{-- Floating particles effect --}}
+                        <div class="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                            <div class="particle particle-1"></div>
+                            <div class="particle particle-2"></div>
+                            <div class="particle particle-3"></div>
+                        </div>
+                    </button>
+                </div>
             </template>
         </div>
+
+        {{-- Custom CSS for animations --}}
+        <style>
+            /* Card entrance animation */
+            .target-card-wrapper {
+                animation: slideInUp 0.6s ease-out forwards;
+                opacity: 0;
+            }
+
+            @keyframes slideInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* Shimmer effect */
+            .shimmer-effect {
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+                animation: shimmer 2s infinite;
+            }
+
+            @keyframes shimmer {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(100%); }
+            }
+
+            /* Scan line effect */
+            .scan-line {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.8), transparent);
+                animation: scan 3s linear infinite;
+            }
+
+            @keyframes scan {
+                0% { transform: translateY(0); }
+                100% { transform: translateY(320px); }
+            }
+
+            /* Stars background */
+            .stars-bg {
+                background-image:
+                    radial-gradient(2px 2px at 20px 30px, white, transparent),
+                    radial-gradient(2px 2px at 60px 70px, white, transparent),
+                    radial-gradient(1px 1px at 50px 50px, white, transparent),
+                    radial-gradient(1px 1px at 130px 80px, white, transparent),
+                    radial-gradient(2px 2px at 90px 10px, white, transparent);
+                background-size: 200px 200px;
+                animation: twinkle 4s ease-in-out infinite;
+            }
+
+            @keyframes twinkle {
+                0%, 100% { opacity: 0.3; }
+                50% { opacity: 0.6; }
+            }
+
+            /* Floating animation */
+            @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+            }
+
+            .animate-float {
+                animation: float 3s ease-in-out infinite;
+            }
+
+            /* Pulse animations */
+            @keyframes pulse-slow {
+                0%, 100% { opacity: 0.3; }
+                50% { opacity: 0.5; }
+            }
+
+            @keyframes pulse-slower {
+                0%, 100% { opacity: 0.2; }
+                50% { opacity: 0.4; }
+            }
+
+            .animate-pulse-slow {
+                animation: pulse-slow 4s ease-in-out infinite;
+            }
+
+            .animate-pulse-slower {
+                animation: pulse-slower 6s ease-in-out infinite;
+            }
+
+            /* Floating particles */
+            .particle {
+                position: absolute;
+                width: 4px;
+                height: 4px;
+                background: white;
+                border-radius: 50%;
+                opacity: 0;
+            }
+
+            .particle-1 {
+                top: 20%;
+                left: 20%;
+                animation: float-particle 3s ease-in-out infinite;
+            }
+
+            .particle-2 {
+                top: 60%;
+                right: 30%;
+                animation: float-particle 4s ease-in-out infinite 0.5s;
+            }
+
+            .particle-3 {
+                bottom: 30%;
+                left: 70%;
+                animation: float-particle 5s ease-in-out infinite 1s;
+            }
+
+            @keyframes float-particle {
+                0%, 100% {
+                    opacity: 0;
+                    transform: translate(0, 0);
+                }
+                50% {
+                    opacity: 0.6;
+                    transform: translate(10px, -20px);
+                }
+            }
+
+            /* Custom scrollbar */
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.1);
+                border-radius: 10px;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: linear-gradient(180deg, #3B82F6, #8B5CF6);
+                border-radius: 10px;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: linear-gradient(180deg, #2563EB, #7C3AED);
+            }
+
+            /* Line clamp utility */
+            .line-clamp-2 {
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+        </style>
 
         <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <div class="flex items-start gap-3">
