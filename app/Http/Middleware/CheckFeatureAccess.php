@@ -25,6 +25,11 @@ class CheckFeatureAccess
             return $next($request);
         }
 
+        // Les administrateurs ont accès à toutes les fonctionnalités
+        if ($user->is_admin) {
+            return $next($request);
+        }
+
         $subscription = $user->subscription;
 
         // Si pas d'abonnement, bloquer

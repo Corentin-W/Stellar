@@ -22,6 +22,11 @@ class RequireActiveSubscription
             return $next($request);
         }
 
+        // Les administrateurs ont accès sans abonnement
+        if ($user->is_admin) {
+            return $next($request);
+        }
+
         // Vérifier que l'utilisateur a un abonnement
         $subscription = $user->subscription;
 

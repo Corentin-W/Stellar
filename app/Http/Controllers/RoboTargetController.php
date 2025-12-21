@@ -34,11 +34,14 @@ class RoboTargetController extends Controller
         $targets = $this->roboTargetService->getUserTargets($user, $filters);
         $stats = $this->roboTargetService->getUserStats($user);
 
+        // Pour les admins sans abonnement, créer une subscription fictive avec tous les accès
+        $subscription = $user->subscription ?? ($user->is_admin ? $this->getAdminFakeSubscription($user) : null);
+
         return view('dashboard.robotarget.index', [
             'targets' => $targets,
             'stats' => $stats,
             'filters' => $filters,
-            'subscription' => $user->subscription,
+            'subscription' => $subscription,
             'creditsBalance' => $user->credits_balance,
         ]);
     }
@@ -50,8 +53,11 @@ class RoboTargetController extends Controller
     {
         $user = $request->user();
 
+        // Pour les admins sans abonnement, créer une subscription fictive avec tous les accès
+        $subscription = $user->subscription ?? ($user->is_admin ? $this->getAdminFakeSubscription($user) : null);
+
         return view('dashboard.robotarget.create', [
-            'subscription' => $user->subscription,
+            'subscription' => $subscription,
             'creditsBalance' => $user->credits_balance,
         ]);
     }
@@ -68,9 +74,12 @@ class RoboTargetController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
+        // Pour les admins sans abonnement, créer une subscription fictive avec tous les accès
+        $subscription = $user->subscription ?? ($user->is_admin ? $this->getAdminFakeSubscription($user) : null);
+
         return view('dashboard.robotarget.show', [
             'target' => $target,
-            'subscription' => $user->subscription,
+            'subscription' => $subscription,
             'creditsBalance' => $user->credits_balance,
         ]);
     }
@@ -92,9 +101,12 @@ class RoboTargetController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Pour les admins sans abonnement, créer une subscription fictive avec tous les accès
+        $subscription = $user->subscription ?? ($user->is_admin ? $this->getAdminFakeSubscription($user) : null);
+
         return view('dashboard.robotarget.gallery', [
             'targets' => $targets,
-            'subscription' => $user->subscription,
+            'subscription' => $subscription,
             'creditsBalance' => $user->credits_balance,
         ]);
     }
@@ -123,11 +135,30 @@ class RoboTargetController extends Controller
                 ->firstOrFail();
         }
 
+        // Pour les admins sans abonnement, créer une subscription fictive avec tous les accès
+        $subscription = $user->subscription ?? ($user->is_admin ? $this->getAdminFakeSubscription($user) : null);
+
         return view('dashboard.robotarget.monitor', [
             'target' => $target,
             'session' => $session,
-            'subscription' => $user->subscription,
+            'subscription' => $subscription,
             'creditsBalance' => $user->credits_balance,
         ]);
+    }
+
+    /**
+     * Crée une subscription fictive pour les administrateurs
+     * afin qu'ils puissent accéder à toutes les fonctionnalités
+     */
+    private function getAdminFakeSubscription($user)
+    {
+        $subscription = new \App\Models\Subscription();
+        $subscription->user_id = $user->id;
+        $subscription->plan = 'quasar'; // Plan le plus élevé
+        $subscription->status = 'active';
+        $subscription->starts_at = now();
+        $subscription->ends_at = now()->addYear();
+
+        return $subscription;
     }
 }
