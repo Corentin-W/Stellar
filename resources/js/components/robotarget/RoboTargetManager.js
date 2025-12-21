@@ -82,9 +82,7 @@ export default () => ({
   // Load target templates from API
   async loadTargetTemplates() {
     try {
-      // Get current locale from URL or default to 'fr'
-      const locale = window.location.pathname.split('/')[1] || 'fr';
-      const apiUrl = `/${locale}/api/target-templates`;
+      const apiUrl = `/api/target-templates`;
 
       console.log('📡 Loading templates from:', apiUrl);
       const response = await fetch(apiUrl);
