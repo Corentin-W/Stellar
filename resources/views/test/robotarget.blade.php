@@ -109,6 +109,23 @@
                             <input type="text" x-model="testTarget.dec_j2000" placeholder="DEC (±DD:MM:SS)" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2">
                         </div>
 
+                        <!-- Base Sequence GUID (always shown when preset selected) -->
+                        <div x-show="selectedPreset" class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-300">
+                                Base Sequence GUID
+                                <span class="text-xs text-gray-500">(requis - créer une séquence dans Voyager)</span>
+                            </label>
+                            <input
+                                type="text"
+                                x-model="testTarget.base_sequence_guid"
+                                placeholder="00000000-0000-0000-0000-000000000000"
+                                class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 font-mono text-sm"
+                                pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}">
+                            <p class="text-xs text-yellow-400">
+                                ⚠️ Ce GUID doit correspondre à une séquence template existante dans Voyager
+                            </p>
+                        </div>
+
                         <!-- Submit Button -->
                         <button @click="submitTestTarget()"
                                 :disabled="!selectedPreset || isLoading"
@@ -241,6 +258,7 @@
                     priority: 0,
                     c_moon_down: false,
                     c_alt_min: 30,
+                    base_sequence_guid: '',
                     shots: []
                 },
                 currentTarget: null,
@@ -253,6 +271,7 @@
                         priority: 0,
                         c_moon_down: false,
                         c_alt_min: 30,
+                        base_sequence_guid: '',
                         shots: [
                             { filter_index: 0, filter_name: 'Luminance', exposure: 60, num: 3, gain: 100, offset: 50, bin: 1 }
                         ]
@@ -264,6 +283,7 @@
                         priority: 0,
                         c_moon_down: false,
                         c_alt_min: 30,
+                        base_sequence_guid: '',
                         shots: [
                             { filter_index: 0, filter_name: 'Luminance', exposure: 120, num: 2, gain: 100, offset: 50, bin: 1 }
                         ]
@@ -275,6 +295,7 @@
                         priority: 0,
                         c_moon_down: false,
                         c_alt_min: 30,
+                        base_sequence_guid: '',
                         shots: [
                             { filter_index: 0, filter_name: 'Luminance', exposure: 90, num: 3, gain: 100, offset: 50, bin: 1 }
                         ]
@@ -291,16 +312,16 @@
                     try {
                         const proxyUrl = "{{ config('services.voyager.proxy_url') }}";
                         const apiKey = "{{ config('services.voyager.proxy_api_key') }}";
-                        
-                        const response = await fetch(proxyUrl + '/api/status', {
+
+                        const response = await fetch(proxyUrl + '/api/status/connection', {
                             headers: { 'X-API-Key': apiKey }
                         });
 
                         if (response.ok) {
                             const data = await response.json();
                             this.proxyStatus = 'connected';
-                            this.voyagerStatus = data.voyager?.connected ? 'connected' : 'disconnected';
-                            this.equipmentStatus = data.voyager?.ready ? 'ready' : 'not_ready';
+                            this.voyagerStatus = data.isConnected ? 'connected' : 'disconnected';
+                            this.equipmentStatus = data.isAuthenticated ? 'ready' : 'not_ready';
                             this.addLog('success', 'Statut mis à jour');
                         } else {
                             this.proxyStatus = 'disconnected';
@@ -324,6 +345,7 @@
                             priority: 0,
                             c_moon_down: false,
                             c_alt_min: 30,
+                            base_sequence_guid: '',
                             shots: [{ filter_index: 0, filter_name: 'Luminance', exposure: 60, num: 3, gain: 100, offset: 50, bin: 1 }]
                         };
                     }
@@ -345,7 +367,7 @@
                             ...this.testTarget
                         };
 
-                        const response = await fetch('/api/robotarget/targets', {
+                        const response = await fetch('/test/robotarget/targets/complete', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -378,8 +400,24 @@
                     try {
                         const proxyUrl = "{{ config('services.voyager.proxy_url') }}";
                         const apiKey = "{{ config('services.voyager.proxy_api_key') }}";
-                        
-                        const response = await fetch(`${proxyUrl}/api/${cmd}`, {
+
+                        let endpoint = '';
+                        switch(cmd) {
+                            case 'ping':
+                            case 'status':
+                                endpoint = `/api/status/connection`;
+                                break;
+                            case 'dashboard':
+                                endpoint = `/api/dashboard/state`;
+                                break;
+                            case 'targets':
+                                endpoint = `/api/robotarget/sets`;
+                                break;
+                            default:
+                                endpoint = `/api/${cmd}`;
+                        }
+
+                        const response = await fetch(`${proxyUrl}${endpoint}`, {
                             headers: { 'X-API-Key': apiKey }
                         });
                         const data = await response.json();

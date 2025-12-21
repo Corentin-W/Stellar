@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import net from 'net';
 import os from 'os';
+import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger.js';
 import EventHandler from './events.js';
 import Authentication from './auth.js';
@@ -58,91 +59,151 @@ class VoyagerConnection extends EventEmitter {
 
         // CONFORME À LA DOC: NE PAS authentifier avant l'événement Version
         // L'authentification se fait dans handleMessage() après réception de Version
-        logger.info('⏳ Waiting for Version event (SessionKey capture)...');
+        logger.info('⏳ Waiting for Version or Polling event (SessionKey capture)...');
       });
 
       this.socket.on('data', async (data) => {
-        this.lastDataReceived = Date.now();
-        logger.debug(`📥 Raw data received: ${data.toString().substring(0, 200)}...`);
-        this.buffer += data;
+        try {
+          this.lastDataReceived = Date.now();
+          logger.debug(`📥 Raw data received: ${data.toString().substring(0, 200)}...`);
+          this.buffer += data;
 
-        // Process complete JSON lines (ending with \r\n)
-        const lines = this.buffer.split('\r\n');
-        this.buffer = lines.pop() || ''; // Keep incomplete line in buffer
+          // Process complete JSON lines (ending with \r\n)
+          const lines = this.buffer.split('\r\n');
+          this.buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
-        for (const line of lines) {
-          if (line.trim()) {
-            logger.debug(`📨 Processing line: ${line.substring(0, 100)}...`);
-            try {
-              const message = JSON.parse(line);
-              logger.info(`✅ Parsed message - Event: ${message.Event || message.method || 'unknown'}`);
-              await this.handleMessage(message);
+          for (const line of lines) {
+            if (line.trim()) {
+              logger.debug(`📨 Processing line: ${line.substring(0, 100)}...`);
+              try {
+                // CRITICAL: Extract raw Timestamp string BEFORE JSON.parse for MAC calculation
+                // JSON.parse converts to float, but we need the exact string representation
+                // The regex now supports:
+                // - Regular numbers: 123.456
+                // - Scientific notation: 1.23e10 or 1.23E-5
+                let rawTimestamp = null;
+                const timestampMatch = line.match(/"Timestamp":\s*([0-9.eE+-]+)/);
+                if (timestampMatch) {
+                  rawTimestamp = timestampMatch[1]; // Extract as string, preserving exact representation
+                  logger.debug(`🔍 Raw Timestamp extracted: "${rawTimestamp}"`);
+                }
 
-              // Resolve connection promise on Version event
-              if (message.Event === 'Version' && !this.isAuthenticated) {
-                logger.info(`✅ Version event received`);
-                logger.info(`   Voyager version: ${message.VOYVersion}`);
-                logger.info(`   SessionKey (Timestamp): ${message.Timestamp}`);
-                this.latestState.version = message;
-                this.sessionKey = message.Timestamp; // Store SessionKey for RoboTarget
+                const message = JSON.parse(line);
+                logger.info(`✅ Parsed message - Event: ${message.Event || message.method || 'unknown'}`);
+                await this.handleMessage(message);
 
-                // ÉTAPE 2: Authenticate if required (< 5 seconds)
-                if (this.config.auth.enabled) {
-                  try {
-                    logger.info('🔐 STEP 2: Authenticating (< 5 seconds window)...');
-                    await this.auth.authenticate();
+                // FALLBACK: If we receive Polling event before Version, use its Timestamp as SessionKey
+                if (message.Event === 'Polling' && !this.sessionKey && !this.isAuthenticated) {
+                  logger.warn('⚠️ Received Polling before Version event - using Polling Timestamp as SessionKey');
+                  if (!rawTimestamp) {
+                    logger.error('❌ CRITICAL: Could not extract raw Timestamp from Polling event! MAC will fail!');
+                    logger.error(`   Full line: ${line}`);
+                  }
+                  const timestampValue = rawTimestamp || (message.Timestamp ? String(message.Timestamp) : null);
+                  logger.info(`   SessionKey (from Polling): ${timestampValue}`);
+                  this.sessionKey = timestampValue;
+                  // Trigger the same authentication flow as Version event
+                  message.Event = 'Version';
+                  message.VOYVersion = 'Unknown (from Polling)';
+                }
+
+                // Resolve connection promise on Version event
+                if (message.Event === 'Version' && !this.isAuthenticated) {
+                  logger.info(`✅ Version event received`);
+                  logger.info(`   Voyager version: ${message.VOYVersion}`);
+                  logger.info(`   SessionKey (raw string): ${rawTimestamp}`);
+                  logger.info(`   SessionKey (parsed float): ${message.Timestamp}`);
+                  this.latestState.version = message;
+
+                  // CRITICAL: Store RAW SessionKey string for RoboTarget MAC calculation
+                  // The SessionKey MUST be the exact string representation from the JSON
+                  // If rawTimestamp is null (extraction failed), log ERROR and use fallback
+                  if (!rawTimestamp) {
+                    logger.error('❌ CRITICAL: Could not extract raw Timestamp from Version event!');
+                    logger.error('   This will cause MAC errors for RoboTarget commands!');
+                    logger.error(`   Full line: ${line}`);
+                    logger.warn('   Using fallback: message.Timestamp.toString() - MAC may fail!');
+                  }
+                  this.sessionKey = rawTimestamp || (message.Timestamp ? String(message.Timestamp) : null);
+
+                  // Verify SessionKey is valid
+                  if (!this.sessionKey) {
+                    logger.error('❌ FATAL: SessionKey is null! RoboTarget commands will NOT work!');
+                  } else {
+                    logger.info(`✅ SessionKey stored: "${this.sessionKey}" (length: ${this.sessionKey.length})`);
+                  }
+
+                  // ÉTAPE 2: Authenticate if required (< 5 seconds)
+                  if (this.config.auth.enabled) {
+                    try {
+                      logger.info('🔐 STEP 2: Authenticating (< 5 seconds window)...');
+                      await this.auth.authenticate();
+                      this.isAuthenticated = true;
+                      logger.info('✅ Authentication successful');
+                    } catch (error) {
+                      // Check if error is "Authentication Level not Allow this request"
+                      // This means Voyager doesn't have authentication enabled
+                      if (error.message && error.message.includes('Authentication Level not Allow')) {
+                        logger.warn('⚠️ Voyager authentication not enabled - continuing without auth');
+                        logger.info('💡 To use authentication: enable it in Voyager settings and configure username/password');
+                        this.isAuthenticated = true; // Consider authenticated (no auth required)
+                      } else {
+                        // Real authentication error - abort
+                        logger.error('❌ Authentication failed:', error);
+                        reject(error);
+                        this.disconnect();
+                        return;
+                      }
+                    }
+                  } else {
                     this.isAuthenticated = true;
-                    logger.info('✅ Authentication successful');
-                  } catch (error) {
-                    logger.error('❌ Authentication failed:', error);
-                    reject(error);
-                    this.disconnect();
-                    return;
+                    logger.info('⚠️ No authentication required - proceeding to RoboTarget Manager Mode');
                   }
-                } else {
-                  this.isAuthenticated = true;
-                  logger.info('⚠️ No authentication required (test mode)');
-                }
 
-                // ÉTAPE 3: Activate Dashboard Mode (required for JPG/ControlData)
-                try {
-                  logger.info('📊 STEP 3: Activating Dashboard Mode...');
-                  await this.commands.send('RemoteSetDashboardMode', {
-                    UID: require('uuid').v4(),
-                    On: true,
-                    Period: 2000, // 2 seconds
-                  });
-                  logger.info('✅ Dashboard Mode activated (JPG/ControlData stream enabled)');
-                } catch (error) {
-                  logger.warn('⚠️ Dashboard Mode activation failed:', error.message);
-                  // Continue anyway
-                }
-
-                // ÉTAPE 4: Activate RoboTarget Manager Mode if MAC Key is configured
-                if (this.config.auth.macKey) {
+                  // ÉTAPE 3: Activate Dashboard Mode (required for JPG/ControlData)
                   try {
-                    logger.info('🤖 STEP 4: Activating RoboTarget Manager Mode...');
-                    await this.auth.activateRoboTargetManagerMode(this.sessionKey);
-                    this.isRoboTargetManagerMode = true;
-                    logger.info('✅ RoboTarget Manager Mode ACTIVE - All RoboTarget commands available');
+                    logger.info('📊 STEP 3: Activating Dashboard Mode...');
+                    await this.commands.setDashboardMode(true);
+                    logger.info('✅ Dashboard Mode activated (JPG/ControlData stream enabled)');
                   } catch (error) {
-                    logger.error('❌ Failed to activate RoboTarget Manager Mode:', error);
-                    logger.warn('⚠️ RoboTarget commands will NOT work without Manager Mode');
-                    // Don't reject - continue with basic connection
+                    logger.warn('⚠️ Dashboard Mode activation failed:', error.message);
+                    // Continue anyway
                   }
+
+                  // ÉTAPE 4: Activate RoboTarget Manager Mode if SharedSecret and MAC Key are configured
+                  if (this.config.auth.sharedSecret && this.config.auth.macKey) {
+                    try {
+                      logger.info('🤖 STEP 4: Activating RoboTarget Manager Mode...');
+                      await this.auth.activateRoboTargetManagerMode(this.sessionKey);
+                      this.isRoboTargetManagerMode = true;
+                      logger.info('✅ RoboTarget Manager Mode ACTIVE - All RoboTarget commands available');
+                    } catch (error) {
+                      logger.error('❌ Failed to activate RoboTarget Manager Mode:', error);
+                      logger.warn('⚠️ RoboTarget commands will NOT work without Manager Mode');
+                      // Don't reject - continue with basic connection
+                    }
+                  } else if (!this.config.auth.sharedSecret || !this.config.auth.macKey) {
+                    logger.warn('⚠️ RoboTarget Manager Mode NOT enabled - SharedSecret or MAC Key missing');
+                    logger.info('💡 Configure VOYAGER_SHARED_SECRET and VOYAGER_MAC_KEY to enable RoboTarget features');
+                  }
+
+                  // ÉTAPE 5: Start Heartbeat (Polling every 5s to prevent 15s timeout)
+                  logger.info('💓 STEP 5: Starting Heartbeat...');
+                  this.startHeartbeat();
+
+                  logger.info('✅ Connection fully established!');
+                  resolve(message);
                 }
-
-                // ÉTAPE 5: Start Heartbeat (Polling every 5s to prevent 15s timeout)
-                logger.info('💓 STEP 5: Starting Heartbeat...');
-                this.startHeartbeat();
-
-                logger.info('✅ Connection fully established!');
-                resolve(message);
+              } catch (error) {
+                logger.error('Error parsing message:', error, 'Raw:', line);
+                // Don't crash on parse errors, just skip the message
               }
-            } catch (error) {
-              logger.error('Error parsing message:', error, 'Raw:', line);
             }
           }
+        } catch (error) {
+          logger.error('Error processing data buffer:', error);
+          // Reset buffer on critical error to prevent infinite loop
+          this.buffer = '';
         }
       });
 
@@ -174,31 +235,45 @@ class VoyagerConnection extends EventEmitter {
   }
 
   async handleMessage(message) {
-    // Forward to event handler
-    await this.eventHandler.handle(message);
+    try {
+      // Forward to event handler
+      await this.eventHandler.handle(message);
 
-    // Update latest state cache
-    if (message.Event === 'ControlData') {
-      this.latestState.controlData = message;
+      // Update latest state cache
+      if (message.Event === 'ControlData') {
+        this.latestState.controlData = message;
+      }
+    } catch (error) {
+      logger.error('Error handling message:', error);
+      logger.debug('Problematic message:', JSON.stringify(message).substring(0, 200));
+      // Don't crash, just log and continue
     }
   }
 
   startHeartbeat() {
-    // Send Polling event every interval
+    // CRITICAL: Send Polling events every 5 seconds to prevent Voyager timeout (15s)
+    // Voyager REQUIRES receiving Polling data from the client to maintain connection
     this.heartbeatTimer = setInterval(() => {
-      this.sendPolling();
+      try {
+        // Send Polling event
+        this.sendPolling();
 
-      // Check if we've received data recently
-      const now = Date.now();
-      const timeSinceLastData = now - (this.lastDataReceived || now);
+        // Check if we've received data recently
+        const now = Date.now();
+        const timeSinceLastData = now - (this.lastDataReceived || now);
 
-      if (timeSinceLastData > this.config.heartbeat.timeout) {
-        logger.error(`No data received for ${timeSinceLastData}ms - connection lost`);
-        this.handleDisconnect('heartbeat_timeout');
+        if (timeSinceLastData > this.config.heartbeat.timeout) {
+          logger.error(`No data received for ${timeSinceLastData}ms - connection lost`);
+          this.handleDisconnect('heartbeat_timeout');
+        }
+      } catch (error) {
+        logger.error('Error in heartbeat:', error);
+        // Don't stop heartbeat on error - continue trying
       }
     }, this.config.heartbeat.interval);
 
     logger.info(`Heartbeat started (${this.config.heartbeat.interval}ms interval)`);
+    logger.info('💓 Sending Polling events every 5s to maintain connection');
   }
 
   stopHeartbeat() {
@@ -210,14 +285,21 @@ class VoyagerConnection extends EventEmitter {
   }
 
   sendPolling() {
+    // CRITICAL: Client MUST send Polling events every 5 seconds to maintain connection
+    // Voyager will disconnect after 15s without receiving Polling data
     const polling = {
       Event: 'Polling',
-      Timestamp: Date.now() / 1000,
+      Timestamp: Date.now() / 1000, // Float timestamp in seconds (NOT Math.floor!)
       Host: os.hostname(),
       Inst: this.config.instance,
     };
 
-    this.send(polling);
+    try {
+      this.send(polling);
+      logger.debug('💓 Heartbeat sent (Polling)');
+    } catch (error) {
+      logger.error('Failed to send Polling:', error);
+    }
   }
 
   send(data) {
@@ -227,7 +309,13 @@ class VoyagerConnection extends EventEmitter {
 
     const message = JSON.stringify(data) + '\r\n';
     this.socket.write(message);
-    logger.debug('Sent:', data);
+
+    // Only log RoboTarget commands at info level
+    if (data.method && data.method.includes('RoboTarget')) {
+      logger.info(`📤 Sent ${data.method}:\n${JSON.stringify(data, null, 2)}`);
+    } else {
+      logger.debug('Sent:', data);
+    }
   }
 
   handleDisconnect(reason) {

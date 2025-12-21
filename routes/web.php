@@ -57,6 +57,9 @@ Route::prefix('test/robotarget')->group(function () {
     Route::post('/targets/{guid}/activate', [RoboTargetTestController::class, 'activateTarget'])->name('test.robotarget.targets.activate');
     Route::post('/targets/{guid}/deactivate', [RoboTargetTestController::class, 'deactivateTarget'])->name('test.robotarget.targets.deactivate');
 
+    // Create complete target (set + target + shots in one call)
+    Route::post('/targets/complete', [RoboTargetTestController::class, 'createComplete'])->name('test.robotarget.targets.complete');
+
     // Routes de diagnostic
     Route::get('/diagnostics', [RoboTargetTestController::class, 'diagnostics'])->name('test.robotarget.diagnostics');
 });

@@ -51,21 +51,70 @@ nano .env
 Edit `.env` with your Voyager settings:
 
 ```env
+# Server
+PORT=3002
+HOST=0.0.0.0
+
 # Voyager Connection
-VOYAGER_HOST=192.168.1.100
+VOYAGER_HOST=127.0.0.1
 VOYAGER_PORT=5950
 
-# Authentication
+# Authentication (required for RoboTarget Manager Mode)
 VOYAGER_AUTH_ENABLED=true
-VOYAGER_USERNAME=your_username
+VOYAGER_USERNAME=admin
 VOYAGER_PASSWORD=your_password
+
+# RoboTarget NDA Authentication (required for RoboTarget API)
+VOYAGER_SHARED_SECRET=your_secret         # Must match "Secret" field in Voyager COMMON tab
+VOYAGER_AUTH_BASE=base64_credentials      # Base64 of "username:password"
+VOYAGER_MAC_KEY=your_mac_key
+VOYAGER_MAC_WORD1=word1
+VOYAGER_MAC_WORD2=word2
+VOYAGER_MAC_WORD3=word3
+VOYAGER_MAC_WORD4=word4
+VOYAGER_LICENSE_NUMBER=your_license
 
 # API Security
 API_KEY=your_secret_api_key
 
 # CORS (your Laravel domain)
-CORS_ORIGIN=https://yourdomain.com
+CORS_ORIGIN=http://localhost,https://stellar.test
 ```
+
+### 🤖 RoboTarget NDA Authentication
+
+**IMPORTANT**: To use RoboTarget API, you must:
+
+1. **Configure the Shared Secret** in Voyager's COMMON tab
+2. **Set the same value** in `VOYAGER_SHARED_SECRET` in `.env`
+3. **Configure MAC Words** (WORD1-4) in both Voyager and `.env`
+4. **Restart Voyager** after changing the COMMON tab configuration
+5. **Use the correct hash algorithm** (Section 6.a of NDA protocol)
+
+**Hash Algorithm (CRITICAL):**
+
+The hash for `RemoteSetRoboTargetManagerMode` must be calculated as follows:
+
+```javascript
+// CORRECT (Section 6.a of NDA protocol):
+// 1. SHA1 → convert to hexadecimal string (40 lowercase chars)
+// 2. Base64 encode the hex string (NOT the raw bytes!)
+const sha1Hex = crypto.createHash('sha1').update(hashString).digest('hex');
+const hash = Buffer.from(sha1Hex).toString('base64');
+
+// INCORRECT (old version):
+const hash = crypto.createHash('sha1').update(hashString).digest('base64');
+```
+
+**Formula**: `SHA1(SharedSecret ||:|| SessionKey ||:|| MAC1+MAC2+MAC3+MAC4) → Hex → Base64`
+
+Where:
+- `SharedSecret` = value from `VOYAGER_SHARED_SECRET`
+- `SessionKey` = Timestamp from Voyager's Version event
+- Separator = `||:||` (pipe pipe colon pipe pipe)
+- MAC1+MAC2+MAC3+MAC4 = concatenated without separator
+
+For detailed documentation, see `CONNEXION-ROBOTARGET.md`.
 
 ### Development
 
@@ -111,7 +160,7 @@ docker build -t stellar-voyager-proxy .
 # Run container
 docker run -d \
   --name voyager-proxy \
-  -p 3000:3000 \
+  -p 3002:3002 \
   --env-file .env \
   stellar-voyager-proxy
 ```
@@ -156,7 +205,7 @@ server {
     server_name proxy.yourdomain.com;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:3002;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -168,7 +217,7 @@ server {
 
     # WebSocket support
     location /socket.io/ {
-        proxy_pass http://localhost:3000/socket.io/;
+        proxy_pass http://localhost:3002/socket.io/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -222,7 +271,7 @@ sudo systemctl status voyager-proxy
 All API requests (except `/health`) require an API key:
 
 ```bash
-curl -H "X-API-Key: your_secret_key" http://localhost:3000/api/dashboard/state
+curl -H "X-API-Key: your_secret_key" http://localhost:3002/api/dashboard/state
 ```
 
 ### Endpoints

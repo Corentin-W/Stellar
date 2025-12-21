@@ -19,12 +19,37 @@ export default (voyagerConnection, io) => {
    */
   router.post('/sets', validateSet, async (req, res) => {
     try {
-      const { guid_set, set_name } = req.body;
+      // Support both snake_case (from Laravel) and direct parameter names
+      const guidSet = req.body.Guid || req.body.guid_set;
+      const name = req.body.Name || req.body.set_name;
+      const profileName = req.body.ProfileName || req.body.profile_name || 'Default.v2y';
+      const isDefault = req.body.IsDefault !== undefined ? req.body.IsDefault : (req.body.is_default !== undefined ? req.body.is_default : false);
+      const tag = req.body.Tag || req.body.tag || '';
+      const status = req.body.Status !== undefined ? req.body.Status : (req.body.status !== undefined ? req.body.status : 0);
+      const note = req.body.Note || req.body.note || '';
 
-      const result = await roboTargetCommands.addSet({
-        GuidSet: guid_set,
-        SetName: set_name || `Set_${guid_set.substring(0, 8)}`,
-      });
+      // Use exact parameter names from Voyager API documentation
+      // IMPORTANT: Selon la doc NDA, le champ Tag est absent des exemples officiels
+      // On ne l'envoie PAS pour éviter les erreurs de parsing côté Voyager
+      //
+      // CRITICAL FIX: Convert booleans to integers (0/1) and omit empty/null fields
+      // Voyager expects integers, not booleans, and doesn't accept null/empty strings
+      const setParams = {
+        Guid: guidSet,
+        Name: name || `Set_${guidSet.substring(0, 8)}`,
+        ProfileName: profileName.endsWith('.v2y') ? profileName : `${profileName}.v2y`,
+        IsDefault: isDefault ? 1 : 0, // Convert boolean to int
+        Status: status,
+      };
+
+      // Only add Note if it's not empty
+      if (note && note.trim() !== '') {
+        setParams.Note = note;
+      }
+
+      console.log('🔍 DEBUG: Parameters being sent to addSet():', JSON.stringify(setParams, null, 2));
+
+      const result = await roboTargetCommands.addSet(setParams);
 
       res.json({
         success: true,
@@ -37,6 +62,52 @@ export default (voyagerConnection, io) => {
       res.status(500).json({
         success: false,
         message: 'Erreur lors de la création du set',
+        error: error.message,
+      });
+    }
+  });
+
+  /**
+   * GET /api/robotarget/sets
+   * Lister tous les Sets RoboTarget
+   */
+  router.get('/sets', async (req, res) => {
+    try {
+      const result = await roboTargetCommands.listSets();
+
+      res.json({
+        success: true,
+        sets: result,
+      });
+    } catch (error) {
+      console.error('Error listing sets:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des sets',
+        error: error.message,
+      });
+    }
+  });
+
+  /**
+   * GET /api/robotarget/targets
+   * Lister les Targets (optionnel: filtrer par set)
+   */
+  router.get('/targets', async (req, res) => {
+    try {
+      const { setGuid } = req.query;
+
+      const result = await roboTargetCommands.listTargetsForSet(setGuid || '');
+
+      res.json({
+        success: true,
+        targets: result,
+      });
+    } catch (error) {
+      console.error('Error listing targets:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des targets',
         error: error.message,
       });
     }

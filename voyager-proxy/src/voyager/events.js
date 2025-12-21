@@ -65,38 +65,57 @@ class EventHandler {
     logger.debug('ControlData received');
 
     // Parse and enrich the data
+    // CRITICAL: Handle null values gracefully - Voyager sends null for inactive/unavailable fields
+    // Many fields can be null when no activity is running (RUNSEQ, RUNDS, SEQNAME, etc.)
     const enriched = {
       ...message,
       parsed: {
-        voyagerStatus: this.parseVoyagerStatus(message.VOYSTAT),
-        setupConnected: message.SETUPCONN,
+        voyagerStatus: this.parseVoyagerStatus(message.VOYSTAT ?? 0),
+        setupConnected: message.SETUPCONN ?? false,
+        runningSequence: message.RUNSEQ ?? null,  // Can be null if no sequence running
+        runningDragScript: message.RUNDS ?? null, // Can be null if no DragScript running
         camera: {
-          connected: message.CCDCONN,
-          temperature: this.parseValue(message.CCDTEMP),
-          power: this.parseValue(message.CCDPOW),
-          setpoint: this.parseValue(message.CCDSETP),
-          cooling: message.CCDCOOL,
+          connected: message.CCDCONN ?? false,
+          temperature: this.parseValue(message.CCDTEMP ?? null),
+          power: this.parseValue(message.CCDPOW ?? null),
+          setpoint: this.parseValue(message.CCDSETP ?? null),
+          cooling: message.CCDCOOL ?? false,
         },
         mount: {
-          connected: message.MNTCONN,
-          parked: message.MNTPARK,
-          ra: message.MNTRA,
-          dec: message.MNTDEC,
-          tracking: message.MNTTRACK,
+          connected: message.MNTCONN ?? false,
+          parked: message.MNTPARK ?? false,
+          ra: message.MNTRA ?? null,
+          dec: message.MNTDEC ?? null,
+          tracking: message.MNTTRACK ?? false,
+          altitude: message.MNTALT ?? null,
+          azimuth: message.MNTAZ ?? null,
         },
         focuser: {
-          connected: message.AFCONN,
-          position: this.parseValue(message.AFPOS),
-          temperature: this.parseValue(message.AFTEMP),
+          connected: message.AFCONN ?? false,
+          position: this.parseValue(message.AFPOS ?? null),
+          temperature: this.parseValue(message.AFTEMP ?? null),
         },
         sequence: {
-          name: message.SEQNAME,
-          remaining: message.SEQREMAIN,
+          name: message.SEQNAME ?? null,     // Can be null if no sequence active
+          remaining: message.SEQREMAIN ?? null,
+          progress: message.SEQPROGRESS ?? null,
+          currentImage: message.SEQCURRENTIMAGE ?? null,
+          totalImages: message.SEQTOTALIMAGES ?? null,
         },
         guiding: {
-          status: this.parseGuidingStatus(message.GUIDESTAT),
-          rmsX: this.parseValue(message.GUIDEX),
-          rmsY: this.parseValue(message.GUIDEY),
+          status: this.parseGuidingStatus(message.GUIDESTAT ?? 0),
+          rmsX: this.parseValue(message.GUIDEX ?? null),
+          rmsY: this.parseValue(message.GUIDEY ?? null),
+          rmsTotal: this.parseValue(message.GUIDERMS ?? null),
+        },
+        filter: {
+          current: message.FILTER ?? null,
+          name: message.FILTERNAME ?? null,
+        },
+        weather: {
+          cloudCover: this.parseValue(message.CLOUDCOVER ?? null),
+          temperature: this.parseValue(message.AMBIENTTEMP ?? null),
+          humidity: this.parseValue(message.HUMIDITY ?? null),
         },
       },
     };

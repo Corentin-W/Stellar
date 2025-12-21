@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(pkill:*)",
+      "Bash(npm run dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(timeout 2 tasklist:*)",
+      "Bash(powershell -Command \"Get-Content commands.js.bak | ForEach-Object { $_-replace ''if \\(method\\.startsWith\\(''''RoboTarget''''\\)\\) \\{'', ''if (method.startsWith(''''RoboTarget'''') || method.startsWith(''''RemoteRoboTarget'''')) {'' } | Set-Content commands_temp1.js\")",
+      "Bash(timeout 40 npm run dev)",
+      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "WebFetch(domain:stellar.test)",
+      "Bash(curl:*)",
+      "Bash(powershell:*)",
+      "Bash(timeout:*)",
+      "Bash(node test-create-target.js:*)",
+      "Bash(Get-Content -Tail 100 -Wait nul)",
+      "Bash(node test-mac-validation.js:*)"
+    ]
+  }
+}

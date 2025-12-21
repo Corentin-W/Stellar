@@ -42,6 +42,7 @@ class VoyagerProxy {
           password: process.env.VOYAGER_PASSWORD,
           // MAC authentication parameters
           authBase: process.env.VOYAGER_AUTH_BASE,
+          sharedSecret: process.env.VOYAGER_SHARED_SECRET,
           macKey: process.env.VOYAGER_MAC_KEY,
           macWord1: process.env.VOYAGER_MAC_WORD1,
           macWord2: process.env.VOYAGER_MAC_WORD2,
@@ -264,3 +265,5 @@ class VoyagerProxy {
 // Start the proxy
 const proxy = new VoyagerProxy();
 proxy.start();
+
+

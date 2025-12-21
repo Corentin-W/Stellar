@@ -20,6 +20,56 @@ class RoboTargetTestController extends Controller
         return view('test.robotarget');
     }
 
+    /**
+     * Convert RA from HH:MM:SS format to decimal hours
+     * Example: "05:35:17" -> 5.5881
+     */
+    private function raToDecimal(string $ra): float
+    {
+        // Handle already decimal values
+        if (is_numeric($ra)) {
+            return (float) $ra;
+        }
+
+        // Parse HH:MM:SS format
+        $parts = explode(':', $ra);
+        if (count($parts) !== 3) {
+            throw new \InvalidArgumentException("Invalid RA format. Expected HH:MM:SS, got: {$ra}");
+        }
+
+        [$hours, $minutes, $seconds] = array_map('floatval', $parts);
+        return $hours + ($minutes / 60) + ($seconds / 3600);
+    }
+
+    /**
+     * Convert DEC from ±DD:MM:SS format to decimal degrees
+     * Example: "-05:23:28" -> -5.3911
+     */
+    private function decToDecimal(string $dec): float
+    {
+        // Handle already decimal values
+        if (is_numeric($dec)) {
+            return (float) $dec;
+        }
+
+        // Parse ±DD:MM:SS format
+        $sign = 1;
+        if (str_starts_with($dec, '-')) {
+            $sign = -1;
+            $dec = substr($dec, 1);
+        } elseif (str_starts_with($dec, '+')) {
+            $dec = substr($dec, 1);
+        }
+
+        $parts = explode(':', $dec);
+        if (count($parts) !== 3) {
+            throw new \InvalidArgumentException("Invalid DEC format. Expected ±DD:MM:SS, got: {$dec}");
+        }
+
+        [$degrees, $minutes, $seconds] = array_map('floatval', $parts);
+        return $sign * ($degrees + ($minutes / 60) + ($seconds / 3600));
+    }
+
     public function createSet(Request $request)
     {
         $request->validate([
@@ -31,8 +81,10 @@ class RoboTargetTestController extends Controller
             'Guid' => $setGuid,
             'Name' => $request->name,
             'ProfileName' => 'Default.v2y',
+            'IsDefault' => false,
+            // Tag field removed - not supported by Voyager RoboTarget API
             'Status' => 0,
-            'Tag' => 'test_stellar',
+            'Note' => $request->input('note', ''),
         ]);
 
         return response()->json([
@@ -62,23 +114,50 @@ class RoboTargetTestController extends Controller
         ]);
 
         $targetGuid = (string) Str::uuid();
-        $result = $this->voyager->addTarget([
+
+        // Convert coordinates from HH:MM:SS and ±DD:MM:SS to decimal
+        $raDecimal = $this->raToDecimal($request->ra);
+        $decDecimal = $this->decToDecimal($request->dec);
+
+        // Validate base sequence GUID
+        $baseSequenceGuid = $request->input('base_sequence_guid');
+        if (empty($baseSequenceGuid)) {
+            $baseSequenceGuid = '00000000-0000-0000-0000-000000000000';
+            logger()->warning('Using placeholder base_sequence_guid. Create a real sequence template in Voyager.');
+        }
+
+        // Generate C_Mask based on actual constraints provided
+        $cMask = 'B';  // AltMin is always required
+        if ($request->has('ha_start') && $request->has('ha_end')) {
+            $cMask .= 'DE';
+        }
+
+        // Build target parameters
+        $targetParams = [
             'GuidTarget' => $targetGuid,
             'RefGuidSet' => $request->set_guid,
+            'RefGuidBaseSequence' => $baseSequenceGuid,
             'TargetName' => $request->name,
-            'RAJ2000' => $request->ra,
-            'DECJ2000' => $request->dec,
-            'PA' => 0,
-            'DateCreation' => now()->timestamp,
+            'RAJ2000' => $raDecimal,
+            'DECJ2000' => $decDecimal,
+            'PA' => (float) ($request->pa ?? 0),
             'Status' => 0,
             'Priority' => 2,
             'IsRepeat' => true,
             'Repeat' => 1,
-            'C_Mask' => 'BDE',
+            'C_Mask' => $cMask,
             'C_AltMin' => (float) ($request->alt_min ?? 30),
-            'C_HAStart' => (float) ($request->ha_start ?? -3),
-            'C_HAEnd' => (float) ($request->ha_end ?? 3),
-        ]);
+        ];
+
+        // Add optional constraints only if they are provided
+        if ($request->has('ha_start')) {
+            $targetParams['C_HAStart'] = (float) $request->ha_start;
+        }
+        if ($request->has('ha_end')) {
+            $targetParams['C_HAEnd'] = (float) $request->ha_end;
+        }
+
+        $result = $this->voyager->addTarget($targetParams);
 
         return response()->json([
             'success' => true,
@@ -160,6 +239,143 @@ class RoboTargetTestController extends Controller
             'success' => true,
             'result' => $result,
         ]);
+    }
+
+    /**
+     * Create a complete target with set and shots in one call (for testing)
+     */
+    public function createComplete(Request $request)
+    {
+        $request->validate([
+            'target_name' => 'required|string|max:255',
+            'ra_j2000' => 'required|string',
+            'dec_j2000' => 'required|string',
+            'shots' => 'required|array',
+            'shots.*.filter_name' => 'required|string',
+            'shots.*.exposure' => 'required|numeric|min:0.1',
+            'shots.*.num' => 'required|integer|min:1',
+        ]);
+
+        try {
+            // 1. Create Set
+            $setGuid = $request->input('guid_set', (string) Str::uuid());
+            $setResult = $this->voyager->addSet([
+                'Guid' => $setGuid,
+                'Name' => 'Test Set - ' . $request->target_name,
+                'ProfileName' => 'Default.v2y',
+                'IsDefault' => 0, // Convert boolean to int (Voyager expects 0/1, not true/false)
+                'Status' => 0,
+                'Note' => 'Created via Stellar test interface',
+            ]);
+
+            // 2. Create Target
+            $targetGuid = $request->input('guid_target', (string) Str::uuid());
+
+            // Convert coordinates from HH:MM:SS and ±DD:MM:SS to decimal
+            $raDecimal = $this->raToDecimal($request->ra_j2000);
+            $decDecimal = $this->decToDecimal($request->dec_j2000);
+
+            // CRITICAL: RefGuidBaseSequence MUST reference an existing sequence template in Voyager
+            // According to the documentation (docs/robotarget/createtarget.md:23), this field cannot be empty.
+            // For testing purposes, we'll use a default GUID, but you should replace this with an actual
+            // sequence template GUID from Voyager.
+            $baseSequenceGuid = $request->input('base_sequence_guid');
+
+            if (empty($baseSequenceGuid)) {
+                // Use a placeholder GUID - this will likely fail until you create a real sequence in Voyager
+                // TODO: Create a base sequence template in Voyager and use its GUID here
+                $baseSequenceGuid = '00000000-0000-0000-0000-000000000000';
+                logger()->warning('Using placeholder base_sequence_guid. Create a real sequence template in Voyager.');
+            }
+
+            // Generate C_Mask based on actual constraints provided
+            $cMask = 'B';  // AltMin is always required
+            if ($request->has('c_ha_start') && $request->has('c_ha_end')) {
+                $cMask .= 'DE';
+            }
+            if ($request->input('c_moon_down', false)) {
+                $cMask .= 'K';
+            }
+
+            // Build target parameters
+            $targetParams = [
+                'GuidTarget' => $targetGuid,
+                'RefGuidSet' => $setGuid,
+                'RefGuidBaseSequence' => $baseSequenceGuid,
+                'TargetName' => $request->target_name,
+                'RAJ2000' => $raDecimal,
+                'DECJ2000' => $decDecimal,
+                'PA' => (float) ($request->input('pa', 0)),
+                'Status' => 0,
+                'Priority' => $request->input('priority', 0),
+                'IsRepeat' => true,
+                'Repeat' => 1,
+                'C_Mask' => $cMask,
+                'C_AltMin' => (float) $request->input('c_alt_min', 30),
+            ];
+
+            // Add optional constraints only if they are provided
+            if ($request->has('c_ha_start')) {
+                $targetParams['C_HAStart'] = (float) $request->c_ha_start;
+            }
+            if ($request->has('c_ha_end')) {
+                $targetParams['C_HAEnd'] = (float) $request->c_ha_end;
+            }
+            if ($request->input('c_moon_down', false)) {
+                $targetParams['C_MoonDown'] = true;
+            }
+
+            $targetResult = $this->voyager->addTarget($targetParams);
+
+            // 3. Create Shots
+            $shotResults = [];
+            foreach ($request->shots as $shot) {
+                $shotGuid = (string) Str::uuid();
+                $shotResult = $this->voyager->addShot([
+                    'GuidShot' => $shotGuid,
+                    'RefGuidTarget' => $targetGuid,
+                    'FilterIndex' => $shot['filter_index'] ?? 0,
+                    'Num' => (int) $shot['num'],
+                    'Bin' => (int) ($shot['bin'] ?? 1),
+                    'ReadoutMode' => 0,
+                    'Type' => 0, // LIGHT
+                    'Speed' => 0,
+                    'Gain' => (int) ($shot['gain'] ?? 100),
+                    'Offset' => (int) ($shot['offset'] ?? 10),
+                    'Exposure' => (float) $shot['exposure'],
+                    'Order' => 1,
+                    'Enabled' => true,
+                ]);
+                $shotResults[] = ['guid' => $shotGuid, 'result' => $shotResult];
+            }
+
+            // 4. Optionally activate the target
+            if ($request->input('activate', false)) {
+                $this->voyager->activateTarget($targetGuid);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Target created successfully',
+                'target' => [
+                    'guid' => $targetGuid,
+                    'set_guid' => $setGuid,
+                    'name' => $request->target_name,
+                    'status' => 'pending',
+                    'shots_count' => count($shotResults),
+                ],
+                'details' => [
+                    'set' => $setResult,
+                    'target' => $targetResult,
+                    'shots' => $shotResults,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create target: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function diagnostics()

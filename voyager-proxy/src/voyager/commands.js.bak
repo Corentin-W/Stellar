@@ -5,17 +5,11 @@ class Commands {
   constructor(connection) {
     this.connection = connection;
     this.pendingCommands = new Map();
-    this.nextId = 1; // Sequential ID counter for JSON-RPC messages
   }
 
   async send(method, params = {}) {
     const uid = uuidv4();
-    const id = this.nextId++;
-
-    // Reset counter if it gets too large (keep it well within Int32 range)
-    if (this.nextId > 2000000000) {
-      this.nextId = 1;
-    }
+    const id = Date.now();
 
     // Build base command params
     const commandParams = {
@@ -24,7 +18,7 @@ class Commands {
     };
 
     // Add MAC authentication for RoboTarget commands if Manager Mode is active
-    if (method.startsWith('RemoteRoboTarget')) {
+    if (method.startsWith('RoboTarget')) {
       logger.info(`🔍 RoboTarget command detected: ${method}`);
       logger.info(`   Manager Mode Active: ${this.connection.isRoboTargetManagerMode}`);
       logger.info(`   Session Key exists: ${!!this.connection.sessionKey}`);
@@ -97,74 +91,83 @@ class Commands {
   // RoboTarget Commands
 
   async addSet(data) {
-    return this.send('RemoteRoboTargetAddSet', data);
+    return this.send('RoboTargetAddSet', {
+      Set: JSON.stringify(data),
+    });
   }
 
   async updateSet(data) {
-    return this.send('RemoteRoboTargetUpdateSet', data);
+    return this.send('RoboTargetUpdateSet', {
+      Set: JSON.stringify(data),
+    });
   }
 
   async deleteSet(guid) {
-    return this.send('RemoteRoboTargetDeleteSet', {
+    return this.send('RoboTargetDeleteSet', {
       GuidSet: guid,
     });
   }
 
   async addTarget(data) {
-    return this.send('RemoteRoboTargetAddTarget', data);
+    return this.send('RoboTargetAddTarget', {
+      Target: JSON.stringify(data),
+    });
   }
 
   async updateTarget(data) {
-    return this.send('RemoteRoboTargetUpdateTarget', data);
+    return this.send('RoboTargetUpdateTarget', {
+      Target: JSON.stringify(data),
+    });
   }
 
   async deleteTarget(guid) {
-    return this.send('RemoteRoboTargetDeleteTarget', {
+    return this.send('RoboTargetDeleteTarget', {
       GuidTarget: guid,
     });
   }
 
   async activateTarget(guid) {
-    return this.send('RemoteRoboTargetSetTargetStatus', {
+    return this.send('RoboTargetSetTargetStatus', {
       GuidTarget: guid,
       Status: 0, // Active
     });
   }
 
   async deactivateTarget(guid) {
-    return this.send('RemoteRoboTargetSetTargetStatus', {
+    return this.send('RoboTargetSetTargetStatus', {
       GuidTarget: guid,
       Status: 1, // Inactive
     });
   }
 
   async addShot(data) {
-    return this.send('RemoteRoboTargetAddShot', data);
+    return this.send('RoboTargetAddShot', {
+      Shot: JSON.stringify(data),
+    });
   }
 
   async updateShot(data) {
-    return this.send('RemoteRoboTargetUpdateShot', data);
+    return this.send('RoboTargetUpdateShot', {
+      Shot: JSON.stringify(data),
+    });
   }
 
   async deleteShot(guid) {
-    return this.send('RemoteRoboTargetDeleteShot', {
+    return this.send('RoboTargetDeleteShot', {
       GuidShot: guid,
     });
   }
 
   async listSets() {
-    logger.info('🎯 listSets() called - sending RemoteRoboTargetGetSet command');
-    const result = await this.send('RemoteRoboTargetGetSet', {
-      RefGuidSet: '', // Empty string returns all sets
-    });
+    logger.info('🎯 listSets() called - sending RoboTargetListSets command');
+    const result = await this.send('RoboTargetListSets');
     logger.info('🎯 listSets() result received:', result);
     return result;
   }
 
   async listTargetsForSet(setGuid) {
-    logger.info(`🎯 listTargetsForSet() called for set: ${setGuid}`);
-    return this.send('RemoteRoboTargetGetTarget', {
-      RefGuidSet: setGuid || '', // Empty string returns all targets
+    return this.send('RoboTargetListTargets', {
+      GuidSet: setGuid,
     });
   }
 
@@ -178,20 +181,13 @@ class Commands {
     // RemoteSetDashboardMode doesn't return RemoteActionResult
     // Just send the command directly
     const uid = uuidv4();
-    const id = this.nextId++;
-
-    // Reset counter if it gets too large (keep it well within Int32 range)
-    if (this.nextId > 2000000000) {
-      this.nextId = 1;
-    }
-
     const command = {
       method: 'RemoteSetDashboardMode',
       params: {
         UID: uid,
         IsOn: enabled,
       },
-      id,
+      id: Date.now(),
     };
 
     logger.info(`Setting Dashboard Mode: ${enabled}`);

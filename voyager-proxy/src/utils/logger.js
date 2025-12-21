@@ -30,10 +30,49 @@ const customFormat = winston.format.combine(
   })
 );
 
+// Filter for console: only show RoboTarget related messages, errors, and warnings
+const roboTargetFilter = winston.format((info) => {
+  // Always show errors and warnings
+  if (info.level === 'error' || info.level === 'warn') {
+    return info;
+  }
+
+  // Show RoboTarget related messages
+  const msg = info.message || '';
+  if (msg.includes('RoboTarget') ||
+      msg.includes('MAC') ||
+      msg.includes('RemoteRoboTarget') ||
+      msg.includes('🎯') ||
+      msg.includes('🔍') ||
+      msg.includes('✅') ||
+      msg.includes('🔐') ||
+      msg.includes('📤') ||
+      msg.includes('❌') ||
+      msg.includes('Command sent: RemoteRoboTarget') ||
+      msg.includes('Command timeout: RemoteRoboTarget') ||
+      msg.includes('Sent RemoteRoboTarget') ||
+      msg.includes('POST /api/robotarget')) {
+    return info;
+  }
+
+  // Show connection state changes
+  if (msg.includes('Connection fully established') ||
+      msg.includes('RoboTarget Manager Mode') ||
+      msg.includes('SessionKey stored') ||
+      msg.includes('Starting Stellar Voyager Proxy') ||
+      msg.includes('Stellar Voyager Proxy is ready')) {
+    return info;
+  }
+
+  // Filter out everything else
+  return false;
+})();
+
 // Console format (colorized)
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'HH:mm:ss' }),
+  roboTargetFilter,
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     let log = `${timestamp} ${level}: ${message}`;
 

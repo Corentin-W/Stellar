@@ -59,16 +59,20 @@ function validateTarget(req, res, next) {
     errors.push('RefGuidSet doit être un UUID valide');
   }
 
-  // Validate RA format (HH:MM:SS)
-  const raRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$/;
-  if (RAJ2000 && !raRegex.test(RAJ2000)) {
-    errors.push('RAJ2000 doit être au format HH:MM:SS');
+  // Validate RA (decimal hours between 0 and 24)
+  if (RAJ2000 !== undefined) {
+    const raNum = Number(RAJ2000);
+    if (isNaN(raNum) || raNum < 0 || raNum >= 24) {
+      errors.push('RAJ2000 doit être un nombre décimal entre 0 et 24 heures');
+    }
   }
 
-  // Validate DEC format (+DD:MM:SS or -DD:MM:SS)
-  const decRegex = /^[+-]([0-8][0-9]|90):([0-5][0-9]):([0-5][0-9])$/;
-  if (DECJ2000 && !decRegex.test(DECJ2000)) {
-    errors.push('DECJ2000 doit être au format +DD:MM:SS ou -DD:MM:SS');
+  // Validate DEC (decimal degrees between -90 and +90)
+  if (DECJ2000 !== undefined) {
+    const decNum = Number(DECJ2000);
+    if (isNaN(decNum) || decNum < -90 || decNum > 90) {
+      errors.push('DECJ2000 doit être un nombre décimal entre -90 et +90 degrés');
+    }
   }
 
   // Validate Priority range (0-4)

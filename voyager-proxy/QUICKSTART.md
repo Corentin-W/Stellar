@@ -27,24 +27,35 @@ nano .env
 
 ```env
 NODE_ENV=development
-PORT=3000
+PORT=3002
 HOST=0.0.0.0
 
 # Voyager - MODIFIER AVEC VOS VALEURS
-VOYAGER_HOST=192.168.1.100     # IP de votre Voyager
+VOYAGER_HOST=127.0.0.1         # localhost pour test local
 VOYAGER_PORT=5950
 VOYAGER_INSTANCE=1
 
-# Auth Voyager (optionnel pour test)
-VOYAGER_AUTH_ENABLED=false
-# VOYAGER_USERNAME=admin
-# VOYAGER_PASSWORD=password
+# Auth Voyager (REQUIS pour RoboTarget Manager Mode)
+VOYAGER_AUTH_ENABLED=true
+VOYAGER_USERNAME=admin
+VOYAGER_PASSWORD=6383
+
+# RoboTarget NDA Authentication (REQUIS pour RoboTarget API)
+# ⚠️ VOYAGER_SHARED_SECRET doit correspondre au champ "Secret" dans l'onglet COMMON de Voyager
+VOYAGER_SHARED_SECRET=Dherbomez
+VOYAGER_AUTH_BASE=YWRtaW46NjM4Mw==
+VOYAGER_MAC_KEY=Dherbomez
+VOYAGER_MAC_WORD1=QRP7KvBJmXyT3sLz
+VOYAGER_MAC_WORD2=MGH9TaNcLpR2fWeq
+VOYAGER_MAC_WORD3=ZXY1bUvKcDf8RmNo
+VOYAGER_MAC_WORD4=PLD4QsVeJh6YaTux
+VOYAGER_LICENSE_NUMBER=F738-EAF6-3F29-F079-8E1E-DD77-F2BE-4A0D
 
 # API Security (vide pour test)
 API_KEY=
 
 # CORS
-CORS_ORIGIN=http://localhost,http://localhost:8080
+CORS_ORIGIN=http://localhost,http://localhost:8080,http://stellar.test,https://stellar.test
 
 # Dashboard
 ENABLE_DASHBOARD_MODE=true
@@ -52,6 +63,11 @@ ENABLE_DASHBOARD_MODE=true
 # Logs
 LOG_LEVEL=debug
 ```
+
+**⚠️ IMPORTANT pour RoboTarget:**
+- `VOYAGER_SHARED_SECRET` doit être identique au champ "Secret" dans l'onglet COMMON de Voyager
+- Redémarrer Voyager après avoir modifié le champ "Secret"
+- Les valeurs ci-dessus sont des exemples - utiliser vos propres valeurs
 
 ### Étape 3 : Démarrer le proxy
 
@@ -64,18 +80,28 @@ npm run dev
 ```
 🚀 Starting Stellar Voyager Proxy...
 Environment: development
-Port: 3000
+Port: 3002
 📊 Metrics collector started
-🌐 API Server listening on port 3000
+🌐 API Server listening on port 3002
 🔌 WebSocket server started
-Connecting to Voyager at 192.168.1.100:5950...
+🎯 RoboTarget event handler registered
+Connecting to Voyager at 127.0.0.1:5950...
 TCP connection established
-Voyager version: Release 2.0.14f
-✅ Authenticated as admin
+⏳ Waiting for Version event...
+✅ Version event received
+   Voyager version: Release 2.3.14
+   SessionKey: 1734637469.906
+🔐 Authenticating...
+✅ Authenticated successfully as admin
+📊 Dashboard Mode activated
+🤖 Activating RoboTarget Manager Mode...
+✅ RoboTarget Manager Mode ACTIVATED (Status: DONE)
+💓 Heartbeat started
+✅ Connection fully established!
 🔭 Connected to Voyager Application Server
 ✅ Stellar Voyager Proxy is ready!
-📡 Voyager: 192.168.1.100:5950
-🌍 API: http://0.0.0.0:3000
+📡 Voyager: 127.0.0.1:5950
+🌍 API: http://0.0.0.0:3002
 ```
 
 ### Étape 4 : Tester l'API
@@ -84,7 +110,7 @@ Voyager version: Release 2.0.14f
 
 ```bash
 # Test health check
-curl http://localhost:3000/health
+curl http://localhost:3002/health
 
 # Devrait retourner :
 # {
@@ -93,7 +119,8 @@ curl http://localhost:3000/health
 #   "uptime": ...,
 #   "voyager": {
 #     "connected": true,
-#     "authenticated": true
+#     "authenticated": true,
+#     "roboTargetManagerMode": true
 #   }
 # }
 ```
@@ -162,6 +189,42 @@ python3 -m http.server 8080
 2. Cliquer "⛔ Arrêter"
 3. Observer signal 503 (Action Stopped)
 ```
+
+### ✅ Test 5 : RoboTarget (NDA Authentication)
+
+**⚠️ Prérequis** : RoboTarget Manager Mode doit être ACTIVÉ (voir logs du proxy)
+
+**Interface de test Laravel :**
+```
+1. Ouvrir : https://stellar.test/test/robotarget
+2. Vérifier les statuts :
+   - Proxy Status : Connecté ✅
+   - Voyager Status : Connecté ✅
+   - RoboTarget Mode : ACTIVÉ ✅
+3. Tester avec preset "M42 - Orion Nebula"
+4. Observer les logs temps réel
+```
+
+**Via API :**
+```bash
+# Créer un Set
+curl -X POST http://localhost:3002/api/robotarget/sets \
+  -H "Content-Type: application/json" \
+  -d '{
+    "Guid": "550e8400-e29b-41d4-a716-446655440001",
+    "Name": "Test Set",
+    "ProfileName": "Default.v2y",
+    "Status": 0
+  }'
+
+# Devrait retourner : { "success": true, "result": { ... } }
+```
+
+**Erreur "MAC Error" ?**
+- Vérifier `VOYAGER_SHARED_SECRET` correspond au champ "Secret" dans Voyager COMMON
+- Vérifier l'algorithme de hachage dans `src/voyager/auth.js` (Section 6.a du protocole NDA)
+- Redémarrer Voyager après modification du "Secret"
+- Voir `CONNEXION-ROBOTARGET.md` pour détails
 
 ---
 
