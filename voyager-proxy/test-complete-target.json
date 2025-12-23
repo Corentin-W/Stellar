@@ -1,0 +1,28 @@
+{
+  "method": "RemoteRoboTargetAddTarget",
+  "params": {
+    "GuidTarget": "aaaabbbb-cccc-dddd-eeee-123456789012",
+    "RefGuidSet": "ffffffff-aaaa-bbbb-cccc-111111111111",
+    "TargetName": "M42 - Orion Nebula",
+    "RAJ2000": 5.588,
+    "DECJ2000": -5.391,
+    "TType": 0,
+    "TKey": "",
+    "Priority": 2,
+    "TargetActive": true,
+    "C_AltMin": 30,
+    "C_AltMax": 90,
+    "C_MoonDown": true,
+    "C_MoonPhaseMin": 0,
+    "C_MoonPhaseMax": 100,
+    "C_MoonSeparation": 30,
+    "C_SunAlt": -12,
+    "C_HFDMeanLimit": 0,
+    "C_Mask": "BK",
+    "HourAngleStart": -5,
+    "HourAngleEnd": 5,
+    "RotatorAngle": 0,
+    "C_RepeatForeverFlag": false,
+    "C_MaxRepeat": 1
+  }
+}

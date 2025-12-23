@@ -115,6 +115,28 @@
                                 Base Sequence GUID
                                 <span class="text-xs text-gray-500">(requis - créer une séquence dans Voyager)</span>
                             </label>
+
+                            <!-- Button to load sequences from Voyager -->
+                            <button
+                                @click="loadBaseSequences()"
+                                type="button"
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center justify-center gap-2">
+                                <span>📋 Charger les séquences depuis Voyager</span>
+                            </button>
+
+                            <!-- Dropdown to select a sequence (shown after loading) -->
+                            <select
+                                x-show="availableSequences.length > 0"
+                                x-model="testTarget.base_sequence_guid"
+                                @change="onSequenceSelected()"
+                                class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm">
+                                <option value="">-- Sélectionner une séquence --</option>
+                                <template x-for="seq in availableSequences" :key="seq.guid">
+                                    <option :value="seq.guid" x-text="seq.name + ' (' + seq.guid.substring(0, 8) + '...)'"></option>
+                                </template>
+                            </select>
+
+                            <!-- Manual input (fallback) -->
                             <input
                                 type="text"
                                 x-model="testTarget.base_sequence_guid"
@@ -263,6 +285,7 @@
                 },
                 currentTarget: null,
                 logs: [],
+                availableSequences: [],
                 presets: {
                     m42: {
                         target_name: 'M42 - Nébuleuse d\'Orion (Test)',
@@ -392,6 +415,89 @@
                         this.addLog('error', 'Erreur réseau: ' + error.message);
                     } finally {
                         this.isLoading = false;
+                    }
+                },
+
+                async loadBaseSequences() {
+                    this.addLog('info', 'Chargement des séquences depuis Voyager...');
+                    try {
+                        const proxyUrl = "{{ config('services.voyager.proxy_url') }}";
+                        const apiKey = "{{ config('services.voyager.proxy_api_key') }}";
+
+                        const response = await fetch(`${proxyUrl}/api/robotarget/base-sequences`, {
+                            headers: { 'X-API-Key': apiKey }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+
+                        const data = await response.json();
+
+                        if (data.success && data.baseSequences) {
+                            // Parse the response to extract sequences
+                            // The format depends on Voyager's response structure
+                            const sequences = this.parseBaseSequences(data.baseSequences);
+                            this.availableSequences = sequences;
+                            this.addLog('success', `${sequences.length} séquence(s) chargée(s)`);
+                        } else {
+                            this.addLog('warning', 'Aucune séquence trouvée');
+                        }
+                    } catch (error) {
+                        this.addLog('error', `Erreur: ${error.message}`);
+                        console.error('Error loading base sequences:', error);
+                    }
+                },
+
+                parseBaseSequences(response) {
+                    // Parse Voyager response to extract base sequences
+                    // According to official Voyager documentation, the response format is:
+                    // ParamRet.list = Array of { guid, basesequencename, filename, profilename, isdefault, status, note }
+                    const sequences = [];
+
+                    try {
+                        // Log raw response for debugging
+                        console.log('Raw base sequences response:', response);
+
+                        // Official format: ParamRet.list array
+                        if (response.ParamRet && response.ParamRet.list) {
+                            const list = response.ParamRet.list;
+                            if (Array.isArray(list)) {
+                                list.forEach(seq => {
+                                    sequences.push({
+                                        guid: seq.guid,
+                                        name: seq.basesequencename || seq.filename || 'Unnamed Sequence',
+                                        profile: seq.profilename || 'Unknown',
+                                        status: seq.status === 0 ? 'Enabled' : 'Disabled'
+                                    });
+                                });
+                            }
+                        }
+                        // Fallback for parsed format
+                        else if (response.parsed && Array.isArray(response.parsed)) {
+                            response.parsed.forEach(seq => {
+                                sequences.push({
+                                    guid: seq.guid || seq.Guid,
+                                    name: seq.basesequencename || seq.Name || 'Unnamed Sequence',
+                                    profile: seq.profilename || 'Unknown',
+                                    status: seq.status === 0 ? 'Enabled' : 'Disabled'
+                                });
+                            });
+                        }
+
+                        this.addLog('info', `Parsed ${sequences.length} sequences from response`);
+                    } catch (error) {
+                        this.addLog('error', `Parse error: ${error.message}`);
+                        console.error('Parse error:', error);
+                    }
+
+                    return sequences;
+                },
+
+                onSequenceSelected() {
+                    const selected = this.availableSequences.find(s => s.guid === this.testTarget.base_sequence_guid);
+                    if (selected) {
+                        this.addLog('info', `Séquence sélectionnée: ${selected.name}`);
                     }
                 },
 

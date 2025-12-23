@@ -1,5 +1,6 @@
 import express from 'express';
 import logger from '../utils/logger.js';
+import roboTargetRoutes from './robotarget/routes.js';
 
 const router = express.Router();
 
@@ -38,6 +39,7 @@ router.get('/status/connection', (req, res) => {
     isConnected: state.isConnected,
     isAuthenticated: state.isAuthenticated,
     version: state.version,
+    sessionKey: req.voyager.sessionKey,
   });
 });
 
@@ -414,4 +416,10 @@ router.post('/utils/platesolve', async (req, res, next) => {
   }
 });
 
-export default router;
+// Export a function that accepts voyagerConnection to setup RoboTarget routes
+export default function createRouter(voyagerConnection, io) {
+  // Mount RoboTarget routes (includes test-mac routes)
+  router.use('/robotarget', roboTargetRoutes(voyagerConnection, io));
+
+  return router;
+}

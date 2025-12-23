@@ -1,0 +1,17 @@
+{
+  "method": "RemoteRoboTargetAddTarget",
+  "params": {
+    "GuidTarget": "uniform-sep-0000-0000-0000-000001",
+    "RefGuidSet": "ffffffff-aaaa-bbbb-cccc-111111111111",
+    "RefGuidBaseSequence": "0473875c-76e6-44d0-a4e2-31100639ba01",
+    "TargetName": "M42 Uniform Separator Test",
+    "RAJ2000": 5.588,
+    "DECJ2000": -5.391,
+    "TType": 0
+  },
+  "macFormula": {
+    "sep1": "||:||",
+    "sep2": "||:||",
+    "sep3": "||:||"
+  }
+}

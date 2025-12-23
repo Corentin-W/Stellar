@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import logger from '../utils/logger.js';
-import routes from './routes.js';
+import createRouter from './routes.js';
 import { authMiddleware } from './middleware.js';
 
 class ApiServer {
@@ -12,6 +12,7 @@ class ApiServer {
     this.voyagerConnection = voyagerConnection;
     this.app = express();
     this.httpServer = null;
+    this.io = null; // Will be set by WebSocket server
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -77,8 +78,9 @@ class ApiServer {
       });
     });
 
-    // API routes
-    this.app.use('/api', routes);
+    // API routes - Create router with voyagerConnection and io
+    const apiRoutes = createRouter(this.voyagerConnection, this.io);
+    this.app.use('/api', apiRoutes);
 
     // 404 handler
     this.app.use((req, res) => {

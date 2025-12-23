@@ -59,7 +59,29 @@
       "Bash(cmd /c \"netstat -ano | findstr :3002 | findstr LISTENING\")",
       "Bash(cmd /c \"netstat -ano | findstr 3002\")",
       "Bash(cmd /c \"taskkill /F /PID 13828\")",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(cmd /c \"netstat -ano | findstr LISTENING | findstr :300\")",
+      "Bash(cmd /c \"php artisan serve\")",
+      "Bash(start /B cmd /c:*)",
+      "Bash(cmd /c \"netstat -ano | findstr LISTENING | findstr :8000\")",
+      "Bash(cmd /c \"netstat -ano | findstr LISTENING | findstr :3002\")",
+      "Bash(timeout:*)",
+      "Bash(cmd /c \"type .env | findstr VOYAGER\")",
+      "Bash(cmd /c \"cd voyager-proxy && npm start\")",
+      "Bash(node src/index.js:*)",
+      "Bash(node:*)",
+      "Bash(cmd /c \"taskkill /F /PID 6940\")",
+      "Bash(cmd /c \"timeout /t 2\")",
+      "Bash(cmd /c \"type C:\\Users\\PrimaLuceLab\\.claude\\projects\\C--Users-PrimaLuceLab-Desktop-Code\\9e396df5-2d5c-43ee-b71d-f6a55e7186da\\tool-results\\toolu_01DncovcK7QKJrDVdWft8i8h.txt | findstr /C:\"\"RoboTarget Manager Mode\"\" /C:\"\"Status:\"\" /C:\"\"ERROR\"\" /C:\"\"FAILED\"\" /C:\"\"SUCCESS\"\"\")",
+      "Bash(cmd /c \"powershell -Command \"\"Get-Content C:\\Users\\PrimaLuceLab\\.claude\\projects\\C--Users-PrimaLuceLab-Desktop-Code\\9e396df5-2d5c-43ee-b71d-f6a55e7186da\\tool-results\\toolu_01DncovcK7QKJrDVdWft8i8h.txt | Select-String ''RoboTarget'' | Select-Object -Last 50\"\"\")",
+      "Bash(cmd /c \"powershell -Command \"\"Get-Content /tmp/claude/tasks/ba526c5.output -Tail 200 | Select-String -Pattern ''RoboTarget|MAC|RemoteActionResult|Error'' -Context 2,1\"\"\")",
+      "Bash(cmd /c \"type C:\\Users\\PrimaLuceLab\\.claude\\projects\\C--Users-PrimaLuceLab-Desktop-Code\\9e396df5-2d5c-43ee-b71d-f6a55e7186da\\tool-results\\toolu_01DncovcK7QKJrDVdWft8i8h.txt | findstr /C:\"\"MAC generation\"\" /C:\"\"RemoteRoboTargetGetSet\"\" /C:\"\"13:00\"\" /C:\"\"auto-test-mac\"\"\")",
+      "Bash(cmd /c \"powershell -Command \"\"Get-Content ''C:\\Users\\PrimaLuceLab\\.claude\\projects\\C--Users-PrimaLuceLab-Desktop-Code\\9e396df5-2d5c-43ee-b71d-f6a55e7186da\\tool-results\\toolu_01DncovcK7QKJrDVdWft8i8h.txt'' -Tail 100 | Out-String\"\"\")",
+      "Bash(cmd /c \"timeout /t 6\")",
+      "Bash(cmd /c \"tasklist /FI \"\"IMAGENAME eq node.exe\"\" /FO CSV\")",
+      "Bash(cmd /c \"timeout /t 30\")",
+      "Bash(cmd /c \"netstat -ano | findstr LISTENING\")",
+      "Bash(Select-String -Pattern \"addSet.*=\" -Context 0,10)"
     ]
   }
 }

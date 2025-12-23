@@ -69,6 +69,11 @@ Route::get('/test/voyager', function () {
     return view('test.robotarget');
 })->name('test.voyager');
 
+// Page de test MAC RoboTarget
+Route::get('/test/mac', function () {
+    return view('test.mac-test');
+})->name('test.mac');
+
 /*
 |--------------------------------------------------------------------------
 | Routes avec préfixe de locale

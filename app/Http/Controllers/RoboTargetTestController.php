@@ -132,16 +132,20 @@ class RoboTargetTestController extends Controller
             $cMask .= 'DE';
         }
 
-        // Build target parameters
+        // Build target parameters with ALL required fields
         $targetParams = [
             'GuidTarget' => $targetGuid,
             'RefGuidSet' => $request->set_guid,
             'RefGuidBaseSequence' => $baseSequenceGuid,
             'TargetName' => $request->name,
+            'Tag' => $request->input('tag', ''),  // Required: Tag (can be empty)
             'RAJ2000' => $raDecimal,
             'DECJ2000' => $decDecimal,
             'PA' => (float) ($request->pa ?? 0),
+            'DateCreation' => time(),  // Required: Unix timestamp
             'Status' => 0,
+            'StatusOp' => 0,  // Required: 0=Idle
+            'Note' => $request->input('note', ''),  // Required: Note (can be empty)
             'Priority' => 2,
             'IsRepeat' => true,
             'Repeat' => 1,
@@ -297,16 +301,20 @@ class RoboTargetTestController extends Controller
                 $cMask .= 'K';
             }
 
-            // Build target parameters
+            // Build target parameters with ALL required fields
             $targetParams = [
                 'GuidTarget' => $targetGuid,
                 'RefGuidSet' => $setGuid,
                 'RefGuidBaseSequence' => $baseSequenceGuid,
                 'TargetName' => $request->target_name,
+                'Tag' => $request->input('tag', ''),  // Required: Tag (can be empty)
                 'RAJ2000' => $raDecimal,
                 'DECJ2000' => $decDecimal,
                 'PA' => (float) ($request->input('pa', 0)),
+                'DateCreation' => time(),  // Required: Unix timestamp
                 'Status' => 0,
+                'StatusOp' => 0,  // Required: 0=Idle, 1=Running, 2=Finished, etc.
+                'Note' => $request->input('note', ''),  // Required: Note (can be empty)
                 'Priority' => $request->input('priority', 0),
                 'IsRepeat' => true,
                 'Repeat' => 1,

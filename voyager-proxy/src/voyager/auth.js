@@ -242,18 +242,18 @@ class Authentication {
 
   /**
    * Generate MAC for RoboTarget commands (after Manager Mode is activated)
-   * Formula from NDA documentation Section 6.b:
-   * SHA1(SharedSecret + Sep1 + SessionKey + Sep2 + ID_JSON-RPC + Sep3 + UID_Commande) → Base64 DIRECT
    *
-   * CRITICAL: Les séparateurs ne sont PAS uniformes (selon doc Section 6.b) :
-   * - Sep1 (Secret → SessionKey) : "|| |" (Pipe, Pipe, 1 Espace, Pipe)
-   * - Sep2 (SessionKey → ID) : "||  |" (Pipe, Pipe, 2 Espaces, Pipe) ⚠️
-   * - Sep3 (ID → UID) : "|| |" (Pipe, Pipe, 1 Espace, Pipe)
+   * FORMULA (NON-UNIFORM separators as per NDA Section 6.b):
+   * SharedSecret + Sep1 + SessionKey + Sep2 + ID + Sep3 + UID
    *
-   * Exemple de la doc Section 6.b :
+   * Where:
+   * - Sep1 (Secret → SessionKey): "|| |" (bar, bar, 1 space, bar)
+   * - Sep2 (SessionKey → ID): "||  |" (bar, bar, 2 spaces, bar) ⚠️ DIFFERENT
+   * - Sep3 (ID → UID): "|| |" (bar, bar, 1 space, bar)
+   *
+   * Example from doc Section 6.b (secret="pippo"):
    * "pippo|| |1652231344.88438||  |5|| |0697f2f9-24e4-4850-84e9-18ea28b05fe9"
    *                            ^^^^  <= DEUX espaces ici
-   * MAC attendu : nWq/V98Laq+hFFdMvynnneAyKvk= (28 chars)
    *
    * Encoding: Binary SHA1 → Base64 (28 chars) - NOT Hex → Base64 (that's only for Manager Mode activation)
    */
@@ -266,28 +266,28 @@ class Authentication {
     const jsonRpcIdStr = String(jsonRpcId);
     const commandUidStr = String(commandUid);
 
-    // IMPORTANT: Séparateurs NON-UNIFORMES selon Section 6.b de la doc NDA
-    const sep1 = '|| |';   // Secret → SessionKey (1 espace)
-    const sep2 = '||  |';  // SessionKey → ID (2 espaces) ⚠️
-    const sep3 = '|| |';   // ID → UID (1 espace)
+    // ✅ CONFIRMED: Reserved API uses SAME separator as Manager Mode activation
+    // Format: SharedSecret||:||SessionKey||:||ID||:||UID
+    const separator = '||:||';
 
-    // Concatenation avec séparateurs NON-uniformes
-    const macString = sharedSecret + sep1 + sessionKeyStr + sep2 + jsonRpcIdStr + sep3 + commandUidStr;
+    // Concatenation with uniform separators
+    const macString = sharedSecret + separator + sessionKeyStr + separator + jsonRpcIdStr + separator + commandUidStr;
 
-    // Binary SHA1 → Base64 DIRECT (result: 28 chars)
-    // NOT Hex → Base64 (that's only for RemoteSetRoboTargetManagerMode)
-    const mac = crypto.createHash('sha1').update(macString).digest('base64');
+    // ✅ NDA DOC: SHA1 → Hex string → Base64 encode of the HEX STRING (ALL RoboTarget commands)
+    // Step 1: Calculate SHA1 and get hexadecimal string representation
+    const hexHash = crypto.createHash('sha1').update(macString).digest('hex');
+    // Step 2: Base64 encode the hex string (NOT the binary!)
+    const mac = Buffer.from(hexHash, 'utf8').toString('base64');
 
     logger.info(`🔐 MAC generation for RoboTarget command:`);
     logger.info(`   SharedSecret: ${sharedSecret}`);
     logger.info(`   SessionKey: ${sessionKeyStr}`);
     logger.info(`   JSON-RPC ID: ${jsonRpcIdStr}`);
     logger.info(`   Command UID: ${commandUidStr}`);
-    logger.info(`   Sep1 (Secret→SessionKey): "${sep1}" (1 espace)`);
-    logger.info(`   Sep2 (SessionKey→ID): "${sep2}" (2 espaces) ⚠️`);
-    logger.info(`   Sep3 (ID→UID): "${sep3}" (1 espace)`);
+    logger.info(`   Separator: "${separator}" (uniform, like Manager Mode)`);
     logger.info(`   MAC string: ${macString}`);
-    logger.info(`   MAC (Base64): ${mac}`);
+    logger.info(`   SHA1 (hex): ${hexHash}`);
+    logger.info(`   MAC (Hex→Base64): ${mac}`);
     return mac;
   }
 

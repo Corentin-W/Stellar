@@ -168,6 +168,15 @@ class Commands {
     });
   }
 
+  async listBaseSequences(profileName = '') {
+    logger.info('🎯 listBaseSequences() called - sending RemoteRoboTargetGetBaseSequence command');
+    const result = await this.send('RemoteRoboTargetGetBaseSequence', {
+      ProfileName: profileName, // Empty string returns all base sequences for all profiles
+    });
+    logger.info('🎯 listBaseSequences() result received:', result);
+    return result;
+  }
+
   // Control Commands
 
   async abort() {

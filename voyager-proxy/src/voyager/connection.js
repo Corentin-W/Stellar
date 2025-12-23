@@ -89,7 +89,28 @@ class VoyagerConnection extends EventEmitter {
                 }
 
                 const message = JSON.parse(line);
-                logger.info(`✅ Parsed message - Event: ${message.Event || message.method || 'unknown'}`);
+                const eventType = message.Event || message.method || 'unknown';
+                logger.info(`✅ Parsed message - Event: ${eventType}`);
+
+                // Log unknown messages and JSON-RPC errors in detail
+                if (eventType === 'unknown') {
+                  logger.error(`⚠️  ========== UNKNOWN MESSAGE ==========`);
+                  logger.error(JSON.stringify(message, null, 2));
+                  logger.error(`⚠️  =====================================`);
+                }
+
+                // Log JSON-RPC errors specifically
+                if (message.error) {
+                  logger.error(`❌ ========== JSON-RPC ERROR ==========`);
+                  logger.error(`   ID: ${message.id}`);
+                  logger.error(`   Code: ${message.error.code}`);
+                  logger.error(`   Message: ${message.error.message}`);
+                  if (message.error.data) {
+                    logger.error(`   Data: ${JSON.stringify(message.error.data)}`);
+                  }
+                  logger.error(`❌ ======================================`);
+                }
+
                 await this.handleMessage(message);
 
                 // FALLBACK: If we receive Polling event before Version, use its Timestamp as SessionKey

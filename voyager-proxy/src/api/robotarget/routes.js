@@ -1,6 +1,7 @@
 import express from 'express';
 import RoboTargetCommands from '../../voyager/robotarget/commands.js';
 import { validateSet, validateTarget, validateShot } from './validators.js';
+import { setupTestMacRoute } from './test-mac-route.js';
 
 const router = express.Router();
 
@@ -29,23 +30,16 @@ export default (voyagerConnection, io) => {
       const note = req.body.Note || req.body.note || '';
 
       // Use exact parameter names from Voyager API documentation
-      // IMPORTANT: Selon la doc NDA, le champ Tag est absent des exemples officiels
-      // On ne l'envoie PAS pour éviter les erreurs de parsing côté Voyager
-      //
-      // CRITICAL FIX: Convert booleans to integers (0/1) and omit empty/null fields
-      // Voyager expects integers, not booleans, and doesn't accept null/empty strings
+      // IMPORTANT: Match the exact format from official example (line 1010):
+      // {"Guid":"...","Name":"Pippolo","ProfileName":"TestFlatNoMount.v2y","IsDefault":false,"Status":0,"Note":"","UID":"...","MAC":"..."}
       const setParams = {
         Guid: guidSet,
         Name: name || `Set_${guidSet.substring(0, 8)}`,
         ProfileName: profileName.endsWith('.v2y') ? profileName : `${profileName}.v2y`,
-        IsDefault: isDefault ? 1 : 0, // Convert boolean to int
+        IsDefault: Boolean(isDefault), // Keep as boolean (false/true), NOT integer
         Status: status,
+        Note: note || '',  // Send empty string, not omit (as per official example)
       };
-
-      // Only add Note if it's not empty
-      if (note && note.trim() !== '') {
-        setParams.Note = note;
-      }
 
       console.log('🔍 DEBUG: Parameters being sent to addSet():', JSON.stringify(setParams, null, 2));
 
@@ -108,6 +102,28 @@ export default (voyagerConnection, io) => {
       res.status(500).json({
         success: false,
         message: 'Erreur lors de la récupération des targets',
+        error: error.message,
+      });
+    }
+  });
+
+  /**
+   * GET /api/robotarget/base-sequences
+   * Lister toutes les séquences de base (templates) disponibles dans Voyager
+   */
+  router.get('/base-sequences', async (req, res) => {
+    try {
+      const result = await roboTargetCommands.listBaseSequences();
+
+      res.json({
+        success: true,
+        baseSequences: result,
+      });
+    } catch (error) {
+      console.error('Error listing base sequences:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des séquences de base',
         error: error.message,
       });
     }
@@ -477,6 +493,11 @@ export default (voyagerConnection, io) => {
       });
     }
   });
+
+  /**
+   * Test MAC route - allows testing different MAC formulas interactively
+   */
+  setupTestMacRoute(router, roboTargetCommands, voyagerConnection);
 
   return router;
 }

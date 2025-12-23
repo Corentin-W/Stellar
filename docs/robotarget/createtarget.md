@@ -54,10 +54,16 @@ Chaque contrainte activée dans le masque doit avoir sa valeur correspondante d�
 ## 3. Sécurité et MAC
 Le champ **`MAC`** est obligatoire pour valider l'intégrité de la commande.
 
-*   **Formule :** `SHA1_Binaire(Secret + SessionKey + ID_JSON + UID_Commande)`.
-*   **Séparateurs (Section 6.b) :** Utiliser `|| |` entre le Secret et la SessionKey, et `||  |` (deux espaces) avant l'ID.
+*   **Formule :** `SHA1_Binaire(SharedSecret + "|||" + SessionKey + "|||" + ID_JSON + "|||" + UID_Commande)`.
+*   **Séparateur :** `|||` (TROIS barres verticales) entre tous les éléments.
 *   **Encodage :** Le résultat SHA1 binaire doit être converti en **Base64** (28 caractères).
 *   **SessionKey :** Doit être la chaîne exacte reçue dans l'événement `Version` à la connexion.
+
+**Exemple de calcul :**
+```
+Chaîne: "Dherbomez|||1766334167.23676|||2|||14a27ee3-43c1-4f01-9e7f-86a4e6ebb74e"
+SHA1 → Base64 → MAC final
+```
 
 ## 4. Exemple de Requête (TX)
 ```json
