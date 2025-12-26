@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\SupportTemplateController;
 use App\Http\Controllers\Admin\ProductPromotionController;
 use App\Http\Controllers\RoboTargetTestController;
 use App\Http\Controllers\Admin\RoboTargetAdminController;
+use App\Http\Controllers\Admin\RoboTargetShotController;
 
 /*
 |--------------------------------------------------------------------------
@@ -75,10 +76,157 @@ Route::get('/test/mac', function () {
     return view('test.mac-test');
 })->name('test.mac');
 
+// Tests de diagnostic Voyager Proxy
+Route::get('/test/proxy-connection', function () {
+    $service = new App\Services\RoboTargetSetService();
+    $proxyUrl = config('services.voyager.proxy_url');
+    $apiKey = config('services.voyager.proxy_api_key');
+
+    $output = "<h1>Test de connexion au Proxy Voyager</h1><hr>";
+    $output .= "<h2>Configuration:</h2><pre>";
+    $output .= "VOYAGER_PROXY_URL: " . $proxyUrl . "\n";
+    $output .= "API Key configurée: " . ($apiKey ? 'Oui' : 'Non') . "\n";
+    $output .= "</pre>";
+
+    // Test 1: Health check
+    $output .= "<h2>Test 1: Health check du proxy</h2><pre>";
+    $start = microtime(true);
+    try {
+        $response = \Illuminate\Support\Facades\Http::timeout(5)
+            ->withHeaders($apiKey ? ['X-API-Key' => $apiKey] : [])
+            ->get("{$proxyUrl}/health");
+        $elapsed = round((microtime(true) - $start) * 1000);
+        if ($response->successful()) {
+            $output .= "✅ Proxy accessible! (temps: {$elapsed}ms)\n";
+            $output .= "Réponse: " . $response->body() . "\n";
+        } else {
+            $output .= "❌ Erreur HTTP " . $response->status() . "\n";
+        }
+    } catch (\Exception $e) {
+        $elapsed = round((microtime(true) - $start) * 1000);
+        $output .= "❌ Exception après {$elapsed}ms\n";
+        $output .= "Erreur: " . $e->getMessage() . "\n";
+    }
+    $output .= "</pre>";
+
+    // Test 2: Dashboard
+    $output .= "<h2>Test 2: État du Dashboard</h2><pre>";
+    $start = microtime(true);
+    try {
+        $response = \Illuminate\Support\Facades\Http::timeout(5)
+            ->withHeaders($apiKey ? ['X-API-Key' => $apiKey] : [])
+            ->get("{$proxyUrl}/api/dashboard/state");
+        $elapsed = round((microtime(true) - $start) * 1000);
+        if ($response->successful()) {
+            $output .= "✅ Dashboard accessible! (temps: {$elapsed}ms)\n";
+            $data = $response->json();
+            $output .= "Voyager connecté: " . ($data['connected'] ? 'Oui' : 'Non') . "\n";
+            $output .= "Manager Mode: " . ($data['managerModeActive'] ? 'Actif' : 'Inactif') . "\n";
+        } else {
+            $output .= "❌ Erreur HTTP " . $response->status() . "\n";
+        }
+    } catch (\Exception $e) {
+        $elapsed = round((microtime(true) - $start) * 1000);
+        $output .= "❌ Exception après {$elapsed}ms\n";
+        $output .= "Erreur: " . $e->getMessage() . "\n";
+    }
+    $output .= "</pre>";
+
+    // Test 3: GetSet
+    $output .= "<h2>Test 3: Commande GetSet</h2><pre>";
+    $start = microtime(true);
+    try {
+        $result = $service->getSets();
+        $elapsed = round((microtime(true) - $start) * 1000);
+        if ($result['success']) {
+            $output .= "✅ GetSet fonctionne! (temps: {$elapsed}ms)\n";
+            $output .= "Sets trouvés: " . count($result['sets']) . "\n";
+        } else {
+            $output .= "❌ Erreur: " . ($result['error'] ?? 'Inconnue') . " (temps: {$elapsed}ms)\n";
+        }
+    } catch (\Exception $e) {
+        $elapsed = round((microtime(true) - $start) * 1000);
+        $output .= "❌ Exception après {$elapsed}ms\n";
+        $output .= "Erreur: " . $e->getMessage() . "\n";
+    }
+    $output .= "</pre>";
+
+    return $output;
+})->name('test.proxy.connection');
+
+Route::get('/test/shots-api', function () {
+    $service = new App\Services\RoboTargetSetService();
+
+    $output = "<h1>Test de récupération des Shots</h1><hr>";
+
+    // Étape 1: Config filtres
+    $output .= "<h2>Étape 1: Configuration des filtres</h2><pre>";
+    $start = microtime(true);
+    $configResult = $service->getConfigDataShot();
+    $elapsed = round((microtime(true) - $start) * 1000);
+    $output .= "Temps: {$elapsed}ms\n";
+    $output .= "Résultat: " . ($configResult['success'] ? '✅ Succès' : '❌ Échec') . "\n";
+    if ($configResult['success']) {
+        $output .= "Filtres: " . json_encode($configResult['filters']) . "\n";
+    }
+    $output .= "</pre>";
+
+    // Étape 2: Sets
+    $output .= "<h2>Étape 2: Récupération des Sets</h2><pre>";
+    $setsResult = $service->getSets();
+    if ($setsResult['success'] && !empty($setsResult['sets'])) {
+        $firstSet = $setsResult['sets'][0];
+        $output .= "✅ Premier Set: " . $firstSet['setname'] . " (GUID: " . $firstSet['guid'] . ")\n";
+
+        // Étape 3: Targets
+        $output .= "\n<h2>Étape 3: Récupération des Targets</h2>";
+        $start = microtime(true);
+        $targetsResult = $service->getTargets($firstSet['guid']);
+        $elapsed = round((microtime(true) - $start) * 1000);
+        $output .= "Temps: {$elapsed}ms\n";
+
+        if ($targetsResult['success'] && !empty($targetsResult['targets'])) {
+            $firstTarget = $targetsResult['targets'][0];
+            $output .= "✅ Première Target: " . $firstTarget['targetname'] . " (GUID: " . $firstTarget['guid'] . ")\n";
+
+            // Étape 4: Shots
+            $output .= "\n<h2>Étape 4: Récupération des Shots</h2>";
+            $start = microtime(true);
+            $shotsResult = $service->getShots($firstTarget['guid']);
+            $elapsed = round((microtime(true) - $start) * 1000);
+            $output .= "Temps: {$elapsed}ms\n";
+
+            if ($shotsResult['success']) {
+                $output .= "✅ Succès! " . count($shotsResult['shots']) . " Shots récupérés\n\n";
+                if (!empty($shotsResult['shots'])) {
+                    foreach ($shotsResult['shots'] as $i => $shot) {
+                        $output .= "Shot " . ($i + 1) . ": Filtre " . ($shot['filterindex'] ?? 'N/A') . ", " . ($shot['exposure'] ?? 'N/A') . "s, " . ($shot['num'] ?? 'N/A') . "x\n";
+                    }
+                }
+            } else {
+                $output .= "❌ Erreur: " . ($shotsResult['error'] ?? 'Inconnue') . "\n";
+                $output .= "Debug: " . json_encode($shotsResult['debug'] ?? [], JSON_PRETTY_PRINT) . "\n";
+            }
+        } else {
+            $output .= "⚠️ Aucune Target trouvée\n";
+        }
+    } else {
+        $output .= "❌ Aucun Set trouvé\n";
+    }
+    $output .= "</pre>";
+
+    return $output;
+})->name('test.shots.api');
+
 // Page de test GET Commands RoboTarget
 Route::get('/test/get-commands', function () {
     return view('test.get-commands');
 })->name('test.get-commands');
+
+// Test de la configuration matérielle (filtres, readout modes, etc.)
+Route::get('/test/hardware-config', function () {
+    return view('test.hardware-config');
+})->name('test.hardware-config');
 
 /*
 |--------------------------------------------------------------------------
@@ -569,17 +717,32 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         return view('admin.voyager-test');
     })->name('voyager-test');
 
-    // RoboTarget Admin - Gestion des Sets
+    // RoboTarget Admin - Voyager Control Panel
     Route::prefix('robotarget')->name('robotarget.')->group(function () {
-        // Page principale de gestion des Sets
+        // Page principale de contrôle Voyager
         Route::get('/sets', [RoboTargetAdminController::class, 'sets'])->name('sets');
 
-        // API pour les opérations AJAX
+        // API Sets
         Route::get('/api/sets', [RoboTargetAdminController::class, 'apiGetSets'])->name('api.sets.index');
         Route::post('/api/sets', [RoboTargetAdminController::class, 'apiCreateSet'])->name('api.sets.create');
         Route::put('/api/sets/{guid}', [RoboTargetAdminController::class, 'apiUpdateSet'])->name('api.sets.update');
         Route::delete('/api/sets/{guid}', [RoboTargetAdminController::class, 'apiDeleteSet'])->name('api.sets.delete');
         Route::post('/api/sets/{guid}/toggle', [RoboTargetAdminController::class, 'apiToggleSet'])->name('api.sets.toggle');
+
+        // API Targets
+        Route::get('/api/sets/{setGuid}/targets', [RoboTargetAdminController::class, 'apiGetTargets'])->name('api.targets.index');
+
+        // API Shots (géré par RoboTargetShotController)
+        Route::get('/api/targets/{targetGuid}/shots', [RoboTargetShotController::class, 'getPlannedShots'])->name('api.shots.index');
+        Route::get('/api/targets/{targetGuid}/shots-done', [RoboTargetShotController::class, 'getCapturedShots'])->name('api.shots.done');
+        Route::get('/api/targets/{targetGuid}/shots-all', [RoboTargetShotController::class, 'getAllShots'])->name('api.shots.all');
+
+        // API Config (géré par RoboTargetShotController)
+        Route::get('/api/config/hardware', [RoboTargetShotController::class, 'getHardwareConfig'])->name('api.config.hardware');
+        Route::get('/api/config/filters', [RoboTargetShotController::class, 'getFilterConfig'])->name('api.config.filters');
+        Route::get('/api/config/filters/{filterIndex}', [RoboTargetShotController::class, 'getFilterDetails'])->name('api.config.filter.details');
+        Route::get('/api/config/profiles', [RoboTargetShotController::class, 'getProfiles'])->name('api.config.profiles');
+        Route::get('/api/config/profiles/{profileName}', [RoboTargetShotController::class, 'getProfileConfig'])->name('api.config.profile');
     });
 
     // Target Templates Management

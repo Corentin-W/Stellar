@@ -506,6 +506,60 @@ export default (voyagerConnection, io) => {
   });
 
   /**
+   * POST /api/robotarget/open-api
+   * Open API endpoint for commands using MD5 MAC (simpler authentication)
+   * Used for: RemoteOpenRoboTargetGetShotDoneList, etc.
+   */
+  router.post('/open-api', async (req, res) => {
+    try {
+      const { method, params } = req.body;
+
+      if (!method || !params) {
+        return res.status(400).json({
+          success: false,
+          message: 'Missing required fields: method, params',
+        });
+      }
+
+      const crypto = await import('crypto');
+
+      // Generate UID if not provided
+      const UID = params.UID || crypto.randomUUID();
+
+      // Calculate MAC for Open API (MD5 simple)
+      // Formula: MD5(SharedSecret + UID + RefGuidTarget)
+      const sharedSecret = voyagerConnection.config.auth.sharedSecret;
+      const refGuidTarget = params.RefGuidTarget || '';
+      const macString = sharedSecret + UID + refGuidTarget;
+      const MAC = crypto.createHash('md5').update(macString).digest('hex');
+
+      // Build the command parameters with MAC
+      const commandParams = {
+        ...params,
+        UID,
+        MAC
+      };
+
+      // Send the command using RoboTargetCommands.send()
+      const result = await roboTargetCommands.send(method, commandParams);
+
+      res.json({
+        success: true,
+        result: result,
+        method: method
+      });
+
+    } catch (error) {
+      console.error('Error executing Open API command:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de l\'exécution de la commande Open API',
+        error: error.message,
+      });
+    }
+  });
+
+  /**
    * Test MAC route - allows testing different MAC formulas interactively
    */
   setupTestMacRoute(router, roboTargetCommands, voyagerConnection);

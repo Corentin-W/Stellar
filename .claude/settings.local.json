@@ -99,7 +99,13 @@
       "Bash(powershell.exe \"Stop-Process -Id 363180 -Force\")",
       "Bash(powershell.exe \"Stop-Process -Id 23000 -Force\")",
       "Bash(powershell.exe \"Stop-Process -Id 374908 -Force\")",
-      "Bash(powershell.exe \"Get-Process ngrok -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime\")"
+      "Bash(powershell.exe \"Get-Process ngrok -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime\")",
+      "Bash(powershell.exe \"Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_Path -like ''*voyager-proxy*'' } | Select-Object Id, ProcessName, Path\")",
+      "Bash(powershell.exe \"Get-Process node -ErrorAction SilentlyContinue | Select-Object Id, ProcessName\")",
+      "Bash(powershell.exe \"Stop-Process -Id 374956 -Force\")",
+      "Bash(php artisan cache:clear:*)",
+      "Bash(powershell.exe \"cd C:\\Users\\PrimaLuceLab\\Desktop\\Code; php artisan config:clear; php artisan cache:clear\")",
+      "Bash(powershell.exe \"cd C:\\Users\\PrimaLuceLab\\Desktop\\Code; php artisan view:clear; php artisan config:clear; php artisan cache:clear\")"
     ]
   }
 }

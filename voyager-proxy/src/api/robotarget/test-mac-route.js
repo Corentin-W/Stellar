@@ -133,11 +133,11 @@ export function setupTestMacRoute(router, roboTargetCommands, connection) {
           // Send command
           connection.send(command);
 
-          // Wait for response with timeout
+          // Wait for response with timeout (60s pour les commandes lourdes comme GetShot)
           const result = await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
-              reject(new Error('Timeout (10s)'));
-            }, 10000);
+              reject(new Error('Timeout (60s)'));
+            }, 60000);
 
             const handleEvent = (event) => {
               if (event.UID === UID) {
@@ -267,12 +267,12 @@ export function setupTestMacRoute(router, roboTargetCommands, connection) {
       // Send command
       connection.send(command);
 
-      // Wait for response (simplified - in production use proper event handling)
+      // Wait for response (60s pour les commandes lourdes comme GetShot)
       const waitForResponse = () => {
         return new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
-            reject(new Error('Command timeout (30s)'));
-          }, 30000);
+            reject(new Error('Command timeout (60s)'));
+          }, 60000);
 
           const handleEvent = (event) => {
             if (event.UID === UID) {

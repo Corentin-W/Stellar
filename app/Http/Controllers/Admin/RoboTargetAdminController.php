@@ -86,4 +86,40 @@ class RoboTargetAdminController extends Controller
         $enable = $request->input('enable', true);
         return response()->json($this->setService->toggleSetStatus($guid, $enable));
     }
+
+    /**
+     * API pour récupérer les Targets d'un Set
+     */
+    public function apiGetTargets(string $setGuid)
+    {
+        return response()->json($this->setService->getTargets($setGuid));
+    }
+
+    /**
+     * API pour récupérer les Shots planifiés d'une Target
+     */
+    public function apiGetShots(string $targetGuid)
+    {
+        // Augmenter le timeout d'exécution PHP pour cette opération
+        set_time_limit(90); // 90 secondes
+
+        return response()->json($this->setService->getShots($targetGuid));
+    }
+
+    /**
+     * API pour récupérer les images capturées d'une Target
+     */
+    public function apiGetShotDoneList(string $targetGuid, Request $request)
+    {
+        $isDeleted = $request->query('deleted', false);
+        return response()->json($this->setService->getShotDoneList($targetGuid, $isDeleted));
+    }
+
+    /**
+     * API pour récupérer la configuration des filtres
+     */
+    public function apiGetConfigDataShot()
+    {
+        return response()->json($this->setService->getConfigDataShot());
+    }
 }

@@ -513,6 +513,7 @@
                     <li><a href="#architecture">Architecture</a></li>
                     <li><a href="#subscriptions">Abonnements</a></li>
                     <li><a href="#robotarget">RoboTarget</a></li>
+                    <li><a href="#robotarget-sets">RoboTarget Sets</a></li>
                     <li><a href="#monitoring">Monitoring Live</a></li>
                     <li><a href="#admin">Administration</a></li>
                     <li><a href="#status">Statut Projet</a></li>
@@ -813,6 +814,356 @@ Exemple de configuration :
 - OIII (Oxygène III) : 15x 300s @ Gain 100, Binning 1x1
 - SII (Soufre II) : 15x 300s @ Gain 100, Binning 1x1
 → Total estimé : 6h 30m d'observation
+            </div>
+        </section>
+
+        <!-- RoboTarget Sets - Production Setup -->
+        <section id="robotarget-sets">
+            <h2>🎯 RoboTarget Sets - Accès à Distance en Production</h2>
+
+            <p>
+                Le système <strong>RoboTarget Sets Manager</strong> permet de gérer vos Sets Voyager depuis n'importe où dans le monde via une interface web moderne et sécurisée.
+            </p>
+
+            <div class="alert alert-info">
+                <div class="alert-icon">💡</div>
+                <div>
+                    <strong>Configuration Hybride</strong><br>
+                    Ce système utilise une architecture hybride : l'interface web est hébergée sur le serveur de production, mais communique avec votre PC local où Voyager est installé, via un tunnel sécurisé ngrok.
+                </div>
+            </div>
+
+            <h3>✨ Fonctionnalités</h3>
+
+            <ul class="feature-list">
+                <li>Consulter tous vos Sets Voyager depuis Internet</li>
+                <li>Créer de nouveaux Sets à distance</li>
+                <li>Modifier les Sets existants</li>
+                <li>Activer/Désactiver des Sets</li>
+                <li>Supprimer des Sets</li>
+                <li>Rechercher et filtrer par nom, tag, profil ou statut</li>
+                <li>Interface réactive temps réel avec design dark theme</li>
+            </ul>
+
+            <h3>🏗️ Architecture du Système</h3>
+
+            <div class="diagram">
+                <div class="diagram-box">
+                    <h4>🌐 Serveur de Production (Cloud)</h4>
+                    <p>https://stellarloc.com<br>Laravel + Interface Web Admin</p>
+                </div>
+                <div class="diagram-arrow">↕️</div>
+                <div class="diagram-box">
+                    <h4>🔒 ngrok - Tunnel HTTPS Sécurisé</h4>
+                    <p>warningly-unvacuous-rosa.ngrok-free.dev<br>URL fixe + Chiffrement TLS</p>
+                </div>
+                <div class="diagram-arrow">↕️</div>
+                <div class="diagram-box">
+                    <h4>💻 PC Local (doit être allumé)</h4>
+                    <p>Voyager (port 5950)<br>voyager-proxy (port 3003)<br>ngrok client</p>
+                </div>
+            </div>
+
+            <div class="alert alert-warning">
+                <div class="alert-icon">⚠️</div>
+                <div>
+                    <strong>Important</strong><br>
+                    Votre PC local doit être allumé et les services (Voyager, proxy, ngrok) doivent tourner pour que l'accès à distance fonctionne. Les données restent sur votre PC local pour plus de sécurité.
+                </div>
+            </div>
+
+            <h3>📦 Prérequis</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-icon">💻</div>
+                    <h4>Sur le PC Local</h4>
+                    <ul style="list-style: none; padding: 0; text-align: left;">
+                        <li>• Windows avec Voyager installé</li>
+                        <li>• Node.js v20+</li>
+                        <li>• ngrok (Microsoft Store)</li>
+                        <li>• Connexion Internet stable</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon">☁️</div>
+                    <h4>Sur le Serveur de Production</h4>
+                    <ul style="list-style: none; padding: 0; text-align: left;">
+                        <li>• Laravel déployé</li>
+                        <li>• Fichier .env configuré</li>
+                        <li>• Accès admin au site</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3>⚙️ Configuration</h3>
+
+            <h4>1️⃣ Configuration du PC Local</h4>
+
+            <p><strong>Fichier voyager-proxy/.env :</strong></p>
+
+            <div class="code-block">
+PORT=3003
+VOYAGER_HOST=127.0.0.1
+VOYAGER_PORT=5950
+
+# Authentification Voyager
+VOYAGER_AUTH_ENABLED=true
+VOYAGER_USERNAME=admin
+VOYAGER_PASSWORD=6383
+
+# RoboTarget Shared Secret
+VOYAGER_SHARED_SECRET=Dherbomez
+
+# Clé API (DOIT être identique au serveur)
+API_KEY=sk_live_VoyagerProxy2025_SecureKey_YourRandomString123456789
+
+# CORS
+CORS_ORIGIN=http://localhost,https://stellarloc.com
+
+LOG_LEVEL=info
+            </div>
+
+            <h4>2️⃣ Configuration du Serveur de Production</h4>
+
+            <p><strong>Fichier .env (production) :</strong></p>
+
+            <div class="code-block">
+VOYAGER_PROXY_URL=https://warningly-unvacuous-rosa.ngrok-free.dev
+VOYAGER_PROXY_API_KEY=sk_live_VoyagerProxy2025_SecureKey_YourRandomString123456789
+            </div>
+
+            <div class="alert alert-warning">
+                <div class="alert-icon">⚠️</div>
+                <div>
+                    <strong>Attention : Pas de slash final!</strong><br>
+                    L'URL ne doit PAS se terminer par un slash "/" sinon les routes seront incorrectes. Après modification du .env, exécutez : <code>php artisan config:clear</code>
+                </div>
+            </div>
+
+            <h3>🚀 Démarrage Quotidien</h3>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-date">Étape 1 : Démarrer Voyager</div>
+                        <p>Lancez normalement le logiciel Voyager sur votre PC local</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-date">Étape 2 : Démarrer le Proxy</div>
+                        <p>Terminal: <code>cd voyager-proxy && npm run dev</code><br>
+                        Attendez le message : "✅ RoboTarget Manager Mode ACTIVE"</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-date">Étape 3 : Démarrer ngrok</div>
+                        <p>Nouveau terminal: <code>ngrok http 3003</code><br>
+                        Vérifiez l'URL de forwarding affichée</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-date">Étape 4 : Accéder à l'Interface</div>
+                        <p>Ouvrez : <strong>https://stellarloc.com/admin/robotarget/sets</strong></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-success">
+                <div class="alert-icon">🎯</div>
+                <div>
+                    <strong>Script de Démarrage Automatique</strong><br>
+                    Un fichier <code>start-robotarget.bat</code> sur le bureau démarre automatiquement le proxy et ngrok en un seul clic!
+                </div>
+            </div>
+
+            <h3>💻 Utilisation de l'Interface</h3>
+
+            <p><strong>URL d'accès :</strong> <a href="/admin/robotarget/sets" style="color: var(--primary);">https://stellarloc.com/admin/robotarget/sets</a></p>
+
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-icon">📊</div>
+                    <h4>Statistiques en Direct</h4>
+                    <p>Total Sets, Sets actifs/inactifs, nombre de profils Voyager</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🔍</div>
+                    <h4>Recherche & Filtres</h4>
+                    <p>Recherche par nom/tag/profil, filtrage par statut et profil</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">✏️</div>
+                    <h4>Gestion Complète</h4>
+                    <p>Créer, modifier, activer/désactiver, supprimer les Sets</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🔄</div>
+                    <h4>Synchronisation Temps Réel</h4>
+                    <p>Rafraîchissement automatique et manuel disponible</p>
+                </div>
+            </div>
+
+            <h3>🎨 Actions Disponibles</h3>
+
+            <ul class="feature-list">
+                <li><strong>👁️ Voir</strong> - Affiche tous les détails du Set (nom, GUID, profil, statut, tag, note)</li>
+                <li><strong>✏️ Modifier</strong> - Éditer le nom, profil, tag, statut et note du Set</li>
+                <li><strong>🔒 Activer / 🔓 Désactiver</strong> - Bascule le statut entre actif (0) et inactif (1)</li>
+                <li><strong>🗑️ Supprimer</strong> - Supprime le Set et toutes ses Targets associées (avec confirmation)</li>
+                <li><strong>➕ Créer</strong> - Créer un nouveau Set avec nom, profil, tag et note</li>
+                <li><strong>🔄 Rafraîchir</strong> - Recharger les Sets depuis Voyager</li>
+            </ul>
+
+            <h3>🐛 Dépannage</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>❌ Page vide / Aucun Set</h4>
+                    <ul style="list-style: none; padding: 0; text-align: left;">
+                        <li><strong>Cause:</strong> Proxy ou ngrok non démarré</li>
+                        <li><strong>Solution:</strong> Vérifiez que les 3 services tournent</li>
+                        <li><strong>Indicateur:</strong> "Déconnecté" en rouge</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>🔒 Erreur "Unauthorized"</h4>
+                    <ul style="list-style: none; padding: 0; text-align: left;">
+                        <li><strong>Cause:</strong> Clé API incorrecte</li>
+                        <li><strong>Solution:</strong> Vérifiez que API_KEY est identique</li>
+                        <li><strong>Où:</strong> voyager-proxy/.env et .env production</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>⚠️ Route not found</h4>
+                    <ul style="list-style: none; padding: 0; text-align: left;">
+                        <li><strong>Cause:</strong> Slash final dans l'URL</li>
+                        <li><strong>Solution:</strong> Retirez le "/" de VOYAGER_PROXY_URL</li>
+                        <li><strong>Puis:</strong> php artisan config:clear</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>🔌 Port 3003 occupé</h4>
+                    <ul style="list-style: none; padding: 0; text-align: left;">
+                        <li><strong>Cause:</strong> Ancien processus encore actif</li>
+                        <li><strong>Solution:</strong> netstat -ano | findstr ":3003"</li>
+                        <li><strong>Puis:</strong> Stop-Process -Id PID -Force</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3>🔒 Sécurité</h3>
+
+            <p>Le système utilise <strong>3 niveaux de sécurité</strong> :</p>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>1️⃣ Authentification Laravel</h4>
+                    <p>Vous devez être connecté au site pour accéder à l'interface</p>
+                </div>
+                <div class="card">
+                    <h4>2️⃣ Middleware Admin</h4>
+                    <p>Seuls les administrateurs peuvent gérer les Sets</p>
+                </div>
+                <div class="card">
+                    <h4>3️⃣ Clé API ngrok</h4>
+                    <p>Protège le proxy contre les accès non autorisés depuis Internet</p>
+                </div>
+            </div>
+
+            <ul class="feature-list">
+                <li>Toutes les communications passent par <strong>HTTPS</strong> (chiffrement TLS)</li>
+                <li>Clé API transmise de manière sécurisée dans les headers</li>
+                <li>Rate limiting : 100 requêtes par 15 minutes par IP</li>
+                <li>Logs complets de toutes les requêtes dans voyager-proxy/logs/</li>
+            </ul>
+
+            <div class="alert alert-success">
+                <div class="alert-icon">✅</div>
+                <div>
+                    <strong>Bonne Pratique</strong><br>
+                    Changez régulièrement la clé API (minimum 32 caractères aléatoires). Mettez-la à jour simultanément dans voyager-proxy/.env et .env production, puis redémarrez le proxy et videz le cache Laravel.
+                </div>
+            </div>
+
+            <h3>📊 Monitoring</h3>
+
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-icon">🔍</div>
+                    <h4>Interface ngrok</h4>
+                    <p>Accédez à <code>http://localhost:4040</code> pour voir toutes les requêtes HTTP en temps réel, headers, réponses et erreurs</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">📝</div>
+                    <h4>Logs du Proxy</h4>
+                    <p>Terminal affiche connexion Voyager, activation Manager Mode, requêtes RoboTarget et erreurs</p>
+                </div>
+            </div>
+
+            <h3>🎯 Conseils et Bonnes Pratiques</h3>
+
+            <ul class="feature-list">
+                <li><strong>Gardez votre PC allumé</strong> quand vous voulez accéder aux Sets à distance</li>
+                <li><strong>Désactivez la mise en veille</strong> pour un accès 24/7</li>
+                <li><strong>Utilisez le script de démarrage</strong> start-robotarget.bat pour gagner du temps</li>
+                <li><strong>Utilisez des tags</strong> pour catégoriser vos Sets (galaxies, nébuleuses, comètes)</li>
+                <li><strong>Noms explicites</strong> : "Galaxies d'hiver 2025" plutôt que "Set1"</li>
+                <li><strong>Notes détaillées</strong> : Documentez le contenu et l'objectif de chaque Set</li>
+                <li><strong>Désactivez plutôt que supprimer</strong> si vous n'êtes pas sûr</li>
+                <li><strong>Rafraîchissez régulièrement</strong> si vous modifiez des Sets dans Voyager directement</li>
+            </ul>
+
+            <h3>🔧 Fichiers de Test</h3>
+
+            <p>Deux fichiers de diagnostic sont disponibles en production :</p>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>test-ngrok.php</h4>
+                    <p>Vérifie que le serveur peut joindre ngrok et teste la clé API</p>
+                    <a href="/test-ngrok.php" style="color: var(--primary);">🔗 Exécuter le test</a>
+                </div>
+                <div class="card">
+                    <h4>test-sets-prod.php</h4>
+                    <p>Teste directement le service RoboTargetSetService et affiche les Sets récupérés</p>
+                    <a href="/test-sets-prod.php" style="color: var(--primary);">🔗 Exécuter le test</a>
+                </div>
+            </div>
+
+            <h3>✅ Checklist de Déploiement</h3>
+
+            <div class="card">
+                <h4>Configuration Initiale (une seule fois)</h4>
+                <ul style="list-style: none; padding: 0; text-align: left;">
+                    <li>☐ voyager-proxy installé et configuré</li>
+                    <li>☐ ngrok installé et authtoken configuré</li>
+                    <li>☐ .env production configuré avec URL ngrok et clé API</li>
+                    <li>☐ Cache Laravel vidé : <code>php artisan config:clear</code></li>
+                    <li>☐ Test de connexion réussi (test-ngrok.php)</li>
+                    <li>☐ Test du service réussi (test-sets-prod.php)</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Démarrage Quotidien</h4>
+                <ul style="list-style: none; padding: 0; text-align: left;">
+                    <li>☐ Voyager démarré</li>
+                    <li>☐ voyager-proxy démarré : <code>npm run dev</code></li>
+                    <li>☐ ngrok démarré : <code>ngrok http 3003</code></li>
+                    <li>☐ Indicateur "Connecté" en vert sur stellarloc.com</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-success">
+                <div class="alert-icon">🎉</div>
+                <div>
+                    <strong>Système Opérationnel!</strong><br>
+                    Vous disposez maintenant d'un système complet pour gérer vos Sets RoboTarget depuis n'importe où dans le monde de manière sécurisée. Les données restent sur votre PC local, et vous bénéficiez d'une interface moderne accessible via Internet.
+                </div>
             </div>
         </section>
 

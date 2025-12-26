@@ -312,6 +312,108 @@ class RoboTargetSetService
     }
 
     /**
+     * Récupérer les Base Sequences (templates .s2q) disponibles
+     *
+     * @param string|null $profileName Nom du profil (ex: "Default.v2y") ou null pour tous
+     * @return array
+     */
+    public function getBaseSequences(?string $profileName = null): array
+    {
+        try {
+            \Log::info('GetBaseSequence Request Start', [
+                'profileName' => $profileName,
+                'proxyUrl' => $this->proxyUrl
+            ]);
+
+            $startTime = microtime(true);
+
+            $response = Http::timeout(30)
+                ->withHeaders($this->getHeaders())
+                ->post("{$this->proxyUrl}/api/robotarget/test-mac", [
+                'method' => 'RemoteRoboTargetGetBaseSequence',
+                'params' => [
+                    'ProfileName' => $profileName ?? ''
+                ],
+                'macFormula' => [
+                    'sep1' => '|| |',   // 1 espace
+                    'sep2' => '||  |',  // 2 espaces
+                    'sep3' => '|| |'    // 1 espace
+                ]
+            ]);
+
+            $elapsed = round((microtime(true) - $startTime) * 1000);
+            $result = $response->json();
+
+            \Log::info('GetBaseSequence Response', [
+                'profileName' => $profileName,
+                'status' => $response->status(),
+                'elapsed_ms' => $elapsed,
+                'success' => $result['success'] ?? false
+            ]);
+
+            if ($result['success'] ?? false) {
+                $sequences = $result['result']['ParamRet']['list'] ?? [];
+
+                return [
+                    'success' => true,
+                    'sequences' => $sequences,
+                    'count' => count($sequences),
+                    'byProfile' => $this->groupSequencesByProfile($sequences)
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $result['error'] ?? 'Unknown error',
+                'sequences' => []
+            ];
+
+        } catch (\Exception $e) {
+            \Log::error('GetBaseSequence Exception', [
+                'profileName' => $profileName,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'sequences' => []
+            ];
+        }
+    }
+
+    /**
+     * Grouper les séquences par profil
+     *
+     * @param array $sequences
+     * @return array
+     */
+    private function groupSequencesByProfile(array $sequences): array
+    {
+        $grouped = [];
+
+        foreach ($sequences as $sequence) {
+            $profileName = $sequence['profilename'] ?? 'Unknown';
+
+            if (!isset($grouped[$profileName])) {
+                $grouped[$profileName] = [
+                    'profileName' => $profileName,
+                    'sequences' => [],
+                    'defaultSequence' => null
+                ];
+            }
+
+            $grouped[$profileName]['sequences'][] = $sequence;
+
+            if ($sequence['isdefault'] ?? false) {
+                $grouped[$profileName]['defaultSequence'] = $sequence;
+            }
+        }
+
+        return $grouped;
+    }
+
+    /**
      * Récupérer les informations de connexion Voyager
      *
      * @return array
@@ -339,6 +441,249 @@ class RoboTargetSetService
             return [
                 'success' => false,
                 'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Récupérer les Targets d'un Set spécifique
+     *
+     * @param string $setGuid GUID du Set
+     * @return array
+     */
+    public function getTargets(string $setGuid): array
+    {
+        try {
+            $response = Http::timeout(30)
+                ->withHeaders($this->getHeaders())
+                ->post("{$this->proxyUrl}/api/robotarget/test-mac", [
+                'method' => 'RemoteRoboTargetGetTarget',
+                'params' => [
+                    'RefGuidSet' => $setGuid
+                ],
+                'macFormula' => [
+                    'sep1' => '||:||',
+                    'sep2' => '||:||',
+                    'sep3' => '||:||'
+                ]
+            ]);
+
+            $result = $response->json();
+
+            if ($result['success'] ?? false) {
+                return [
+                    'success' => true,
+                    'targets' => $result['result']['ParamRet']['list'] ?? [],
+                    'count' => count($result['result']['ParamRet']['list'] ?? [])
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $result['error'] ?? 'Unknown error',
+                'targets' => []
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'targets' => []
+            ];
+        }
+    }
+
+    /**
+     * Récupérer la configuration des filtres (mapping filterindex -> nom)
+     * À appeler AVANT de récupérer les shots pour interpréter les filterindex
+     *
+     * @return array
+     */
+    public function getConfigDataShot(): array
+    {
+        try {
+            $response = Http::timeout(30)
+                ->withHeaders($this->getHeaders())
+                ->post("{$this->proxyUrl}/api/robotarget/test-mac", [
+                'method' => 'RemoteRoboTargetGetConfigDataShot',
+                'params' => [],
+                'macFormula' => [
+                    'sep1' => '|| |',  // 1 espace
+                    'sep2' => '||  |', // 2 espaces
+                    'sep3' => '|| |'   // 1 espace
+                ]
+            ]);
+
+            $result = $response->json();
+
+            if ($result['success'] ?? false) {
+                $config = $result['result']['ParamRet'] ?? [];
+
+                // Extraire la liste des filtres
+                $filters = [];
+                if (isset($config['filterwheellist'])) {
+                    foreach ($config['filterwheellist'] as $index => $filterName) {
+                        $filters[$index] = $filterName;
+                    }
+                }
+
+                return [
+                    'success' => true,
+                    'filters' => $filters,
+                    'binning' => $config['binning'] ?? [],
+                    'config' => $config
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $result['error'] ?? 'Failed to get config data'
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Récupérer les Shots planifiés (configurations d'exposition) d'une Target
+     *
+     * @param string $targetGuid GUID de la Target
+     * @return array
+     */
+    public function getShots(string $targetGuid): array
+    {
+        try {
+            \Log::info('GetShots Request Start', [
+                'targetGuid' => $targetGuid,
+                'proxyUrl' => $this->proxyUrl
+            ]);
+
+            $startTime = microtime(true);
+
+            // Augmenter le timeout à 60 secondes
+            $response = Http::timeout(60)
+                ->withHeaders($this->getHeaders())
+                ->post("{$this->proxyUrl}/api/robotarget/test-mac", [
+                'method' => 'RemoteRoboTargetGetShot',
+                'params' => [
+                    'RefGuidTarget' => $targetGuid
+                ],
+                'macFormula' => [
+                    'sep1' => '||:||',  // Même formule que GetSet/GetTarget
+                    'sep2' => '||:||',
+                    'sep3' => '||:||'
+                ]
+            ]);
+
+            $elapsed = round((microtime(true) - $startTime) * 1000);
+            $result = $response->json();
+
+            // Log pour debug
+            \Log::info('GetShots Response', [
+                'targetGuid' => $targetGuid,
+                'status' => $response->status(),
+                'elapsed_ms' => $elapsed,
+                'result' => $result
+            ]);
+
+            if ($result['success'] ?? false) {
+                return [
+                    'success' => true,
+                    'shots' => $result['result']['ParamRet']['list'] ?? [],
+                    'count' => count($result['result']['ParamRet']['list'] ?? []),
+                    'debug' => $result // Pour debug
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $result['error'] ?? 'Unknown error',
+                'shots' => [],
+                'debug' => $result // Pour debug
+            ];
+
+        } catch (\Exception $e) {
+            \Log::error('GetShots Exception', [
+                'targetGuid' => $targetGuid,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'shots' => []
+            ];
+        }
+    }
+
+    /**
+     * Récupérer les images réellement capturées pour une Target
+     * (Open API - utilise MD5 pour le MAC)
+     *
+     * @param string $targetGuid GUID de la Target
+     * @param bool $isDeleted false = fichiers valides, true = fichiers écartés
+     * @return array
+     */
+    public function getShotDoneList(string $targetGuid, bool $isDeleted = false): array
+    {
+        try {
+            $response = Http::timeout(30)
+                ->withHeaders($this->getHeaders())
+                ->post("{$this->proxyUrl}/api/robotarget/open-api", [
+                'method' => 'RemoteOpenRoboTargetGetShotDoneList',
+                'params' => [
+                    'RefGuidTarget' => $targetGuid,
+                    'IsDeleted' => $isDeleted
+                ]
+            ]);
+
+            $result = $response->json();
+
+            if ($result['success'] ?? false) {
+                $shots = $result['result']['ParamRet']['list'] ?? [];
+
+                // Enrichir avec des statistiques
+                $stats = [
+                    'total' => count($shots),
+                    'avgHfd' => 0,
+                    'avgStarIndex' => 0
+                ];
+
+                if (count($shots) > 0) {
+                    $totalHfd = 0;
+                    $totalStarIndex = 0;
+                    foreach ($shots as $shot) {
+                        $totalHfd += $shot['hfd'] ?? 0;
+                        $totalStarIndex += $shot['starindex'] ?? 0;
+                    }
+                    $stats['avgHfd'] = round($totalHfd / count($shots), 2);
+                    $stats['avgStarIndex'] = round($totalStarIndex / count($shots), 2);
+                }
+
+                return [
+                    'success' => true,
+                    'shots' => $shots,
+                    'stats' => $stats,
+                    'count' => count($shots)
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $result['error'] ?? 'Unknown error',
+                'shots' => []
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'shots' => []
             ];
         }
     }
