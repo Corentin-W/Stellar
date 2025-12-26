@@ -94,7 +94,12 @@
       "Bash(powershell.exe \"Get-Content C:\\Users\\PrimaLuceLab\\Desktop\\Code\\voyager-proxy\\logs\\combined.log -Tail 50 | Select-String -Pattern ''Sep|MAC String''\")",
       "Bash(powershell.exe \"(Get-Content get-commands.blade.php -Raw) -split ''\\r?\\n'' | Select-Object -Skip 305 -First 5\")",
       "Bash(php test-sets-api.php:*)",
-      "Bash(php artisan config:clear:*)"
+      "Bash(php artisan config:clear:*)",
+      "Bash(ls:*)",
+      "Bash(powershell.exe \"Stop-Process -Id 363180 -Force\")",
+      "Bash(powershell.exe \"Stop-Process -Id 23000 -Force\")",
+      "Bash(powershell.exe \"Stop-Process -Id 374908 -Force\")",
+      "Bash(powershell.exe \"Get-Process ngrok -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime\")"
     ]
   }
 }

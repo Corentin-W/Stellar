@@ -15,6 +15,20 @@ class RoboTargetSetService
     }
 
     /**
+     * Get HTTP headers including API key if configured
+     *
+     * @return array
+     */
+    private function getHeaders(): array
+    {
+        $headers = [];
+        if ($apiKey = config('services.voyager.proxy_api_key')) {
+            $headers['X-API-Key'] = $apiKey;
+        }
+        return $headers;
+    }
+
+    /**
      * Récupérer tous les Sets ou les Sets d'un profil spécifique
      *
      * @param string|null $profileName Nom du profil (vide = tous les profils)
@@ -23,7 +37,9 @@ class RoboTargetSetService
     public function getSets(?string $profileName = null): array
     {
         try {
-            $response = Http::timeout(30)->post("{$this->proxyUrl}/api/robotarget/test-mac", [
+            $response = Http::timeout(30)
+                ->withHeaders($this->getHeaders())
+                ->post("{$this->proxyUrl}/api/robotarget/test-mac", [
                 'method' => 'RemoteRoboTargetGetSet',
                 'params' => [
                     'ProfileName' => $profileName ?? ''
@@ -108,7 +124,9 @@ class RoboTargetSetService
         try {
             $guid = $data['guid'] ?? Str::uuid()->toString();
 
-            $response = Http::timeout(30)->post("{$this->proxyUrl}/api/robotarget/test-mac", [
+            $response = Http::timeout(30)
+                ->withHeaders($this->getHeaders())
+                ->post("{$this->proxyUrl}/api/robotarget/test-mac", [
                 'method' => 'RemoteRoboTargetAddSet',
                 'params' => [
                     'Guid' => $guid,
@@ -159,7 +177,9 @@ class RoboTargetSetService
     public function updateSet(string $guid, array $data): array
     {
         try {
-            $response = Http::timeout(30)->post("{$this->proxyUrl}/api/robotarget/test-mac", [
+            $response = Http::timeout(30)
+                ->withHeaders($this->getHeaders())
+                ->post("{$this->proxyUrl}/api/robotarget/test-mac", [
                 'method' => 'RemoteRoboTargetUpdateSet',
                 'params' => [
                     'RefGuidSet' => $guid,
@@ -206,7 +226,9 @@ class RoboTargetSetService
     public function deleteSet(string $guid): array
     {
         try {
-            $response = Http::timeout(30)->post("{$this->proxyUrl}/api/robotarget/test-mac", [
+            $response = Http::timeout(30)
+                ->withHeaders($this->getHeaders())
+                ->post("{$this->proxyUrl}/api/robotarget/test-mac", [
                 'method' => 'RemoteRoboTargetRemoveSet',
                 'params' => [
                     'RefGuidSet' => $guid
@@ -250,7 +272,9 @@ class RoboTargetSetService
     public function toggleSetStatus(string $guid, bool $enable): array
     {
         try {
-            $response = Http::timeout(30)->post("{$this->proxyUrl}/api/robotarget/test-mac", [
+            $response = Http::timeout(30)
+                ->withHeaders($this->getHeaders())
+                ->post("{$this->proxyUrl}/api/robotarget/test-mac", [
                 'method' => 'RemoteRoboTargetEnableDisableObject',
                 'params' => [
                     'RefGuidObject' => $guid,
@@ -295,8 +319,22 @@ class RoboTargetSetService
     public function getConnectionStatus(): array
     {
         try {
-            $response = Http::timeout(5)->get("{$this->proxyUrl}/api/dashboard/state");
-            return $response->json();
+            $response = Http::timeout(5)
+                ->withHeaders($this->getHeaders())
+                ->get("{$this->proxyUrl}/api/dashboard/state");
+
+            $data = $response->json();
+
+            // Si json() retourne null, retourner un array d'erreur
+            if ($data === null) {
+                return [
+                    'success' => false,
+                    'error' => 'Invalid response from proxy',
+                    'status_code' => $response->status()
+                ];
+            }
+
+            return $data;
         } catch (\Exception $e) {
             return [
                 'success' => false,
