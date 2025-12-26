@@ -69,9 +69,20 @@ export default (voyagerConnection, io) => {
     try {
       const result = await roboTargetCommands.listSets();
 
+      // Extract the list from the result (ParamRet.list or parsed.params.list)
+      const sets = result.ParamRet?.list || result.parsed?.params?.list || [];
+
       res.json({
         success: true,
-        sets: result,
+        sets: sets.map(set => ({
+          GuidSet: set.guid,
+          SetName: set.setname,
+          ProfileName: set.profilename,
+          IsDefault: set.isdefault,
+          Status: set.status,
+          Tag: set.tag,
+          Note: set.note
+        })),
       });
     } catch (error) {
       console.error('Error listing sets:', error);

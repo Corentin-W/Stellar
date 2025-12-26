@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\SupportCategoryController;
 use App\Http\Controllers\Admin\SupportTemplateController;
 use App\Http\Controllers\Admin\ProductPromotionController;
 use App\Http\Controllers\RoboTargetTestController;
+use App\Http\Controllers\Admin\RoboTargetAdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,6 +74,11 @@ Route::get('/test/voyager', function () {
 Route::get('/test/mac', function () {
     return view('test.mac-test');
 })->name('test.mac');
+
+// Page de test GET Commands RoboTarget
+Route::get('/test/get-commands', function () {
+    return view('test.get-commands');
+})->name('test.get-commands');
 
 /*
 |--------------------------------------------------------------------------
@@ -562,6 +568,19 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/voyager-test', function () {
         return view('admin.voyager-test');
     })->name('voyager-test');
+
+    // RoboTarget Admin - Gestion des Sets
+    Route::prefix('robotarget')->name('robotarget.')->group(function () {
+        // Page principale de gestion des Sets
+        Route::get('/sets', [RoboTargetAdminController::class, 'sets'])->name('sets');
+
+        // API pour les opérations AJAX
+        Route::get('/api/sets', [RoboTargetAdminController::class, 'apiGetSets'])->name('api.sets.index');
+        Route::post('/api/sets', [RoboTargetAdminController::class, 'apiCreateSet'])->name('api.sets.create');
+        Route::put('/api/sets/{guid}', [RoboTargetAdminController::class, 'apiUpdateSet'])->name('api.sets.update');
+        Route::delete('/api/sets/{guid}', [RoboTargetAdminController::class, 'apiDeleteSet'])->name('api.sets.delete');
+        Route::post('/api/sets/{guid}/toggle', [RoboTargetAdminController::class, 'apiToggleSet'])->name('api.sets.toggle');
+    });
 
     // Target Templates Management
     Route::resource('target-templates', App\Http\Controllers\Admin\TargetTemplateController::class);

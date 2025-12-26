@@ -238,7 +238,10 @@ export function setupTestMacRoute(router, roboTargetCommands, connection) {
       // Calculate MAC with custom formula
       const sharedSecret = connection.config.auth.sharedSecret;
       const macString = sharedSecret + sep1 + sessionKey + sep2 + String(jsonRpcId) + sep3 + UID;
-      const mac = crypto.createHash('sha1').update(macString).digest('base64');
+
+      // SHA1 → HEX → Base64 (algorithme standard pour RoboTarget)
+      const hexHash = crypto.createHash('sha1').update(macString).digest('hex');
+      const mac = Buffer.from(hexHash, 'utf8').toString('base64');
 
       logger.info('🧪 TEST MAC - Custom formula:');
       logger.info(`   Sep1: "${sep1}"`);

@@ -81,7 +81,20 @@
       "Bash(cmd /c \"tasklist /FI \"\"IMAGENAME eq node.exe\"\" /FO CSV\")",
       "Bash(cmd /c \"timeout /t 30\")",
       "Bash(cmd /c \"netstat -ano | findstr LISTENING\")",
-      "Bash(Select-String -Pattern \"addSet.*=\" -Context 0,10)"
+      "Bash(Select-String -Pattern \"addSet.*=\" -Context 0,10)",
+      "Bash(node test-create-target-demo.js:*)",
+      "Bash(node test-show-request.js:*)",
+      "Bash(taskkill /F /PID 347304)",
+      "Bash(cmd.exe /c taskkill /F /PID 347304)",
+      "Bash(powershell.exe \"Stop-Process -Id 347304 -Force\")",
+      "Bash(python:*)",
+      "Bash(powershell.exe \"Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_Path -like ''*voyager-proxy*'' } | Stop-Process -Force\")",
+      "Bash(powershell.exe \"Stop-Process -Id 104108 -Force\")",
+      "Bash(powershell.exe \"Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_Path -like ''*voyager-proxy*'' } | Select-Object Id, Path\")",
+      "Bash(powershell.exe \"Get-Content C:\\Users\\PrimaLuceLab\\Desktop\\Code\\voyager-proxy\\logs\\combined.log -Tail 50 | Select-String -Pattern ''Sep|MAC String''\")",
+      "Bash(powershell.exe \"(Get-Content get-commands.blade.php -Raw) -split ''\\r?\\n'' | Select-Object -Skip 305 -First 5\")",
+      "Bash(php test-sets-api.php:*)",
+      "Bash(php artisan config:clear:*)"
     ]
   }
 }

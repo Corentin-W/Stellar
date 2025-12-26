@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\RoboTargetController;
 use App\Http\Controllers\Api\PricingController;
 use App\Http\Controllers\Api\VoyagerEventController;
+use App\Http\Controllers\RoboTargetSetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -70,5 +71,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Stats
         Route::get('/stats', [RoboTargetController::class, 'stats']);
+
+        // Sets - Gestion complète des Sets avec MAC automatique
+        Route::get('/sets', [RoboTargetSetController::class, 'index']);
+        Route::post('/sets', [RoboTargetSetController::class, 'store']);
+        Route::get('/sets/{guid}', [RoboTargetSetController::class, 'show']);
+        Route::put('/sets/{guid}', [RoboTargetSetController::class, 'update']);
+        Route::delete('/sets/{guid}', [RoboTargetSetController::class, 'destroy']);
+        Route::post('/sets/{guid}/enable', [RoboTargetSetController::class, 'enable']);
+        Route::post('/sets/{guid}/disable', [RoboTargetSetController::class, 'disable']);
+        Route::get('/profiles/{profileName}/sets', [RoboTargetSetController::class, 'byProfile']);
+        Route::get('/status', [RoboTargetSetController::class, 'status']);
     });
 });

@@ -165,9 +165,20 @@ router.get('/robotarget/sets', async (req, res, next) => {
   try {
     const result = await req.voyager.commands.listSets();
 
+    // Extract the list from the result (ParamRet.list or parsed.params.list)
+    const sets = result.ParamRet?.list || result.parsed?.params?.list || [];
+
     res.json({
       success: true,
-      result,
+      sets: sets.map(set => ({
+        GuidSet: set.guid,
+        SetName: set.setname,
+        ProfileName: set.profilename,
+        IsDefault: set.isdefault,
+        Status: set.status,
+        Tag: set.tag,
+        Note: set.note
+      })),
     });
   } catch (error) {
     next(error);
