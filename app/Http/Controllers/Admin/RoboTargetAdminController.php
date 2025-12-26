@@ -122,4 +122,16 @@ class RoboTargetAdminController extends Controller
     {
         return response()->json($this->setService->getConfigDataShot());
     }
+
+    /**
+     * API pour récupérer les Base Sequences (templates .s2q)
+     */
+    public function apiGetBaseSequences(Request $request)
+    {
+        // Augmenter le timeout d'exécution PHP (GetBaseSequence peut être très lent)
+        set_time_limit(150);
+
+        $profileName = $request->query('profile');
+        return response()->json($this->setService->getBaseSequences($profileName));
+    }
 }

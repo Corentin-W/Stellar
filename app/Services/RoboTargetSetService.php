@@ -327,7 +327,8 @@ class RoboTargetSetService
 
             $startTime = microtime(true);
 
-            $response = Http::timeout(30)
+            // Augmenter le timeout à 120 secondes (GetBaseSequence peut être très lent lors du scan de tous les profils)
+            $response = Http::timeout(120)
                 ->withHeaders($this->getHeaders())
                 ->post("{$this->proxyUrl}/api/robotarget/test-mac", [
                 'method' => 'RemoteRoboTargetGetBaseSequence',
@@ -335,9 +336,9 @@ class RoboTargetSetService
                     'ProfileName' => $profileName ?? ''
                 ],
                 'macFormula' => [
-                    'sep1' => '|| |',   // 1 espace
-                    'sep2' => '||  |',  // 2 espaces
-                    'sep3' => '|| |'    // 1 espace
+                    'sep1' => '||:||',   // Formule colon (comme GetSet)
+                    'sep2' => '||:||',
+                    'sep3' => '||:||'
                 ]
             ]);
 

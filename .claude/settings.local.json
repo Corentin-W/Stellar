@@ -105,7 +105,9 @@
       "Bash(powershell.exe \"Stop-Process -Id 374956 -Force\")",
       "Bash(php artisan cache:clear:*)",
       "Bash(powershell.exe \"cd C:\\Users\\PrimaLuceLab\\Desktop\\Code; php artisan config:clear; php artisan cache:clear\")",
-      "Bash(powershell.exe \"cd C:\\Users\\PrimaLuceLab\\Desktop\\Code; php artisan view:clear; php artisan config:clear; php artisan cache:clear\")"
+      "Bash(powershell.exe \"cd C:\\Users\\PrimaLuceLab\\Desktop\\Code; php artisan view:clear; php artisan config:clear; php artisan cache:clear\")",
+      "Bash(powershell.exe \"Stop-Process -Id 396780 -Force\")",
+      "Bash(powershell.exe \"cd C:\\Users\\PrimaLuceLab\\Desktop\\Code\\voyager-proxy; npm run dev\")"
     ]
   }
 }

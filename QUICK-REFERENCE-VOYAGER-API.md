@@ -37,6 +37,12 @@ GET /admin/robotarget/api/config/profiles                      # Tous les profil
 GET /admin/robotarget/api/config/profiles/{name}               # Profil spécifique
 ```
 
+### Base Sequences (Templates .s2q)
+```http
+GET /admin/robotarget/api/base-sequences                       # Toutes les séquences
+GET /admin/robotarget/api/base-sequences?profile=Default.v2y   # Profil spécifique
+```
+
 ---
 
 ## 💻 Exemples JavaScript
@@ -100,6 +106,27 @@ if (data.success) {
 }
 ```
 
+### Charger les Base Sequences
+```javascript
+const response = await fetch('/admin/robotarget/api/base-sequences');
+const data = await response.json();
+
+if (data.success) {
+    // Toutes les séquences
+    console.log(`${data.count} séquences trouvées`);
+
+    // Par profil
+    Object.entries(data.byProfile).forEach(([profileName, group]) => {
+        console.log(`Profil: ${profileName}`);
+        console.log(`Séquence par défaut: ${group.defaultSequence?.basesequencename}`);
+        group.sequences.forEach(seq => {
+            console.log(`  - ${seq.basesequencename} (${seq.filename})`);
+            console.log(`    GUID: ${seq.guid}`);
+        });
+    });
+}
+```
+
 ---
 
 ## 🐘 Exemples PHP
@@ -131,6 +158,12 @@ $shots = $shotService->getPlannedShots($targetGuid);
 
 // Récupérer la config matérielle
 $config = $shotService->getHardwareConfiguration();
+
+// Récupérer les Base Sequences
+$sequences = $setService->getBaseSequences();
+
+// Séquences d'un profil spécifique
+$sequences = $setService->getBaseSequences('Default.v2y');
 ```
 
 ### Formater les Données

@@ -228,6 +228,11 @@ Route::get('/test/hardware-config', function () {
     return view('test.hardware-config');
 })->name('test.hardware-config');
 
+// Test des Base Sequences (templates .s2q)
+Route::get('/test/base-sequences', function () {
+    return view('test.base-sequences');
+})->name('test.base-sequences');
+
 /*
 |--------------------------------------------------------------------------
 | Routes avec préfixe de locale
@@ -743,6 +748,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/api/config/filters/{filterIndex}', [RoboTargetShotController::class, 'getFilterDetails'])->name('api.config.filter.details');
         Route::get('/api/config/profiles', [RoboTargetShotController::class, 'getProfiles'])->name('api.config.profiles');
         Route::get('/api/config/profiles/{profileName}', [RoboTargetShotController::class, 'getProfileConfig'])->name('api.config.profile');
+
+        // API Base Sequences
+        Route::get('/api/base-sequences', [RoboTargetAdminController::class, 'apiGetBaseSequences'])->name('api.sequences.index');
     });
 
     // Target Templates Management

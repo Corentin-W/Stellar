@@ -25,6 +25,11 @@
                         class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg font-medium text-white">
                     ⚙️ Configuration
                 </button>
+                <!-- Base Sequences Button -->
+                <button @click="viewBaseSequences()"
+                        class="bg-teal-600 hover:bg-teal-700 px-4 py-2 rounded-lg font-medium text-white">
+                    📋 Templates
+                </button>
                 <!-- Refresh Button -->
                 <button @click="refreshSets()"
                         :disabled="loading"
@@ -556,6 +561,105 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Base Sequences (Templates) -->
+    <div x-show="showBaseSequencesModal"
+         x-cloak
+         class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+         @click.self="closeBaseSequencesModal()">
+        <div class="bg-gray-800 rounded-lg max-w-4xl w-full mx-4 border border-gray-700 max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="bg-gradient-to-r from-teal-900 to-cyan-900 px-6 py-4 rounded-t-lg border-b border-gray-700">
+                <h2 class="text-xl font-bold text-white">📋 Templates de Séquences (.s2q)</h2>
+                <p class="text-sm text-gray-300 mt-1">Modèles d'acquisition utilisés pour créer de nouvelles cibles</p>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div x-show="loadingBaseSequences" class="text-center py-8">
+                    <div class="text-white">⏳ Chargement des templates...</div>
+                </div>
+
+                <div x-show="!loadingBaseSequences && baseSequences">
+                    <!-- Filtre par profil -->
+                    <div class="mb-4 flex items-center gap-3">
+                        <label class="text-white text-sm">Filtrer par profil:</label>
+                        <select x-model="sequenceProfileFilter" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white">
+                            <option value="">Tous les profils</option>
+                            <template x-for="(group, profileName) in baseSequences?.byProfile || {}" :key="profileName">
+                                <option :value="profileName" x-text="profileName"></option>
+                            </template>
+                        </select>
+                        <div class="text-sm text-gray-400">
+                            <span x-text="filteredSequences.length"></span> template(s) trouvé(s)
+                        </div>
+                    </div>
+
+                    <!-- Liste des séquences groupées par profil -->
+                    <template x-for="(group, profileName) in filteredSequencesByProfile" :key="profileName">
+                        <div class="mb-6">
+                            <div class="bg-white/10 rounded-lg p-3 mb-3 border border-white/10">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-lg font-bold text-white">
+                                        📁 <span x-text="profileName"></span>
+                                    </h3>
+                                    <div class="text-sm text-gray-400">
+                                        <span x-text="group.sequences.length"></span> template(s)
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <template x-for="sequence in group.sequences" :key="sequence.guid">
+                                    <div class="bg-white/5 rounded-lg p-4 border border-white/10 hover:border-teal-500/50 transition"
+                                         :class="sequence.isdefault ? 'border-yellow-500/50 bg-yellow-900/10' : ''">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-3">
+                                                <span x-show="sequence.isdefault" class="text-yellow-400 text-xl">⭐</span>
+                                                <div>
+                                                    <div class="text-white font-medium" x-text="sequence.basesequencename"></div>
+                                                    <div class="text-sm text-gray-400 flex items-center gap-4 mt-1">
+                                                        <span>📄 <span x-text="sequence.filename"></span></span>
+                                                        <span class="text-xs font-mono text-gray-500" x-text="sequence.guid"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <span x-show="sequence.isdefault" class="px-3 py-1 rounded bg-yellow-600 text-white text-xs font-medium">
+                                                    Par défaut
+                                                </span>
+                                                <button @click="copySequenceGuid(sequence.guid)"
+                                                        class="bg-teal-600 hover:bg-teal-700 px-3 py-1 rounded text-sm text-white"
+                                                        title="Copier le GUID">
+                                                    📋 Copier GUID
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Message si aucune séquence -->
+                    <div x-show="filteredSequences.length === 0" class="text-center text-gray-400 py-8">
+                        Aucun template trouvé pour ce profil
+                    </div>
+
+                    <!-- Info box -->
+                    <div class="mt-6 bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                        <div class="text-sm text-blue-300">
+                            💡 <strong>Info:</strong> Les Base Sequences sont des modèles (templates .s2q) utilisés lors de la création de nouvelles cibles.
+                            Le GUID de la séquence est requis pour la commande <code class="bg-black/30 px-2 py-1 rounded">AddTarget</code>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-700">
+                <button @click="closeBaseSequencesModal()"
+                        class="bg-gray-600 hover:bg-gray-700 px-6 py-2 rounded-lg text-white">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -574,6 +678,7 @@
             showTargetsModal: false,
             showShotsModal: false,
             showHardwareConfigModal: false,
+            showBaseSequencesModal: false,
             modalMode: 'create', // 'create' or 'edit'
             selectedSet: null,
             selectedTarget: null,
@@ -582,8 +687,11 @@
             loadingTargets: false,
             loadingShots: false,
             loadingHardwareConfig: false,
+            loadingBaseSequences: false,
             filterConfig: null,  // Pour mapper filterindex → nom de filtre
             hardwareConfig: null,  // Configuration matérielle complète
+            baseSequences: null,  // Base Sequences (templates .s2q)
+            sequenceProfileFilter: '',  // Filtre par profil pour les séquences
             searchQuery: '',
             filterStatus: 'all',
             filterProfile: '',
@@ -644,6 +752,32 @@
 
                     return true;
                 });
+            },
+
+            get filteredSequences() {
+                if (!this.baseSequences || !this.baseSequences.sequences) return [];
+
+                if (!this.sequenceProfileFilter) {
+                    return this.baseSequences.sequences;
+                }
+
+                return this.baseSequences.sequences.filter(seq =>
+                    seq.profilename === this.sequenceProfileFilter
+                );
+            },
+
+            get filteredSequencesByProfile() {
+                if (!this.baseSequences || !this.baseSequences.byProfile) return {};
+
+                if (!this.sequenceProfileFilter) {
+                    return this.baseSequences.byProfile;
+                }
+
+                const filtered = {};
+                if (this.baseSequences.byProfile[this.sequenceProfileFilter]) {
+                    filtered[this.sequenceProfileFilter] = this.baseSequences.byProfile[this.sequenceProfileFilter];
+                }
+                return filtered;
             },
 
             async refreshSets() {
@@ -916,6 +1050,60 @@
             closeHardwareConfigModal() {
                 this.showHardwareConfigModal = false;
                 this.hardwareConfig = null;
+            },
+
+            async viewBaseSequences() {
+                this.showBaseSequencesModal = true;
+                this.loadingBaseSequences = true;
+                this.baseSequences = null;
+                this.sequenceProfileFilter = '';
+
+                try {
+                    console.log('📋 Chargement des Base Sequences...');
+                    const response = await fetch('/admin/robotarget/api/base-sequences', {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        }
+                    });
+
+                    const data = await response.json();
+                    console.log('📊 Réponse API Base Sequences:', data);
+
+                    if (data.success) {
+                        this.baseSequences = data;
+                        console.log('✅ Base Sequences chargées:', this.baseSequences);
+                    } else {
+                        alert('❌ Erreur: ' + (data.error || 'Impossible de charger les séquences'));
+                    }
+                } catch (error) {
+                    console.error('Erreur chargement Base Sequences:', error);
+                    alert('❌ Erreur: ' + error.message);
+                } finally {
+                    this.loadingBaseSequences = false;
+                }
+            },
+
+            closeBaseSequencesModal() {
+                this.showBaseSequencesModal = false;
+                this.baseSequences = null;
+                this.sequenceProfileFilter = '';
+            },
+
+            async copySequenceGuid(guid) {
+                try {
+                    await navigator.clipboard.writeText(guid);
+                    alert('✅ GUID copié dans le presse-papier:\n' + guid);
+                } catch (error) {
+                    // Fallback si clipboard API n'est pas disponible
+                    const textArea = document.createElement('textarea');
+                    textArea.value = guid;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    alert('✅ GUID copié dans le presse-papier:\n' + guid);
+                }
             },
 
             getFilterName(filterIndex) {
