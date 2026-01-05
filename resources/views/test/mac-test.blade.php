@@ -74,6 +74,7 @@
                     <option value="">-- Choisir --</option>
                     <option value="RemoteRoboTargetGetSet">RemoteRoboTargetGetSet (List Sets)</option>
                     <option value="RemoteRoboTargetGetBaseSequence">RemoteRoboTargetGetBaseSequence (List Sequences)</option>
+                    <option value="RemoteRoboTargetGetTarget">RemoteRoboTargetGetTarget (List Targets)</option>
                     <option value="RemoteRoboTargetAddSet">RemoteRoboTargetAddSet (Create Set)</option>
                 </select>
             </div>
@@ -136,6 +137,7 @@
                     <option value="">-- Choisir --</option>
                     <option value="RemoteRoboTargetGetSet">RemoteRoboTargetGetSet (List Sets)</option>
                     <option value="RemoteRoboTargetGetBaseSequence">RemoteRoboTargetGetBaseSequence (List Sequences)</option>
+                    <option value="RemoteRoboTargetGetTarget">RemoteRoboTargetGetTarget (List Targets)</option>
                     <option value="RemoteRoboTargetAddSet">RemoteRoboTargetAddSet (Create Set)</option>
                 </select>
             </div>
@@ -277,6 +279,9 @@
                         },
                         'RemoteRoboTargetGetBaseSequence': {
                             ProfileName: '',
+                        },
+                        'RemoteRoboTargetGetTarget': {
+                            RefGuidSet: '', // Empty = all targets from all sets
                         },
                         'RemoteRoboTargetAddSet': {
                             Guid: this.generateGuid(),

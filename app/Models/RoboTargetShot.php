@@ -86,13 +86,24 @@ class RoboTargetShot extends Model
     public function toVoyagerPayload(): array
     {
         return [
+            // Unique identifiers
+            'GuidShot' => (string) \Illuminate\Support\Str::uuid(), // Generate unique GUID for shot
+            'RefGuidTarget' => '', // Will be set by RoboTargetService
+
+            // Shot configuration
+            'Label' => '', // Optional suffix for file name
             'FilterIndex' => $this->filter_index,
-            'Exposure' => $this->exposure,
             'Num' => $this->num,
+            'Bin' => $this->bin,
+            'ReadoutMode' => 0, // 0 = default readout mode
+            'Type' => $this->type, // 0=Light 1=Bias 2=Dark 3=Flat
+            'Speed' => 0, // 0 = default speed
             'Gain' => $this->gain,
             'Offset' => $this->offset,
-            'Bin' => $this->bin,
-            'Type' => $this->type,
+            'Exposure' => (float) $this->exposure, // Numeric (float)
+            'Order' => $this->order ?? -1, // -1 = automatic order
+            'Done' => false, // Not used
+            'Enabled' => true, // Shot is enabled
         ];
     }
 

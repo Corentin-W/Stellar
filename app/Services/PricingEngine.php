@@ -41,6 +41,15 @@ class PricingEngine
     // Multiplicateur Garantie HFD
     const MULTIPLIER_HFD_GUARANTEE = 1.5;
 
+    // Multiplicateur SQM (Qualité du ciel)
+    const MULTIPLIER_SQM_GUARANTEE = 1.3;
+
+    // Multiplicateur Binning 1x1 (Haute résolution)
+    const MULTIPLIER_BINNING_1X1 = 1.2;
+
+    // Multiplicateur Altitude stricte (>50°)
+    const MULTIPLIER_HIGH_ALTITUDE = 1.1;
+
     /**
      * Calculate total cost for a target
      */
@@ -121,15 +130,38 @@ class PricingEngine
         $priority = $targetConfig['priority'] ?? 0;
         $moonDown = $targetConfig['c_moon_down'] ?? false;
         $hfdLimit = $targetConfig['c_hfd_mean_limit'] ?? null;
+        $sqmMin = $targetConfig['c_sqm_min'] ?? null;
+        $altMin = $targetConfig['c_alt_min'] ?? 30;
 
         $multipliers = [
             'priority' => self::MULTIPLIER_PRIORITY[$priority] ?? 1.0,
             'moon_down' => $moonDown ? self::MULTIPLIER_MOON_DOWN : 1.0,
             'hfd' => ($hfdLimit && $hfdLimit > 0) ? self::MULTIPLIER_HFD_GUARANTEE : 1.0,
+            'sqm' => ($sqmMin && $sqmMin > 0) ? self::MULTIPLIER_SQM_GUARANTEE : 1.0,
+            'altitude' => ($altMin > 50) ? self::MULTIPLIER_HIGH_ALTITUDE : 1.0,
+            'binning' => 1.0, // Will be calculated from shots
         ];
 
+        // Calculate binning multiplier from shots
+        $shots = $targetConfig['shots'] ?? [];
+        $hasBinning1x1 = false;
+        foreach ($shots as $shot) {
+            if (isset($shot['bin']) && $shot['bin'] == 1) {
+                $hasBinning1x1 = true;
+                break;
+            }
+        }
+        if ($hasBinning1x1) {
+            $multipliers['binning'] = self::MULTIPLIER_BINNING_1X1;
+        }
+
         // Multiplicateur total
-        $multipliers['total'] = $multipliers['priority'] * $multipliers['moon_down'] * $multipliers['hfd'];
+        $multipliers['total'] = $multipliers['priority']
+                              * $multipliers['moon_down']
+                              * $multipliers['hfd']
+                              * $multipliers['sqm']
+                              * $multipliers['altitude']
+                              * $multipliers['binning'];
 
         return $multipliers;
     }
@@ -176,20 +208,44 @@ class PricingEngine
         $priority = $targetConfig['priority'] ?? 0;
         $moonDown = $targetConfig['c_moon_down'] ?? false;
         $hfdLimit = $targetConfig['c_hfd_mean_limit'] ?? null;
+        $sqmMin = $targetConfig['c_sqm_min'] ?? null;
+        $altMin = $targetConfig['c_alt_min'] ?? 30;
 
         $multipliers = [
             'priority' => self::MULTIPLIER_PRIORITY[$priority] ?? 1.0,
             'moon_down' => $moonDown ? self::MULTIPLIER_MOON_DOWN : 1.0,
             'hfd' => ($hfdLimit && $hfdLimit > 0) ? self::MULTIPLIER_HFD_GUARANTEE : 1.0,
+            'sqm' => ($sqmMin && $sqmMin > 0) ? self::MULTIPLIER_SQM_GUARANTEE : 1.0,
+            'altitude' => ($altMin > 50) ? self::MULTIPLIER_HIGH_ALTITUDE : 1.0,
+            'binning' => 1.0,
         ];
 
-        $multipliers['total'] = $multipliers['priority'] * $multipliers['moon_down'] * $multipliers['hfd'];
+        // Calculate binning multiplier from shots
+        $shots = $targetConfig['shots'] ?? [];
+        $hasBinning1x1 = false;
+        foreach ($shots as $shot) {
+            if (isset($shot['bin']) && $shot['bin'] == 1) {
+                $hasBinning1x1 = true;
+                break;
+            }
+        }
+        if ($hasBinning1x1) {
+            $multipliers['binning'] = self::MULTIPLIER_BINNING_1X1;
+        }
+
+        $multipliers['total'] = $multipliers['priority']
+                              * $multipliers['moon_down']
+                              * $multipliers['hfd']
+                              * $multipliers['sqm']
+                              * $multipliers['altitude']
+                              * $multipliers['binning'];
 
         $finalCost = (int) ceil($baseCost * $multipliers['total']);
 
         return [
             'plan' => $plan,
             'estimated_hours' => round($estimatedHours, 2),
+            'estimated_credits' => $finalCost, // Alias pour le frontend
             'base_cost' => round($baseCost, 2),
             'multipliers' => $multipliers,
             'final_cost' => $finalCost,
@@ -197,6 +253,8 @@ class PricingEngine
                 'priority' => $priority,
                 'moon_down' => $moonDown,
                 'hfd_limit' => $hfdLimit,
+                'sqm_min' => $sqmMin,
+                'alt_min' => $altMin,
             ]
         ];
     }

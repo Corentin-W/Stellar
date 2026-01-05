@@ -16,6 +16,22 @@ export default () => ({
   creationMode: null, // 'assisted' or 'manual'
   catalogFilter: 'all', // 'all', 'beginner', 'intermediate', 'advanced'
   popularCatalog: popularTargets,
+  loadingCatalog: false,
+  selectedTemplate: null,
+
+  // Mode Assisté - Configuration qualité
+  assistedConfig: {
+    exposure: 300,        // Temps d'exposition par pose (secondes)
+    num: 20,             // Nombre de poses par filtre
+    bin: 2,              // Binning (1 ou 2)
+    gain: 100,           // Gain caméra (0-200)
+    c_alt_min: 30,       // Altitude minimale (degrés)
+    c_moon_down: false,  // Exiger lune couchée
+    enableHfd: false,    // Activer limite HFD
+    c_hfd_mean_limit: 2.5, // HFD maximum
+    enableSqm: false,    // Activer exigence SQM
+    c_sqm_min: 20,       // SQM minimum
+  },
 
   // Target data
   target: {
@@ -313,9 +329,12 @@ export default () => ({
       if (data.success) {
         this.successMessage = 'Target créée avec succès !';
 
+        // Get current locale from URL
+        const locale = window.location.pathname.split('/')[1] || 'fr';
+
         // Redirect to targets list after 2 seconds
         setTimeout(() => {
-          window.location.href = '/dashboard/robotarget';
+          window.location.href = `/${locale}/dashboard/robotarget`;
         }, 2000);
       } else {
         this.errorMessage = data.message || 'Erreur lors de la création de la target';
@@ -584,5 +603,239 @@ export default () => ({
       'S-II': 6,
     };
     return mapping[filterName] || 0;
+  },
+
+  // ============================================
+  // MODE ASSISTÉ - WORKFLOW METHODS
+  // ============================================
+
+  /**
+   * Load assisted targets (called when entering assisted mode)
+   */
+  async loadAssistedTargets() {
+    console.log('🎨 Loading assisted mode targets...');
+    this.loadingCatalog = true;
+    this.currentStep = 1;
+
+    // Templates are already loaded in init()
+    // Just wait a bit for UI to render
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    this.loadingCatalog = false;
+    console.log('✅ Catalog ready with', this.popularCatalog.length, 'templates');
+  },
+
+  /**
+   * Select a template and move to quality parameters
+   */
+  selectAssistedTarget(template) {
+    console.log('🎯 Selected template:', template.name);
+    this.selectedTemplate = template;
+    this.currentStep = 2; // Move to quality parameters step
+
+    // Initialize assistedConfig with template defaults if available
+    if (template.recommended_shots && template.recommended_shots.length > 0) {
+      const firstShot = template.recommended_shots[0];
+      this.assistedConfig.exposure = firstShot.exposure || 300;
+      this.assistedConfig.num = firstShot.num || 20;
+      this.assistedConfig.bin = firstShot.binning || 2;
+    }
+
+    this.successMessage = `Template sélectionné: ${template.name}`;
+    setTimeout(() => { this.successMessage = null; }, 3000);
+  },
+
+  /**
+   * Calculate total duration for assisted mode (in seconds)
+   */
+  calculateAssistedDuration() {
+    if (!this.selectedTemplate || !this.selectedTemplate.recommended_shots) {
+      return 0;
+    }
+
+    // Get number of filters from template
+    const numFilters = this.selectedTemplate.recommended_shots.length;
+
+    // Exposure time per filter
+    const exposurePerFilter = this.assistedConfig.exposure * this.assistedConfig.num;
+
+    // Total exposure for all filters
+    const totalExposure = exposurePerFilter * numFilters;
+
+    // Add overhead (30s per shot)
+    const totalShots = this.assistedConfig.num * numFilters;
+    const overhead = totalShots * 30; // 30 seconds per shot
+
+    return totalExposure + overhead;
+  },
+
+  /**
+   * Calculate pricing multiplier based on quality parameters
+   */
+  calculateAssistedMultiplier() {
+    let multiplier = 1.0;
+
+    // Binning: 1x1 = ×1.2
+    if (this.assistedConfig.bin === 1) {
+      multiplier *= 1.2;
+    }
+
+    // Altitude: >50° = ×1.1
+    if (this.assistedConfig.c_alt_min > 50) {
+      multiplier *= 1.1;
+    }
+
+    // Moon down: ×2.0
+    if (this.assistedConfig.c_moon_down) {
+      multiplier *= 2.0;
+    }
+
+    // HFD guarantee: ×1.5
+    if (this.assistedConfig.enableHfd) {
+      multiplier *= 1.5;
+    }
+
+    // SQM requirement: ×1.3
+    if (this.assistedConfig.enableSqm) {
+      multiplier *= 1.3;
+    }
+
+    return multiplier;
+  },
+
+  /**
+   * Calculate final credit cost for assisted mode
+   */
+  calculateAssistedCredits() {
+    const durationSeconds = this.calculateAssistedDuration();
+    const hours = durationSeconds / 3600;
+    const baseCost = hours * 1.0; // 1 credit per hour
+    const multiplier = this.calculateAssistedMultiplier();
+    const finalCost = baseCost * multiplier;
+
+    return Math.ceil(finalCost);
+  },
+
+  /**
+   * Submit assisted target
+   */
+  async submitAssistedTarget() {
+    if (!this.selectedTemplate) {
+      this.errorMessage = 'Aucun template sélectionné';
+      return;
+    }
+
+    // Check credits
+    const requiredCredits = this.calculateAssistedCredits();
+    if (requiredCredits > this.creditsBalance) {
+      this.errorMessage = `Crédits insuffisants. Requis: ${requiredCredits}, Disponible: ${this.creditsBalance}`;
+      return;
+    }
+
+    this.isLoading = true;
+    this.errorMessage = null;
+
+    try {
+      // Format RA coordinates (HH:MM:SS)
+      const template = this.selectedTemplate;
+      const raHours = String(template.ra_hours).padStart(2, '0');
+      const raMinutes = String(template.ra_minutes).padStart(2, '0');
+      const raSeconds = String(Math.round(template.ra_seconds)).padStart(2, '0');
+      const formattedRA = `${raHours}:${raMinutes}:${raSeconds}`;
+
+      // Format DEC coordinates (+/-DD:MM:SS)
+      const decSign = template.dec_degrees >= 0 ? '+' : '-';
+      const decDegrees = String(Math.abs(template.dec_degrees)).padStart(2, '0');
+      const decMinutes = String(template.dec_minutes).padStart(2, '0');
+      const decSeconds = String(Math.round(template.dec_seconds)).padStart(2, '0');
+      const formattedDEC = `${decSign}${decDegrees}:${decMinutes}:${decSeconds}`;
+
+      // Build shots array based on template filters and assisted config
+      const shots = template.recommended_shots.map(shot => ({
+        filter_index: this.getFilterIndexByName(shot.filter_name),
+        filter_name: shot.filter_name,
+        exposure: this.assistedConfig.exposure,
+        num: this.assistedConfig.num,
+        gain: this.assistedConfig.gain,
+        offset: 50,
+        bin: this.assistedConfig.bin,
+      }));
+
+      // Generate GUIDs
+      const targetGuid = this.generateUUID();
+      const setGuid = this.generateUUID();
+
+      const payload = {
+        guid_set: setGuid,
+        guid_target: targetGuid,
+        target_name: template.name,
+        ra_j2000: formattedRA,
+        dec_j2000: formattedDEC,
+        priority: 0, // Assisted mode uses default priority
+        c_moon_down: this.assistedConfig.c_moon_down,
+        c_hfd_mean_limit: this.assistedConfig.enableHfd ? this.assistedConfig.c_hfd_mean_limit : null,
+        c_alt_min: this.assistedConfig.c_alt_min,
+        c_sqm_min: this.assistedConfig.enableSqm ? this.assistedConfig.c_sqm_min : null,
+        shots: shots,
+        is_assisted: true, // Flag to identify assisted mode targets
+      };
+
+      console.log('📤 Submitting assisted target:', payload);
+      console.log('📤 Payload stringified:', JSON.stringify(payload, null, 2));
+
+      // Use absolute URL with explicit /api prefix (no locale)
+      const apiUrl = window.location.origin + '/api/robotarget/targets';
+      console.log('📤 API URL:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json', // Force JSON response
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        },
+        credentials: 'same-origin', // Include session cookies
+        body: JSON.stringify(payload),
+      });
+
+      console.log('📥 Response status:', response.status);
+      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
+
+      // Get response text first to see what we received
+      const responseText = await response.text();
+      console.log('📥 Response text (first 500 chars):', responseText.substring(0, 500));
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('📥 Parsed response data:', data);
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON response:', parseError);
+        console.error('❌ Raw response:', responseText);
+        this.errorMessage = 'Erreur serveur: réponse invalide (HTML au lieu de JSON)';
+        return;
+      }
+
+      if (data.success) {
+        this.successMessage = 'Target créée avec succès !';
+        console.log('✅ Target created successfully:', data);
+
+        // Get current locale from URL
+        const locale = window.location.pathname.split('/')[1] || 'fr';
+
+        // Redirect to targets list after 2 seconds
+        setTimeout(() => {
+          window.location.href = `/${locale}/dashboard/robotarget`;
+        }, 2000);
+      } else {
+        this.errorMessage = data.message || 'Erreur lors de la création de la target';
+        console.error('❌ Target creation failed:', data);
+      }
+    } catch (error) {
+      this.errorMessage = 'Erreur réseau lors de la création de la target';
+      console.error('❌ Submit error:', error);
+    } finally {
+      this.isLoading = false;
+    }
   },
 });

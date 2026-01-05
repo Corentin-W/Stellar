@@ -60,4 +60,16 @@ return [
         'enabled' => env('CASHIER_CUSTOMER_PORTAL', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Subscription Price IDs
+    |--------------------------------------------------------------------------
+    */
+
+    'price_ids' => [
+        'stardust' => env('STRIPE_PRICE_STARDUST', 'price_1Se20MLTudkz4vwEUjh3ABia'),
+        'nebula' => env('STRIPE_PRICE_NEBULA'),
+        'quasar' => env('STRIPE_PRICE_QUASAR'),
+    ],
+
 ];

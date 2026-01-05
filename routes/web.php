@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\ProductPromotionController;
 use App\Http\Controllers\RoboTargetTestController;
 use App\Http\Controllers\Admin\RoboTargetAdminController;
 use App\Http\Controllers\Admin\RoboTargetShotController;
+use App\Http\Controllers\Admin\StripeAdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -325,6 +326,7 @@ Route::prefix('{locale?}')->where(['locale' => 'fr|en'])->group(function () {
         Route::prefix('robotarget')->name('robotarget.')->middleware('subscription.required')->group(function () {
             Route::get('/', [\App\Http\Controllers\RoboTargetController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\RoboTargetController::class, 'create'])->name('create');
+            Route::get('/create-v2', [\App\Http\Controllers\RoboTargetController::class, 'createV2'])->name('create-v2'); // Test nouvelle version
             Route::get('/gallery', [\App\Http\Controllers\RoboTargetController::class, 'gallery'])->name('gallery');
             Route::get('/{guid}', [\App\Http\Controllers\RoboTargetController::class, 'show'])->name('show');
             Route::get('/{guid}/monitor', [\App\Http\Controllers\RoboTargetController::class, 'monitor'])->name('monitor');
@@ -735,6 +737,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/api/sets/{guid}/toggle', [RoboTargetAdminController::class, 'apiToggleSet'])->name('api.sets.toggle');
 
         // API Targets
+        Route::get('/api/targets', [RoboTargetAdminController::class, 'apiGetAllTargets'])->name('api.targets.all');
         Route::get('/api/sets/{setGuid}/targets', [RoboTargetAdminController::class, 'apiGetTargets'])->name('api.targets.index');
 
         // API Shots (géré par RoboTargetShotController)
@@ -755,5 +758,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Target Templates Management
     Route::resource('target-templates', App\Http\Controllers\Admin\TargetTemplateController::class);
+
+    // Stripe Admin - Synchronisation
+    Route::prefix('stripe')->name('stripe.')->group(function () {
+        Route::get('/', [StripeAdminController::class, 'index'])->name('index');
+        Route::post('/sync-prices', [StripeAdminController::class, 'syncPrices'])->name('sync-prices');
+        Route::post('/clean-duplicates', [StripeAdminController::class, 'cleanDuplicates'])->name('clean-duplicates');
+        Route::post('/sync-subscriptions', [StripeAdminController::class, 'syncSubscriptions'])->name('sync-subscriptions');
+    });
 
 });

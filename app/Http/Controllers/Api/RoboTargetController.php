@@ -49,27 +49,68 @@ class RoboTargetController extends Controller
         ]);
 
         $user = $request->user();
+        $autoSubmit = $request->input('is_assisted', false); // Auto-submit for assisted mode
+
+        \Log::info('📤 [Api\RoboTarget Store] Creating target', [
+            'user_id' => $user->id,
+            'target_name' => $validated['target_name'],
+            'auto_submit' => $autoSubmit,
+        ]);
 
         try {
             $target = $this->roboTargetService->createTarget($user, $validated);
 
+            \Log::info('✅ [Api\RoboTarget Store] Target created in DB', [
+                'target_id' => $target->id,
+                'guid' => $target->guid,
+                'status' => $target->status,
+            ]);
+
+            // Auto-submit to Voyager in assisted mode
+            if ($autoSubmit) {
+                \Log::info('🚀 [Api\RoboTarget Store] Auto-submitting to Voyager (assisted mode)');
+
+                try {
+                    $voyagerResult = $this->roboTargetService->submitToVoyager($target);
+
+                    \Log::info('✅ [Api\RoboTarget Store] Submitted to Voyager', [
+                        'target_id' => $target->id,
+                        'voyager_result' => $voyagerResult,
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('❌ [Api\RoboTarget Store] Failed to submit to Voyager', [
+                        'target_id' => $target->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    // Don't fail the whole request if submission fails
+                    // User can manually submit later
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Cible créée avec succès',
-                'target' => [
-                    'id' => $target->id,
-                    'guid' => $target->guid,
-                    'target_name' => $target->target_name,
-                    'status' => $target->status,
-                    'estimated_credits' => $target->estimated_credits,
-                    'credits_held' => $target->credits_held,
-                    'shots_count' => $target->shots->count(),
-                    'estimated_duration' => $target->getFormattedDuration(),
+                'data' => [
+                    'target' => [
+                        'id' => $target->id,
+                        'guid' => $target->guid,
+                        'target_name' => $target->target_name,
+                        'status' => $target->fresh()->status,
+                        'estimated_credits' => $target->estimated_credits,
+                        'credits_held' => $target->credits_held,
+                        'shots_count' => $target->shots->count(),
+                        'estimated_duration' => $target->getFormattedDuration(),
+                    ],
                 ],
                 'credits_remaining' => $user->fresh()->credits_balance,
             ], 201);
 
         } catch (\Exception $e) {
+            \Log::error('❌ [Api\RoboTarget Store] Failed to create target', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),

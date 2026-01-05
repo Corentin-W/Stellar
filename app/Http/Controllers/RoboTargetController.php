@@ -6,6 +6,7 @@ use App\Models\RoboTarget;
 use App\Models\RoboTargetSession;
 use App\Services\RoboTargetService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class RoboTargetController extends Controller
@@ -60,6 +61,120 @@ class RoboTargetController extends Controller
             'subscription' => $subscription,
             'creditsBalance' => $user->credits_balance,
         ]);
+    }
+
+    /**
+     * Show the form for creating a new target (V2 - Compact & Modern)
+     */
+    public function createV2(Request $request): View
+    {
+        $user = $request->user();
+
+        // Pour les admins sans abonnement, créer une subscription fictive avec tous les accès
+        $subscription = $user->subscription ?? ($user->is_admin ? $this->getAdminFakeSubscription($user) : null);
+
+        return view('dashboard.robotarget.create-v2', [
+            'subscription' => $subscription,
+            'creditsBalance' => $user->credits_balance,
+        ]);
+    }
+
+    /**
+     * Store a new target (API endpoint)
+     */
+    public function store(Request $request)
+    {
+        \Log::info('📤 [RoboTarget Store] Method called', [
+            'url' => $request->fullUrl(),
+            'method' => $request->method(),
+        ]);
+
+        try {
+            // Manual auth check (since middleware redirect issues with API)
+            if (!Auth::check()) {
+                \Log::warning('❌ [RoboTarget Store] User not authenticated');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated',
+                ], 401);
+            }
+
+            $user = Auth::user();
+
+            \Log::info('📤 [RoboTarget Store] Received request', [
+                'user_id' => $user->id,
+                'payload' => $request->all(),
+            ]);
+
+            // Validate request
+            $validated = $request->validate([
+                'guid_set' => 'required|string',
+                'guid_target' => 'required|string',
+                'target_name' => 'required|string|max:255',
+                'ra_j2000' => 'required|string',
+                'dec_j2000' => 'required|string',
+                'priority' => 'integer|min:0|max:4',
+                'c_moon_down' => 'boolean',
+                'c_hfd_mean_limit' => 'nullable|numeric',
+                'c_alt_min' => 'integer|min:0|max:90',
+                'c_sqm_min' => 'nullable|numeric',
+                'shots' => 'required|array|min:1',
+                'shots.*.filter_index' => 'required|integer',
+                'shots.*.filter_name' => 'required|string',
+                'shots.*.exposure' => 'required|numeric|min:0.1',
+                'shots.*.num' => 'required|integer|min:1',
+                'shots.*.gain' => 'required|integer|min:0',
+                'shots.*.offset' => 'required|integer|min:0',
+                'shots.*.bin' => 'required|integer|in:1,2',
+                'is_assisted' => 'boolean',
+            ]);
+
+            \Log::info('✅ [RoboTarget Store] Validation passed');
+
+            // Create target using service
+            $target = $this->roboTargetService->createTarget($user, $validated);
+
+            \Log::info('✅ [RoboTarget Store] Target created successfully', [
+                'target_id' => $target->id,
+                'guid' => $target->guid,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Target créée avec succès',
+                'data' => [
+                    'target' => [
+                        'id' => $target->id,
+                        'guid' => $target->guid,
+                        'target_name' => $target->target_name,
+                        'status' => $target->status,
+                        'credits_held' => $target->credits_held,
+                    ],
+                ],
+            ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('❌ [RoboTarget Store] Validation failed', [
+                'errors' => $e->errors(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Données invalides',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (\Exception $e) {
+            \Log::error('❌ [RoboTarget Store] Error creating target', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

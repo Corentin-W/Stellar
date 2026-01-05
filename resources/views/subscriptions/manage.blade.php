@@ -32,7 +32,11 @@ use App\Models\Subscription;
                 </div>
                 <div class="text-right">
                     <div class="text-3xl font-bold text-gray-900 dark:text-white">
-                        {{ Subscription::PRICES[$subscription->plan] }}€
+                        @if($subscription->plan && isset(Subscription::PRICES[$subscription->plan]))
+                            {{ Subscription::PRICES[$subscription->plan] }}€
+                        @else
+                            <span class="text-orange-600">À synchroniser</span>
+                        @endif
                     </div>
                     <div class="text-sm text-gray-600 dark:text-gray-400">par mois</div>
                 </div>

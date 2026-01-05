@@ -88,7 +88,16 @@ class RoboTargetAdminController extends Controller
     }
 
     /**
-     * API pour récupérer les Targets d'un Set
+     * API pour récupérer toutes les Targets de tous les Sets
+     */
+    public function apiGetAllTargets(Request $request)
+    {
+        $setGuid = $request->query('set_guid');
+        return response()->json($this->setService->getTargets($setGuid));
+    }
+
+    /**
+     * API pour récupérer les Targets d'un Set spécifique
      */
     public function apiGetTargets(string $setGuid)
     {

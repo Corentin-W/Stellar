@@ -125,16 +125,18 @@ class Commands {
   }
 
   async activateTarget(guid) {
-    return this.send('RemoteRoboTargetSetTargetStatus', {
-      GuidTarget: guid,
-      Status: 0, // Active
+    return this.send('RemoteRoboTargetEnableDisableObject', {
+      RefGuidObject: guid,
+      ObjectType: 1, // 1 = Target
+      OperationType: 0, // 0 = Enable
     });
   }
 
   async deactivateTarget(guid) {
-    return this.send('RemoteRoboTargetSetTargetStatus', {
-      GuidTarget: guid,
-      Status: 1, // Inactive
+    return this.send('RemoteRoboTargetEnableDisableObject', {
+      RefGuidObject: guid,
+      ObjectType: 1, // 1 = Target
+      OperationType: 1, // 1 = Disable
     });
   }
 

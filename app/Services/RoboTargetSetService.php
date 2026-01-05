@@ -447,20 +447,27 @@ class RoboTargetSetService
     }
 
     /**
-     * Récupérer les Targets d'un Set spécifique
+     * Récupérer les Targets d'un Set spécifique ou de tous les Sets
      *
-     * @param string $setGuid GUID du Set
+     * @param string|null $setGuid GUID du Set (null ou vide = toutes les targets)
      * @return array
      */
-    public function getTargets(string $setGuid): array
+    public function getTargets(?string $setGuid = null): array
     {
         try {
-            $response = Http::timeout(30)
+            \Log::info('GetTarget Request Start', [
+                'setGuid' => $setGuid,
+                'proxyUrl' => $this->proxyUrl
+            ]);
+
+            $startTime = microtime(true);
+
+            $response = Http::timeout(60)
                 ->withHeaders($this->getHeaders())
                 ->post("{$this->proxyUrl}/api/robotarget/test-mac", [
                 'method' => 'RemoteRoboTargetGetTarget',
                 'params' => [
-                    'RefGuidSet' => $setGuid
+                    'RefGuidSet' => $setGuid ?? ''
                 ],
                 'macFormula' => [
                     'sep1' => '||:||',
@@ -469,13 +476,24 @@ class RoboTargetSetService
                 ]
             ]);
 
+            $elapsed = round((microtime(true) - $startTime) * 1000);
             $result = $response->json();
 
+            \Log::info('GetTarget Response', [
+                'setGuid' => $setGuid,
+                'status' => $response->status(),
+                'elapsed_ms' => $elapsed,
+                'success' => $result['success'] ?? false
+            ]);
+
             if ($result['success'] ?? false) {
+                $targets = $result['result']['ParamRet']['list'] ?? [];
+
                 return [
                     'success' => true,
-                    'targets' => $result['result']['ParamRet']['list'] ?? [],
-                    'count' => count($result['result']['ParamRet']['list'] ?? [])
+                    'targets' => $targets,
+                    'count' => count($targets),
+                    'bySet' => $this->groupTargetsBySet($targets)
                 ];
             }
 
@@ -486,12 +504,45 @@ class RoboTargetSetService
             ];
 
         } catch (\Exception $e) {
+            \Log::error('GetTarget Exception', [
+                'setGuid' => $setGuid,
+                'error' => $e->getMessage()
+            ]);
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
                 'targets' => []
             ];
         }
+    }
+
+    /**
+     * Grouper les targets par Set
+     *
+     * @param array $targets
+     * @return array
+     */
+    private function groupTargetsBySet(array $targets): array
+    {
+        $grouped = [];
+
+        foreach ($targets as $target) {
+            $setGuid = $target['refguidset'] ?? 'unknown';
+
+            if (!isset($grouped[$setGuid])) {
+                $grouped[$setGuid] = [
+                    'setGuid' => $setGuid,
+                    'targets' => [],
+                    'count' => 0
+                ];
+            }
+
+            $grouped[$setGuid]['targets'][] = $target;
+            $grouped[$setGuid]['count']++;
+        }
+
+        return $grouped;
     }
 
     /**

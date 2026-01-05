@@ -19,6 +19,10 @@ export default (voyagerConnection, io) => {
    * Créer un nouveau Set RoboTarget
    */
   router.post('/sets', validateSet, async (req, res) => {
+    console.log('📥 [RoboTarget API] POST /api/robotarget/sets received');
+    console.log('📦 [RoboTarget API] Request body:', JSON.stringify(req.body, null, 2));
+    console.log('🔑 [RoboTarget API] Headers:', JSON.stringify(req.headers, null, 2));
+
     try {
       // Support both snake_case (from Laravel) and direct parameter names
       const guidSet = req.body.Guid || req.body.guid_set;
@@ -123,15 +127,30 @@ export default (voyagerConnection, io) => {
    * Lister toutes les séquences de base (templates) disponibles dans Voyager
    */
   router.get('/base-sequences', async (req, res) => {
+    console.log('📥 [RoboTarget API] GET /api/robotarget/base-sequences received');
+
     try {
       const result = await roboTargetCommands.listBaseSequences();
 
+      console.log('📊 [RoboTarget API] Raw result from Voyager:', JSON.stringify(result, null, 2));
+
+      // Extract the list from the result (ParamRet.list or parsed.params.list)
+      const sequences = result.ParamRet?.list || result.parsed?.params?.list || [];
+
+      console.log(`✅ [RoboTarget API] Found ${sequences.length} base sequences`);
+
       res.json({
         success: true,
-        baseSequences: result,
+        sequences: sequences.map(seq => ({
+          GuidBaseSequence: seq.guid,
+          NameSeq: seq.basesequencename,
+          FileName: seq.filename,
+          ProfileName: seq.profilename,
+          IsDefault: seq.isdefault,
+        })),
       });
     } catch (error) {
-      console.error('Error listing base sequences:', error);
+      console.error('❌ [RoboTarget API] Error listing base sequences:', error);
       res.status(500).json({
         success: false,
         message: 'Erreur lors de la récupération des séquences de base',
@@ -145,8 +164,14 @@ export default (voyagerConnection, io) => {
    * Créer une nouvelle Target RoboTarget
    */
   router.post('/targets', validateTarget, async (req, res) => {
+    console.log('📥 [RoboTarget API] POST /api/robotarget/targets received');
+    console.log('🎯 [RoboTarget API] Request body:', JSON.stringify(req.body, null, 2));
+    console.log('🔑 [RoboTarget API] Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('📊 [RoboTarget API] Body keys:', Object.keys(req.body));
+
     try {
       const targetData = req.body;
+      console.log('🔄 [RoboTarget API] Processing target data...');
 
       // Générer C_Mask si non fourni
       if (!targetData.C_Mask) {

@@ -35,8 +35,8 @@ Route::prefix('voyager/events')->group(function () {
 // Ancien webhook (pas d'auth)
 Route::post('/webhooks/robotarget/session-complete', [RoboTargetController::class, 'webhookSessionComplete']);
 
-// Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+// Protected routes (auth checked manually in controllers to avoid redirect issues)
+Route::middleware([\App\Http\Middleware\LogApiAuth::class])->group(function () {
 
     // Subscriptions
     Route::prefix('subscriptions')->group(function () {

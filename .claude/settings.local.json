@@ -107,7 +107,19 @@
       "Bash(powershell.exe \"cd C:\\Users\\PrimaLuceLab\\Desktop\\Code; php artisan config:clear; php artisan cache:clear\")",
       "Bash(powershell.exe \"cd C:\\Users\\PrimaLuceLab\\Desktop\\Code; php artisan view:clear; php artisan config:clear; php artisan cache:clear\")",
       "Bash(powershell.exe \"Stop-Process -Id 396780 -Force\")",
-      "Bash(powershell.exe \"cd C:\\Users\\PrimaLuceLab\\Desktop\\Code\\voyager-proxy; npm run dev\")"
+      "Bash(powershell.exe \"cd C:\\Users\\PrimaLuceLab\\Desktop\\Code\\voyager-proxy; npm run dev\")",
+      "Bash(git log:*)",
+      "Bash(php artisan tinker:*)",
+      "Bash(\"C:\\Users\\PrimaLuceLab\\.config\\herd\\bin\\php.bat\" artisan storage:link)",
+      "Bash(powershell \"Get-Process node -ErrorAction SilentlyContinue | Select-Object Id,ProcessName | Format-Table -AutoSize\")",
+      "Bash(taskkill /F /PID 670640)",
+      "Bash(powershell \"Stop-Process -Id 670640 -Force\")",
+      "Bash(powershell \"Test-NetConnection -ComputerName 185.228.120.120 -Port 23002 -InformationLevel Detailed\")",
+      "Bash(powershell \"Stop-Process -Id 892952 -Force\")",
+      "Bash(powershell \"Stop-Process -Id 379976 -Force\")",
+      "Bash(node -c:*)",
+      "Bash(dir:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 446624 -Force\")"
     ]
   }
 }

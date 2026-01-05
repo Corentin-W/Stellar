@@ -94,43 +94,215 @@ class RoboTargetService
      */
     public function submitToVoyager(RoboTarget $target): array
     {
-        $proxyUrl = config('services.voyager_proxy.url');
+        $proxyUrl = config('services.voyager.proxy_url');
+        $apiKey = config('services.voyager.proxy_api_key');
 
         if (!$proxyUrl) {
             throw new \Exception('Voyager Proxy URL not configured');
         }
 
+        if (!$apiKey) {
+            throw new \Exception('Voyager Proxy API key not configured');
+        }
+
+        \Log::info('🚀 [RoboTargetService] Submitting to Voyager', [
+            'target_id' => $target->id,
+            'target_guid' => $target->guid,
+            'set_guid' => $target->set_guid,
+            'proxy_url' => $proxyUrl,
+        ]);
+
         try {
-            // 1. Créer le Set
-            $setResponse = Http::post("{$proxyUrl}/api/robotarget/sets", [
-                'guid_set' => $target->set_guid,
+            // Prepare HTTP client with API key
+            $http = Http::withHeaders([
+                'X-API-Key' => $apiKey,
+                'Accept' => 'application/json',
+            ])->timeout(30);
+
+            \Log::info('🔐 [RoboTargetService] HTTP Client configured', [
+                'proxy_url' => $proxyUrl,
+                'api_key_present' => !empty($apiKey),
+                'api_key_preview' => substr($apiKey, 0, 20) . '...',
+            ]);
+
+            // 1. Récupérer une BaseSequence d'abord (pour obtenir le ProfileName)
+            \Log::info('📋 [RoboTargetService] Fetching BaseSequences from Voyager');
+
+            $baseSeqResponse = $http->get("{$proxyUrl}/api/robotarget/base-sequences");
+
+            if (!$baseSeqResponse->successful()) {
+                \Log::error('❌ [RoboTargetService] Failed to fetch BaseSequences', [
+                    'status' => $baseSeqResponse->status(),
+                    'body' => $baseSeqResponse->body(),
+                ]);
+                throw new \Exception('Failed to fetch BaseSequences: ' . $baseSeqResponse->body());
+            }
+
+            $baseSeqData = $baseSeqResponse->json();
+            $sequences = $baseSeqData['sequences'] ?? [];
+
+            if (empty($sequences)) {
+                \Log::error('❌ [RoboTargetService] No BaseSequences found in Voyager');
+                throw new \Exception('No BaseSequences found in Voyager. Please create a sequence first.');
+            }
+
+            // Utiliser la première séquence disponible
+            $selectedSequence = $sequences[0];
+            $baseSequenceGuid = $selectedSequence['GuidBaseSequence'];
+            $profileName = $selectedSequence['ProfileName'] ?? '';
+
+            \Log::info('✅ [RoboTargetService] BaseSequence selected', [
+                'guid' => $baseSequenceGuid,
+                'name' => $selectedSequence['NameSeq'] ?? 'Unknown',
+                'profile' => $profileName,
+            ]);
+
+            // 2. Créer le Set avec le ProfileName de la BaseSequence
+            $setPayload = [
+                'Guid' => $target->set_guid,
+                'Name' => "Set_{$target->target_name}",
+                'ProfileName' => $profileName, // IMPORTANT: Utiliser le ProfileName de la BaseSequence pour éviter NullReferenceException
+                'IsDefault' => false,
+                'Tag' => '', // OBLIGATOIRE même si vide
+                'Status' => 0,
+                'Note' => '',
+            ];
+
+            \Log::info('📦 [RoboTargetService] Creating Set in Voyager', [
+                'set_guid' => $target->set_guid,
                 'set_name' => "Set_{$target->target_name}",
+                'profile_name' => $profileName,
+                'url' => "{$proxyUrl}/api/robotarget/sets",
+                'payload' => $setPayload,
+            ]);
+
+            \Log::info('⏱️  [RoboTargetService] Sending POST request to proxy...');
+
+            $setResponse = $http->post("{$proxyUrl}/api/robotarget/sets", $setPayload);
+
+            \Log::info('📨 [RoboTargetService] Received response from proxy', [
+                'status' => $setResponse->status(),
+                'successful' => $setResponse->successful(),
+                'body_preview' => substr($setResponse->body(), 0, 200),
             ]);
 
             if (!$setResponse->successful()) {
+                \Log::error('❌ [RoboTargetService] Failed to create set', [
+                    'status' => $setResponse->status(),
+                    'body' => $setResponse->body(),
+                ]);
                 throw new \Exception('Failed to create set: ' . $setResponse->body());
             }
 
-            // 2. Ajouter la Target
-            $targetPayload = $target->toVoyagerPayload();
+            \Log::info('✅ [RoboTargetService] Set created in Voyager');
 
-            $targetResponse = Http::post("{$proxyUrl}/api/robotarget/targets", $targetPayload);
+            // 3. Ajouter la Target (SANS les shots)
+            $targetPayload = $target->toVoyagerPayload($baseSequenceGuid);
+            $shots = $targetPayload['Shots'] ?? [];
+            unset($targetPayload['Shots']); // Les shots seront ajoutés séparément
+
+            // Supprimer UNIQUEMENT les champs vides qui ne sont PAS obligatoires
+            // IMPORTANT: Certains champs STRING sont OBLIGATOIRES même s'ils sont vides (Voyager les requiert pour le parsing)
+            $mandatoryFields = [
+                'GuidTarget',
+                'RefGuidSet',
+                'RefGuidBaseSequence',
+                'TargetName',
+                'Tag',  // OBLIGATOIRE même si vide (string)
+                'Note', // OBLIGATOIRE même si vide (string)
+                'RAJ2000',
+                'DECJ2000',
+                'TType',
+                'TKey',  // OBLIGATOIRE même si vide (string)
+                'TName', // OBLIGATOIRE même si vide (string)
+                'C_ID',  // OBLIGATOIRE - GUID du set de contraintes
+                'C_Mask', // OBLIGATOIRE - Masque binaire des contraintes actives
+                'C_DateStart', // OBLIGATOIRE - Contrainte de date de début (0 = pas de contrainte)
+                'C_DateEnd', // OBLIGATOIRE - Contrainte de date de fin (0 = pas de contrainte)
+                'C_TimeStart', // OBLIGATOIRE - Contrainte d'heure de début (0 = pas de contrainte)
+                'C_TimeEnd', // OBLIGATOIRE - Contrainte d'heure de fin (0 = pas de contrainte)
+                'C_Mask2', // OBLIGATOIRE - Masque des contraintes secondaires spécialisées (string vide)
+                'Token', // OBLIGATOIRE - Reserved OpenSkyGems (string vide)
+            ];
+            $targetPayload = array_filter($targetPayload, function ($value, $key) use ($mandatoryFields) {
+                // Garder les champs obligatoires même s'ils sont vides
+                if (in_array($key, $mandatoryFields)) {
+                    return true;
+                }
+                // Pour les autres, supprimer si vide
+                return $value !== '' && $value !== null;
+            }, ARRAY_FILTER_USE_BOTH);
+
+            \Log::info('🎯 [RoboTargetService] Adding Target to Voyager', [
+                'url' => "{$proxyUrl}/api/robotarget/targets",
+                'payload' => $targetPayload,
+                'fields_count' => count($targetPayload),
+            ]);
+
+            \Log::info('⏱️  [RoboTargetService] Sending POST request for Target...');
+
+            $targetResponse = $http->post("{$proxyUrl}/api/robotarget/targets", $targetPayload);
+
+            \Log::info('📨 [RoboTargetService] Received Target response from proxy', [
+                'status' => $targetResponse->status(),
+                'successful' => $targetResponse->successful(),
+                'body_preview' => substr($targetResponse->body(), 0, 200),
+            ]);
 
             if (!$targetResponse->successful()) {
+                \Log::error('❌ [RoboTargetService] Failed to create target', [
+                    'status' => $targetResponse->status(),
+                    'body' => $targetResponse->body(),
+                ]);
                 throw new \Exception('Failed to create target: ' . $targetResponse->body());
             }
 
-            // 3. Activer la cible dans Voyager
-            $activateResponse = Http::put("{$proxyUrl}/api/robotarget/targets/{$target->guid}/status", [
+            \Log::info('✅ [RoboTargetService] Target created in Voyager');
+
+            // 4. Ajouter les shots
+            foreach ($shots as $index => $shot) {
+                \Log::info("📸 [RoboTargetService] Adding shot {$index} to target");
+
+                $shotResponse = $http->post("{$proxyUrl}/api/robotarget/shots", array_merge($shot, [
+                    'RefGuidTarget' => $target->guid,
+                ]));
+
+                if (!$shotResponse->successful()) {
+                    \Log::error('❌ [RoboTargetService] Failed to create shot', [
+                        'shot_index' => $index,
+                        'status' => $shotResponse->status(),
+                        'body' => $shotResponse->body(),
+                    ]);
+                    throw new \Exception("Failed to create shot {$index}: " . $shotResponse->body());
+                }
+            }
+
+            \Log::info('✅ [RoboTargetService] All shots added to target');
+
+            // 5. Activer la cible dans Voyager
+            \Log::info('⚡ [RoboTargetService] Activating target in Voyager');
+
+            $activateResponse = $http->put("{$proxyUrl}/api/robotarget/targets/{$target->guid}/status", [
                 'status' => 'active',
             ]);
 
             if (!$activateResponse->successful()) {
+                \Log::error('❌ [RoboTargetService] Failed to activate target', [
+                    'status' => $activateResponse->status(),
+                    'body' => $activateResponse->body(),
+                ]);
                 throw new \Exception('Failed to activate target: ' . $activateResponse->body());
             }
 
-            // 4. Marquer comme active dans notre DB
+            \Log::info('✅ [RoboTargetService] Target activated in Voyager');
+
+            // 6. Marquer comme active dans notre DB
             $target->markAsActive();
+
+            \Log::info('🎉 [RoboTargetService] Target fully submitted and active', [
+                'target_id' => $target->id,
+                'status' => 'active',
+            ]);
 
             return [
                 'success' => true,
@@ -140,6 +312,11 @@ class RoboTargetService
             ];
 
         } catch (\Exception $e) {
+            \Log::error('❌ [RoboTargetService] Submission failed', [
+                'target_id' => $target->id,
+                'error' => $e->getMessage(),
+            ]);
+
             // En cas d'erreur, marquer comme error et refund
             $target->markAsError();
             $target->refundCredits();

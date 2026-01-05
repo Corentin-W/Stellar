@@ -27,8 +27,8 @@ class SubscriptionController extends Controller
 
             // Historique d'utilisation des crédits
             $usageHistory = [
-                'total_used' => $user->credit_transactions()->where('type', 'hold')->sum('amount'),
-                'total_refunded' => $user->credit_transactions()->where('type', 'refund')->sum('amount'),
+                'total_used' => $user->creditTransactions()->where('type', 'hold')->sum('credits_amount'),
+                'total_refunded' => $user->creditTransactions()->where('type', 'refund')->sum('credits_amount'),
                 'current_balance' => $user->credits_balance,
             ];
         }
@@ -133,18 +133,25 @@ class SubscriptionController extends Controller
      */
     private function getDemoInvoices($subscription): array
     {
+        // Si le plan n'est pas défini, retourner un tableau vide
+        if (!$subscription->plan || !isset(Subscription::PRICES[$subscription->plan])) {
+            return [];
+        }
+
+        $price = Subscription::PRICES[$subscription->plan];
+
         return [
             [
                 'id' => 'INV-' . now()->format('Ym') . '-001',
                 'date' => now()->startOfMonth(),
-                'amount' => Subscription::PRICES[$subscription->plan],
+                'amount' => $price,
                 'status' => 'paid',
                 'description' => 'Abonnement ' . $subscription->getPlanName() . ' - ' . now()->format('F Y'),
             ],
             [
                 'id' => 'INV-' . now()->subMonth()->format('Ym') . '-001',
                 'date' => now()->subMonth()->startOfMonth(),
-                'amount' => Subscription::PRICES[$subscription->plan],
+                'amount' => $price,
                 'status' => 'paid',
                 'description' => 'Abonnement ' . $subscription->getPlanName() . ' - ' . now()->subMonth()->format('F Y'),
             ],
@@ -265,37 +272,85 @@ class SubscriptionController extends Controller
         }
 
         try {
-            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
             $session = $stripe->checkout->sessions->retrieve($sessionId);
 
             $plan = $session->metadata->plan ?? null;
+            $creditsPerMonth = $session->metadata->credits_per_month ?? Subscription::CREDITS_PER_PLAN[$plan] ?? 0;
 
-            if ($plan && !$user->subscription) {
-                // Créer notre modèle personnalisé Subscription
-                Subscription::create([
-                    'user_id' => $user->id,
-                    'type' => 'default',
+            if (!$plan) {
+                throw new \Exception('Plan non trouvé dans les métadonnées de la session');
+            }
+
+            \Log::info('Subscription success callback', [
+                'user_id' => $user->id,
+                'session_id' => $sessionId,
+                'plan' => $plan,
+                'stripe_subscription_id' => $session->subscription,
+            ]);
+
+            // Mettre à jour ou créer l'abonnement
+            $subscription = $user->subscription;
+
+            if ($subscription) {
+                // Mettre à jour l'abonnement existant
+                $oldCredits = $subscription->credits_per_month ?? 0;
+
+                $subscription->update([
                     'plan' => $plan,
-                    'credits_per_month' => Subscription::CREDITS_PER_PLAN[$plan],
+                    'credits_per_month' => $creditsPerMonth,
                     'status' => 'active',
                     'stripe_id' => $session->subscription,
                     'stripe_status' => 'active',
+                    'stripe_price' => $this->getStripePriceId($plan),
+                    'trial_ends_at' => now()->addDays(7),
+                ]);
+
+                // Ajuster les crédits si le plan a changé
+                if ($oldCredits !== $creditsPerMonth) {
+                    $user->update(['credits_balance' => $creditsPerMonth]);
+                }
+
+                \Log::info('Subscription updated', [
+                    'subscription_id' => $subscription->id,
+                    'plan' => $plan,
+                ]);
+            } else {
+                // Créer un nouvel abonnement
+                $subscription = Subscription::create([
+                    'user_id' => $user->id,
+                    'type' => 'default',
+                    'plan' => $plan,
+                    'credits_per_month' => $creditsPerMonth,
+                    'status' => 'active',
+                    'stripe_id' => $session->subscription,
+                    'stripe_status' => 'active',
+                    'stripe_price' => $this->getStripePriceId($plan),
                     'trial_ends_at' => now()->addDays(7),
                 ]);
 
                 // Ajouter les crédits initiaux
-                $user->increment('credits_balance', Subscription::CREDITS_PER_PLAN[$plan]);
+                $user->update(['credits_balance' => $creditsPerMonth]);
+
+                \Log::info('Subscription created', [
+                    'subscription_id' => $subscription->id,
+                    'plan' => $plan,
+                ]);
             }
 
             return redirect()
                 ->route('robotarget.index', ['locale' => app()->getLocale()])
-                ->with('success', 'Félicitations ! Votre abonnement est actif. Vous avez ' . Subscription::CREDITS_PER_PLAN[$plan] . ' crédits.');
+                ->with('success', "Félicitations ! Votre abonnement {$subscription->getPlanName()} est actif. Vous avez {$creditsPerMonth} crédits.");
         } catch (\Exception $e) {
-            \Log::error('Stripe Session Retrieve Error: ' . $e->getMessage());
+            \Log::error('Stripe Session Retrieve Error', [
+                'error' => $e->getMessage(),
+                'session_id' => $sessionId,
+                'user_id' => $user->id,
+            ]);
 
             return redirect()
                 ->route('subscriptions.choose', ['locale' => app()->getLocale()])
-                ->with('error', 'Erreur lors de la vérification du paiement.');
+                ->with('error', 'Erreur lors de la vérification du paiement: ' . $e->getMessage());
         }
     }
 
@@ -304,13 +359,18 @@ class SubscriptionController extends Controller
      */
     protected function getStripePriceId($plan): string
     {
-        // À configurer avec vos vrais Price IDs Stripe
-        return match($plan) {
-            Subscription::STARDUST => env('STRIPE_PRICE_STARDUST', 'price_stardust_monthly'),
-            Subscription::NEBULA => env('STRIPE_PRICE_NEBULA', 'price_nebula_monthly'),
-            Subscription::QUASAR => env('STRIPE_PRICE_QUASAR', 'price_quasar_monthly'),
+        $priceId = match($plan) {
+            Subscription::STARDUST => config('cashier.price_ids.stardust'),
+            Subscription::NEBULA => config('cashier.price_ids.nebula'),
+            Subscription::QUASAR => config('cashier.price_ids.quasar'),
             default => throw new \Exception("Plan invalide: {$plan}"),
         };
+
+        if (!$priceId) {
+            throw new \Exception("Price ID Stripe non configuré pour le plan '{$plan}'. Veuillez configurer STRIPE_PRICE_" . strtoupper($plan) . " dans votre fichier .env");
+        }
+
+        return $priceId;
     }
 
     /**
@@ -401,12 +461,66 @@ class SubscriptionController extends Controller
 
         // Mettre à jour le statut de l'abonnement
         if ($user->subscription) {
-            $user->subscription->update([
+            $updateData = [
                 'stripe_status' => $stripeSubscription->status,
-            ]);
+                'stripe_id' => $stripeSubscription->id,
+            ];
 
-            \Log::info("Subscription updated for user {$user->id}, status: {$stripeSubscription->status}");
+            // Récupérer le plan et les crédits depuis les métadonnées Stripe
+            if (isset($stripeSubscription->metadata)) {
+                $metadata = $stripeSubscription->metadata->toArray();
+
+                if (isset($metadata['plan'])) {
+                    $updateData['plan'] = $metadata['plan'];
+                }
+
+                if (isset($metadata['credits_per_month'])) {
+                    $updateData['credits_per_month'] = (int) $metadata['credits_per_month'];
+                }
+            }
+
+            // Si le plan n'est pas dans les métadonnées, essayer de le déduire du price
+            if (!isset($updateData['plan']) && isset($stripeSubscription->items->data[0]->price->id)) {
+                $priceId = $stripeSubscription->items->data[0]->price->id;
+                $updateData['stripe_price'] = $priceId;
+
+                // Mapper le price ID au plan si possible
+                $plan = $this->getPlanFromPriceId($priceId);
+                if ($plan) {
+                    $updateData['plan'] = $plan;
+                    $updateData['credits_per_month'] = Subscription::CREDITS_PER_PLAN[$plan];
+                }
+            }
+
+            $user->subscription->update($updateData);
+
+            \Log::info("Subscription updated for user {$user->id}", [
+                'status' => $stripeSubscription->status,
+                'plan' => $updateData['plan'] ?? 'unknown',
+                'credits' => $updateData['credits_per_month'] ?? 'unknown'
+            ]);
         }
+    }
+
+    /**
+     * Obtenir le plan depuis le Price ID Stripe
+     */
+    protected function getPlanFromPriceId(string $priceId): ?string
+    {
+        // Récupérer les price IDs configurés
+        $priceIds = [
+            Subscription::STARDUST => $this->getStripePriceId(Subscription::STARDUST),
+            Subscription::NEBULA => $this->getStripePriceId(Subscription::NEBULA),
+            Subscription::QUASAR => $this->getStripePriceId(Subscription::QUASAR),
+        ];
+
+        foreach ($priceIds as $plan => $configuredPriceId) {
+            if ($priceId === $configuredPriceId) {
+                return $plan;
+            }
+        }
+
+        return null;
     }
 
     /**

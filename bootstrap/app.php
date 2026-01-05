@@ -19,11 +19,21 @@ return Application::configure(basePath: dirname(__DIR__))
             'locale' => \App\Http\Middleware\LocaleMiddleware::class,
             'subscription.required' => \App\Http\Middleware\RequireActiveSubscription::class,
             'feature.access' => \App\Http\Middleware\CheckFeatureAccess::class,
+            'force.json' => \App\Http\Middleware\ForceJsonResponse::class,
         ]);
 
         // Appliquer le middleware de locale à toutes les routes web
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\LocaleMiddleware::class,
+        ]);
+
+        // Appliquer les middlewares aux routes API (incluant session pour auth:web)
+        $middleware->appendToGroup('api', [
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \Illuminate\Session\Middleware\StartSession::class,
+            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+            // ForceJsonResponse removed temporarily for debugging
         ]);
     })
     ->withEvents(discover: [

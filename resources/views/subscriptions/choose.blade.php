@@ -27,8 +27,15 @@
                     </h2>
                 </div>
                 <div class="text-right">
-                    <div class="text-4xl font-bold">{{ \App\Models\Subscription::PRICES[$currentSubscription->plan] }}€</div>
-                    <div class="text-sm opacity-80">par mois</div>
+                    @if($currentSubscription->plan && isset(\App\Models\Subscription::PRICES[$currentSubscription->plan]))
+                        <div class="text-4xl font-bold">{{ \App\Models\Subscription::PRICES[$currentSubscription->plan] }}€</div>
+                        <div class="text-sm opacity-80">par mois</div>
+                    @else
+                        <div class="text-2xl font-bold text-orange-400">Plan à synchroniser</div>
+                        <a href="{{ route('admin.stripe.index') }}" class="text-sm text-blue-300 hover:text-blue-200 underline">
+                            Synchroniser depuis Stripe
+                        </a>
+                    @endif
                 </div>
             </div>
 
