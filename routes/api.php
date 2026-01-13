@@ -28,6 +28,7 @@ Route::get('/target-templates', [App\Http\Controllers\Api\TargetTemplateControll
 Route::prefix('voyager/events')->group(function () {
     Route::post('/session-started', [VoyagerEventController::class, 'sessionStarted']);
     Route::post('/progress', [VoyagerEventController::class, 'progress']);
+    Route::post('/shot-running', [VoyagerEventController::class, 'shotRunning']);
     Route::post('/image-ready', [VoyagerEventController::class, 'imageReady']);
     Route::post('/session-completed', [VoyagerEventController::class, 'sessionCompleted']);
 });
@@ -50,6 +51,13 @@ Route::middleware([\App\Http\Middleware\LogApiAuth::class])->group(function () {
     Route::prefix('pricing')->group(function () {
         Route::post('/estimate', [PricingController::class, 'estimate']);
         Route::post('/recommend', [PricingController::class, 'recommend']);
+    });
+
+    // Notifications
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
+        Route::post('/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead']);
+        Route::post('/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']);
     });
 
     // RoboTarget

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RoboTargetSession;
 use App\Events\RoboTargetSessionStarted;
 use App\Events\RoboTargetProgress;
+use App\Events\RoboTargetShotRunning;
 use App\Events\RoboTargetImageReady;
 use App\Events\RoboTargetSessionCompleted;
 use App\Mail\RoboTargetSessionStartedMail;
@@ -22,29 +23,59 @@ class VoyagerEventController extends Controller
     public function sessionStarted(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'session_guid' => 'required|string',
+            'session_guid' => 'nullable|string',
             'target_guid' => 'nullable|string',
+            'TargetUID' => 'nullable|string', // Support for Voyager event format
+            'TargetName' => 'nullable|string',
             'voyager_data' => 'nullable|array',
         ]);
 
         try {
-            $session = RoboTargetSession::where('session_guid', $validated['session_guid'])
-                ->with('roboTarget.user')
-                ->firstOrFail();
+            // Try to find target by guid (prefer TargetUID from Voyager event)
+            $targetGuid = $validated['TargetUID'] ?? $validated['target_guid'];
 
-            // Broadcast event
-            broadcast(new RoboTargetSessionStarted(
+            if (!$targetGuid) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Missing target_guid or TargetUID'
+                ], 400);
+            }
+
+            $target = \App\Models\RoboTarget::where('guid', $targetGuid)->first();
+
+            if (!$target) {
+                Log::warning('Target not found for Voyager event', ['targetUID' => $targetGuid]);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Target not found'
+                ], 404);
+            }
+
+            // Update target status to executing
+            $target->markAsExecuting();
+
+            // Create or update session
+            $session = RoboTargetSession::updateOrCreate(
+                [
+                    'robo_target_id' => $target->id,
+                    'session_guid' => $validated['session_guid'] ?? null,
+                ],
+                [
+                    'session_start' => now(),
+                    'raw_data' => $request->all(),
+                ]
+            );
+
+            // Dispatch event (will trigger SendTargetStartedNotifications listener)
+            event(new RoboTargetSessionStarted(
                 $session,
-                $validated['voyager_data'] ?? []
+                $validated['voyager_data'] ?? $request->all()
             ));
 
-            // Send email notification
-            Mail::to($session->roboTarget->user->email)
-                ->send(new RoboTargetSessionStartedMail($session));
-
-            Log::info('Session started event broadcasted', [
+            Log::info('Session started event dispatched', [
                 'session_id' => $session->id,
-                'target' => $session->roboTarget->target_name,
+                'target' => $target->target_name,
+                'user_id' => $target->user_id,
             ]);
 
             return response()->json(['success' => true]);
@@ -52,7 +83,7 @@ class VoyagerEventController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to handle session started event', [
                 'error' => $e->getMessage(),
-                'session_guid' => $validated['session_guid'],
+                'request' => $request->all(),
             ]);
 
             return response()->json([
@@ -93,6 +124,46 @@ class VoyagerEventController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Failed to handle progress event', [
+                'error' => $e->getMessage(),
+                'session_guid' => $validated['session_guid'],
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle shot running event from Voyager Proxy (sent every second during exposure)
+     */
+    public function shotRunning(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'session_guid' => 'required|string',
+            'File' => 'nullable|string',
+            'Expo' => 'nullable|numeric',
+            'Elapsed' => 'nullable|numeric',
+            'ElapsedPerc' => 'nullable|numeric',
+            'Status' => 'nullable|integer',
+        ]);
+
+        try {
+            $session = RoboTargetSession::where('session_guid', $validated['session_guid'])
+                ->with('roboTarget')
+                ->firstOrFail();
+
+            // Broadcast shot running event
+            broadcast(new RoboTargetShotRunning(
+                $session,
+                $validated
+            ));
+
+            return response()->json(['success' => true]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to handle shot running event', [
                 'error' => $e->getMessage(),
                 'session_guid' => $validated['session_guid'],
             ]);
