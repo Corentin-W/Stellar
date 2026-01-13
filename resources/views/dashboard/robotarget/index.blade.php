@@ -168,7 +168,7 @@
         <div class="space-y-4">
             @foreach($targets as $target)
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow">
-                    <a href="{{ route('robotarget.show', $target->guid) }}" class="block p-6">
+                    <a href="{{ route('robotarget.show', ['locale' => app()->getLocale(), 'guid' => $target->guid]) }}" class="block p-6">
                         <div class="flex items-start justify-between">
                             {{-- Target Info --}}
                             <div class="flex-1">

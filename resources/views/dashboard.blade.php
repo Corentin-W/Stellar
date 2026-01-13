@@ -6,23 +6,23 @@
 <div class="p-6 lg:p-8" x-data="dashboardManager()" x-init="init()">
 
     <!-- Welcome Section -->
-    <div class="mb-8">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div class="mb-5">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             <div>
-                <h1 class="text-3xl lg:text-4xl font-bold text-white mb-2">
+                <h1 class="text-2xl lg:text-2xl font-bold text-white mb-1">
                     🌌 Bienvenue, {{ $user->name }}
                 </h1>
-                <p class="text-gray-400 text-lg">
+                <p class="text-gray-400 text-sm">
                     Votre centre de contrôle astrophotographique
                 </p>
             </div>
 
             @if($subscription && $subscription->isActive())
-            <div class="flex items-center gap-4">
-                <div class="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl px-6 py-4">
-                    <div class="text-sm text-gray-400 mb-1">Abonnement</div>
-                    <div class="text-xl font-bold text-white">{{ $subscription->getPlanName() }}</div>
-                    <div class="text-sm text-purple-300 mt-1">{{ $user->credits_balance }} crédits</div>
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg px-4 py-2.5 transition-all hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/20 group">
+                    <div class="text-[10px] text-gray-400 mb-0.5 uppercase tracking-wide font-medium">Abonnement</div>
+                    <div class="text-base font-bold text-white">{{ $subscription->getPlanName() }}</div>
+                    <div class="text-xs text-purple-300 mt-0.5">{{ $user->credits_balance }} crédits</div>
                 </div>
             </div>
             @endif
@@ -30,83 +30,83 @@
     </div>
 
     <!-- Metrics Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
         <!-- Crédits Disponibles -->
-        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 hover:border-purple-500/50 transition">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="font-semibold text-white">💰 Crédits</h3>
-                <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-md p-4 hover:border-purple-500/50 transition-all hover:shadow-lg hover:shadow-purple-500/10 group cursor-pointer">
+            <div class="flex items-center justify-between mb-2.5">
+                <h3 class="font-semibold text-white text-sm">💰 Crédits</h3>
+                <svg class="w-4 h-4 text-purple-400 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
                 </svg>
             </div>
-            <div class="text-3xl font-bold text-white mb-2">{{ number_format($user->credits_balance) }}</div>
-            <div class="text-sm text-gray-400">
+            <div class="text-2xl font-bold text-white mb-1">{{ number_format($user->credits_balance) }}</div>
+            <div class="text-xs text-gray-400">
                 @if($stats['credits_used_this_month'] > 0)
-                    <span class="text-orange-400">-{{ $stats['credits_used_this_month'] }}</span> ce mois
+                    <span class="text-orange-400 font-medium">-{{ $stats['credits_used_this_month'] }}</span> ce mois
                 @else
                     Aucune dépense ce mois
                 @endif
             </div>
             <a href="{{ route('subscriptions.manage', ['locale' => app()->getLocale()]) }}"
-               class="text-xs text-purple-400 hover:text-purple-300 mt-2 inline-block">
-                Gérer l'abonnement →
+               class="text-[10px] text-purple-400 hover:text-purple-300 mt-1.5 inline-block font-medium uppercase tracking-wide transition-transform hover:translate-x-1">
+                Gérer →
             </a>
         </div>
 
         <!-- Total Targets -->
-        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 hover:border-blue-500/50 transition">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="font-semibold text-white">🎯 Targets</h3>
-                <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-md p-4 hover:border-blue-500/50 transition-all hover:shadow-lg hover:shadow-blue-500/10 group cursor-pointer">
+            <div class="flex items-center justify-between mb-2.5">
+                <h3 class="font-semibold text-white text-sm">🎯 Targets</h3>
+                <svg class="w-4 h-4 text-blue-400 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
                 </svg>
             </div>
-            <div class="text-3xl font-bold text-white mb-2">{{ $stats['total_targets'] }}</div>
-            <div class="text-sm text-gray-400">
+            <div class="text-2xl font-bold text-white mb-1">{{ $stats['total_targets'] }}</div>
+            <div class="text-xs text-gray-400">
                 @if($stats['active_targets'] > 0)
-                    <span class="text-green-400">{{ $stats['active_targets'] }}</span> en cours
+                    <span class="text-green-400 font-medium">{{ $stats['active_targets'] }}</span> en cours
                 @else
                     Aucune active
                 @endif
             </div>
             <a href="{{ route('robotarget.index', ['locale' => app()->getLocale()]) }}"
-               class="text-xs text-blue-400 hover:text-blue-300 mt-2 inline-block">
+               class="text-[10px] text-blue-400 hover:text-blue-300 mt-1.5 inline-block font-medium uppercase tracking-wide transition-transform hover:translate-x-1">
                 Voir mes targets →
             </a>
         </div>
 
         <!-- Sessions Complétées -->
-        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 hover:border-green-500/50 transition">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="font-semibold text-white">✅ Sessions</h3>
-                <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-md p-4 hover:border-green-500/50 transition-all hover:shadow-lg hover:shadow-green-500/10 group cursor-pointer">
+            <div class="flex items-center justify-between mb-2.5">
+                <h3 class="font-semibold text-white text-sm">✅ Sessions</h3>
+                <svg class="w-4 h-4 text-green-400 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
-            <div class="text-3xl font-bold text-white mb-2">{{ $stats['completed_sessions'] }}</div>
-            <div class="text-sm text-gray-400">
+            <div class="text-2xl font-bold text-white mb-1">{{ $stats['completed_sessions'] }}</div>
+            <div class="text-xs text-gray-400">
                 Sessions complétées
             </div>
-            <div class="text-xs text-green-400 mt-2">
+            <div class="text-[10px] text-green-400 mt-1.5 font-medium">
                 {{ number_format($stats['total_exposure_seconds'] / 3600, 1) }}h d'exposition totale
             </div>
         </div>
 
         <!-- Images Capturées -->
-        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 hover:border-pink-500/50 transition">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="font-semibold text-white">📸 Images</h3>
-                <svg class="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-md p-4 hover:border-pink-500/50 transition-all hover:shadow-lg hover:shadow-pink-500/10 group cursor-pointer">
+            <div class="flex items-center justify-between mb-2.5">
+                <h3 class="font-semibold text-white text-sm">📸 Images</h3>
+                <svg class="w-4 h-4 text-pink-400 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
             </div>
-            <div class="text-3xl font-bold text-white mb-2">{{ number_format($stats['total_images']) }}</div>
-            <div class="text-sm text-gray-400">
+            <div class="text-2xl font-bold text-white mb-1">{{ number_format($stats['total_images']) }}</div>
+            <div class="text-xs text-gray-400">
                 Images acceptées
             </div>
             <a href="{{ route('robotarget.gallery', ['locale' => app()->getLocale()]) }}"
-               class="text-xs text-pink-400 hover:text-pink-300 mt-2 inline-block">
+               class="text-[10px] text-pink-400 hover:text-pink-300 mt-1.5 inline-block font-medium uppercase tracking-wide transition-transform hover:translate-x-1">
                 Voir la galerie →
             </a>
         </div>
@@ -114,41 +114,41 @@
     </div>
 
     <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
 
         <!-- Recent Sessions -->
-        <div class="lg:col-span-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
-            <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xl font-semibold text-white">📊 Dernières Sessions</h3>
+        <div class="lg:col-span-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-md p-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-semibold text-white">📊 Dernières Sessions</h3>
                 <a href="{{ route('robotarget.index', ['locale' => app()->getLocale()]) }}"
-                   class="text-sm text-blue-400 hover:text-blue-300">
-                    Voir tout
+                   class="text-xs text-blue-400 hover:text-blue-300 font-medium uppercase tracking-wide transition-transform hover:translate-x-1">
+                    Voir tout →
                 </a>
             </div>
 
             @if($recentSessions->count() > 0)
-            <div class="space-y-3">
+            <div class="space-y-2">
                 @foreach($recentSessions as $session)
-                <div class="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition group">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
-                            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <div class="flex items-center justify-between p-3 rounded-md bg-white/5 hover:bg-white/10 transition-all border border-transparent hover:border-white/20 group cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-md bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                             </svg>
                         </div>
                         <div>
-                            <h4 class="font-medium text-white">{{ $session->target->target_name }}</h4>
-                            <p class="text-gray-400 text-sm">
+                            <h4 class="font-medium text-white text-sm">{{ $session->target->target_name }}</h4>
+                            <p class="text-gray-400 text-xs">
                                 {{ $session->images_accepted }} images •
                                 {{ number_format($session->total_duration / 3600, 1) }}h
                             </p>
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="text-sm text-gray-400">
+                        <div class="text-xs text-gray-400">
                             {{ $session->completed_at->format('d/m/Y') }}
                         </div>
-                        <div class="text-xs text-green-400 mt-1">
+                        <div class="text-[10px] text-green-400 mt-0.5 font-medium">
                             ✓ Complétée
                         </div>
                     </div>
@@ -156,12 +156,12 @@
                 @endforeach
             </div>
             @else
-            <div class="text-center py-12">
-                <div class="text-6xl mb-4">🌟</div>
-                <h4 class="text-lg font-semibold text-white mb-2">Aucune session complétée</h4>
-                <p class="text-gray-400 text-sm mb-4">Créez votre première target pour commencer</p>
+            <div class="text-center py-8">
+                <div class="text-4xl mb-3">🌟</div>
+                <h4 class="text-sm font-semibold text-white mb-1">Aucune session complétée</h4>
+                <p class="text-gray-400 text-xs mb-3">Créez votre première target pour commencer</p>
                 <a href="{{ route('robotarget.create', ['locale' => app()->getLocale()]) }}"
-                   class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:opacity-90 transition">
+                   class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium text-xs rounded-md hover:opacity-90 transition">
                     ✨ Créer une Target
                 </a>
             </div>
@@ -169,17 +169,17 @@
         </div>
 
         <!-- Active Targets Sidebar -->
-        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
-            <h3 class="text-xl font-semibold text-white mb-6">🔥 Targets Actives</h3>
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-md p-4">
+            <h3 class="text-base font-semibold text-white mb-4">🔥 Targets Actives</h3>
 
             @if($activeTargets->count() > 0)
-            <div class="space-y-4">
+            <div class="space-y-2">
                 @foreach($activeTargets as $target)
-                <div class="p-4 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer"
+                <div class="p-3 rounded-md bg-white/5 hover:bg-white/10 transition-all border border-transparent hover:border-white/20 group cursor-pointer"
                      onclick="window.location='{{ route('robotarget.show', ['locale' => app()->getLocale(), 'guid' => $target->guid]) }}'">
-                    <h4 class="font-medium text-white mb-2">{{ $target->target_name }}</h4>
-                    <div class="flex items-center gap-2 text-xs text-gray-400">
-                        <span class="px-2 py-1 bg-green-500/20 text-green-400 rounded">En cours</span>
+                    <h4 class="font-medium text-white text-sm mb-1.5 group-hover:text-blue-400 transition-colors">{{ $target->target_name }}</h4>
+                    <div class="flex items-center gap-1.5 text-[10px] text-gray-400">
+                        <span class="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded font-medium">En cours</span>
                         <span>{{ $target->created_at->diffForHumans() }}</span>
                     </div>
                     @if($target->sessions()->whereNull('result')->exists())
