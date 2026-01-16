@@ -286,6 +286,9 @@
 
     </nav>
 
+    <!-- Notifications Widget -->
+    @include('layouts.partials.sidebar-notifications')
+
     <!-- User Profile Section -->
     <div class="p-2.5 border-t border-white/10">
         <div class="flex items-center gap-2 p-2 rounded-md bg-white/5 hover:bg-white/8 transition-all group cursor-pointer">

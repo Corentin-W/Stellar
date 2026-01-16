@@ -121,7 +121,13 @@
       "Bash(dir:*)",
       "Bash(powershell -Command \"Stop-Process -Id 446624 -Force\")",
       "Skill(superpowers:systematic-debugging)",
-      "Skill(superpowers:brainstorming)"
+      "Skill(superpowers:brainstorming)",
+      "Bash(php artisan make:notification:*)",
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:subagent-driven-development)",
+      "Bash(where php:*)",
+      "Bash(\"C:\\Users\\PrimaLuceLab\\.config\\herd\\bin\\php.bat\" \"C:\\Users\\PrimaLuceLab\\Desktop\\Code\\artisan\" route:list --path=voyager/events)",
+      "Bash(\"C:\\Users\\PrimaLuceLab\\.config\\herd\\bin\\php.bat\":*)"
     ]
   }
 }
