@@ -632,6 +632,120 @@ Route::get('/lang/{locale}', [LanguageController::class, 'switchLang'])
     ->where('locale', 'fr|en')
     ->name('lang.switch');
 
+// Route de diagnostic pour le problème RoboTarget 404
+Route::get('/diagnostic/robotarget/{guid}', function (string $guid) {
+    $output = "<h1>Diagnostic RoboTarget - GUID: {$guid}</h1><hr>";
+
+    // Test 1: Utilisateur authentifié?
+    $output .= "<h2>1. Test d'authentification</h2>";
+    if (Auth::check()) {
+        $user = Auth::user();
+        $output .= "✅ Utilisateur authentifié<br>";
+        $output .= "User ID: {$user->id}<br>";
+        $output .= "Email: {$user->email}<br>";
+        $output .= "Is Admin: " . ($user->is_admin ? 'Oui' : 'Non') . "<br>";
+    } else {
+        $output .= "❌ Utilisateur NON authentifié<br>";
+        $output .= "<strong>C'est probablement la cause de la 404!</strong><br>";
+        $output .= "Solution: Connectez-vous d'abord<br>";
+    }
+
+    // Test 2: Abonnement actif?
+    $output .= "<h2>2. Test d'abonnement</h2>";
+    if (Auth::check()) {
+        $user = Auth::user();
+        $subscription = $user->subscription;
+
+        if ($subscription) {
+            $output .= "✅ Abonnement trouvé<br>";
+            $output .= "Plan: {$subscription->plan}<br>";
+            $output .= "Status: {$subscription->status}<br>";
+            $output .= "Actif: " . ($subscription->isActive() ? 'Oui' : 'Non') . "<br>";
+
+            if (!$subscription->isActive()) {
+                $output .= "❌ Abonnement INACTIF<br>";
+                $output .= "<strong>Le middleware subscription.required devrait vous rediriger</strong><br>";
+            }
+        } else {
+            if ($user->is_admin) {
+                $output .= "✅ Pas d'abonnement mais vous êtes admin (bypass autorisé)<br>";
+            } else {
+                $output .= "❌ Aucun abonnement trouvé<br>";
+                $output .= "<strong>Le middleware subscription.required devrait vous rediriger</strong><br>";
+            }
+        }
+    } else {
+        $output .= "⏭️ Skipped (pas authentifié)<br>";
+    }
+
+    // Test 3: GUID existe dans la base de données?
+    $output .= "<h2>3. Test de l'existence du GUID</h2>";
+    $target = \App\Models\RoboTarget::where('guid', $guid)->first();
+
+    if ($target) {
+        $output .= "✅ Target trouvée dans la base de données<br>";
+        $output .= "ID: {$target->id}<br>";
+        $output .= "Name: {$target->target_name}<br>";
+        $output .= "User ID (propriétaire): {$target->user_id}<br>";
+        $output .= "Status: {$target->status}<br>";
+        $output .= "Created: {$target->created_at}<br>";
+
+        // Test 4: Appartient à l'utilisateur actuel?
+        $output .= "<h2>4. Test de propriété</h2>";
+        if (Auth::check()) {
+            $user = Auth::user();
+            if ($target->user_id === $user->id) {
+                $output .= "✅ Cette target vous appartient<br>";
+                $output .= "<strong>La route devrait fonctionner!</strong><br>";
+            } else {
+                $output .= "❌ Cette target appartient à un autre utilisateur<br>";
+                $output .= "Votre User ID: {$user->id}<br>";
+                $output .= "Propriétaire de la target: {$target->user_id}<br>";
+                $output .= "<strong>C'est la cause de la 404!</strong><br>";
+                $output .= "Solution: Vous ne pouvez voir que vos propres targets<br>";
+            }
+        } else {
+            $output .= "⏭️ Skipped (pas authentifié)<br>";
+        }
+    } else {
+        $output .= "❌ GUID non trouvé dans la base de données<br>";
+        $output .= "<strong>C'est probablement la cause de la 404!</strong><br>";
+        $output .= "Causes possibles:<br>";
+        $output .= "- Le GUID n'existe pas (typo dans l'URL?)<br>";
+        $output .= "- La target a été supprimée<br>";
+        $output .= "- Problème de base de données<br>";
+    }
+
+    // Test 5: Lister toutes les targets de l'utilisateur
+    $output .= "<h2>5. Vos targets disponibles</h2>";
+    if (Auth::check()) {
+        $user = Auth::user();
+        $userTargets = \App\Models\RoboTarget::where('user_id', $user->id)->get();
+
+        if ($userTargets->count() > 0) {
+            $output .= "Vous avez {$userTargets->count()} target(s):<br><ul>";
+            foreach ($userTargets as $t) {
+                $url = route('robotarget.show', ['locale' => app()->getLocale(), 'guid' => $t->guid]);
+                $output .= "<li><strong>{$t->target_name}</strong> - GUID: {$t->guid} - <a href=\"{$url}\" target=\"_blank\">Voir</a></li>";
+            }
+            $output .= "</ul>";
+        } else {
+            $output .= "Vous n'avez aucune target pour le moment<br>";
+        }
+    } else {
+        $output .= "⏭️ Skipped (pas authentifié)<br>";
+    }
+
+    // Test 6: Test de la route
+    $output .= "<h2>6. Test de la route</h2>";
+    $locale = app()->getLocale();
+    $routeUrl = route('robotarget.show', ['locale' => $locale, 'guid' => $guid]);
+    $output .= "URL générée par Laravel: <code>{$routeUrl}</code><br>";
+    $output .= "<a href=\"{$routeUrl}\" target=\"_blank\">Tester la route</a><br>";
+
+    return $output;
+})->name('diagnostic.robotarget');
+
 // Redirection des anciennes URLs sans locale
 Route::fallback(function () {
     $path = request()->path();
